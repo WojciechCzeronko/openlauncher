@@ -1,5 +1,6 @@
 package com.openlauncher.app.util
 
+import android.Manifest
 import android.content.Context
 import android.hardware.Sensor
 import android.hardware.SensorEvent
@@ -9,6 +10,8 @@ import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Bundle
+import androidx.annotation.RequiresPermission
+import androidx.core.content.ContextCompat
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlin.math.atan2
@@ -23,7 +26,7 @@ data class LocationData(
     val speedMps: Float = 0f
 )
 
-class LocationCompassManager(context: Context) {
+class LocationCompassManager(private val context: Context) {
 
     private val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
     private val sensorManager   = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
@@ -106,6 +109,7 @@ class LocationCompassManager(context: Context) {
         override fun onProviderDisabled(provider: String) {}
     }
 
+    @RequiresPermission(anyOf = [Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION])
     fun start() {
         // Sensors
         sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)?.let {
@@ -115,30 +119,37 @@ class LocationCompassManager(context: Context) {
             sensorManager.registerListener(sensorListener, it, SensorManager.SENSOR_DELAY_UI)
         }
 
-        // Location — Robust offline-first registration
-        // GPS Provider (Works 100% offline, sat-based)
-        try {
-            if (locationManager.allProviders.contains(LocationManager.GPS_PROVIDER)) {
-                locationManager.requestLocationUpdates(
-                    LocationManager.GPS_PROVIDER, 3000L, 5f, locationListener
-                )
-                locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)?.let {
-                    locationListener.onLocationChanged(it)
-                }
-            }
-        } catch (_: Exception) {}
+        val hasFine   = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        val hasCoarse = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
 
-        // Network Provider (Works online, cell/wifi-based)
-        try {
-            if (locationManager.allProviders.contains(LocationManager.NETWORK_PROVIDER)) {
-                locationManager.requestLocationUpdates(
-                    LocationManager.NETWORK_PROVIDER, 5000L, 10f, locationListener
-                )
-                locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)?.let {
-                    locationListener.onLocationChanged(it)
+        // Location — Robust offline-first registration
+        // GPS Provider (Works 100% offline, sat-based) — Requires FINE
+        if (hasFine) {
+            try {
+                if (locationManager.allProviders.contains(LocationManager.GPS_PROVIDER)) {
+                    locationManager.requestLocationUpdates(
+                        LocationManager.GPS_PROVIDER, 3000L, 5f, locationListener
+                    )
+                    locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)?.let {
+                        locationListener.onLocationChanged(it)
+                    }
                 }
-            }
-        } catch (_: Exception) {}
+            } catch (_: Exception) {}
+        }
+
+        // Network Provider (Works online, cell/wifi-based) — Requires COARSE (or FINE)
+        if (hasCoarse || hasFine) {
+            try {
+                if (locationManager.allProviders.contains(LocationManager.NETWORK_PROVIDER)) {
+                    locationManager.requestLocationUpdates(
+                        LocationManager.NETWORK_PROVIDER, 5000L, 10f, locationListener
+                    )
+                    locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)?.let {
+                        locationListener.onLocationChanged(it)
+                    }
+                }
+            } catch (_: Exception) {}
+        }
     }
 
     fun stop() {

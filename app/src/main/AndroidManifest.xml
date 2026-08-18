@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Network for weather API -->
     <uses-permission android:name="android.permission.INTERNET" />
@@ -19,7 +20,8 @@
     <uses-permission android:name="android.permission.BODY_SENSORS" />
 
     <!-- Media session control (requires notification access grant by user) -->
-    <uses-permission android:name="android.permission.MEDIA_CONTENT_CONTROL" />
+    <!-- Removed MEDIA_CONTENT_CONTROL as it is a system-only permission.
+         NotificationListenerService provides the same access for 3rd party apps. -->
 
     <!-- Wallpaper from gallery -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
@@ -27,7 +29,9 @@
         android:maxSdkVersion="32" />
 
     <!-- Query all packages required on API 30+ for getInstalledApplications -->
-    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+    <uses-permission
+        android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
 
     <!-- Required on API 30+ so PackageManager returns ALL launcher apps -->
     <queries>

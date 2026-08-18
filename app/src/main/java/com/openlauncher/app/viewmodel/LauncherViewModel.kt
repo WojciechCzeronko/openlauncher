@@ -1,5 +1,6 @@
 package com.openlauncher.app.viewmodel
 
+import android.Manifest
 import android.app.Application
 import android.content.Context
 import android.content.Intent
@@ -9,6 +10,7 @@ import android.net.NetworkCapabilities
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import androidx.annotation.RequiresPermission
 import android.provider.Settings as AndroidSettings
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -418,6 +420,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
+    @RequiresPermission(anyOf = [Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION])
     fun startLocationUpdates() = locationMgr.start()
     fun stopLocationUpdates()  = locationMgr.stop()
 

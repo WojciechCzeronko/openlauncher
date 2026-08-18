@@ -1,11 +1,13 @@
 package com.openlauncher.app
 
 import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -38,7 +40,23 @@ class MainActivity : ComponentActivity() {
     ) { granted ->
         if (granted[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
             granted[Manifest.permission.ACCESS_COARSE_LOCATION] == true) {
+            startLocationWithPermissionCheck()
+        }
+    }
+
+    private fun startLocationWithPermissionCheck() {
+        val hasFine = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        val hasCoarse = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        if (hasFine || hasCoarse) {
             vm.startLocationUpdates()
+        } else {
+            // Request permissions if missing
+            locationPermissions.launch(
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                )
+            )
         }
     }
 
@@ -121,7 +139,7 @@ class MainActivity : ComponentActivity() {
                         onComplete = {
                             vm.updateSettings { copy(onboardingCompleted = true) }
                             // Start location updates immediately upon completion
-                            vm.startLocationUpdates()
+                            startLocationWithPermissionCheck()
                         }
                     )
                 } else {
@@ -305,6 +323,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
-        vm.startLocationUpdates()
+        startLocationWithPermissionCheck()
     }
 }
