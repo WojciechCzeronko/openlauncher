@@ -14,12 +14,12 @@ val LocalDayMode = staticCompositionLocalOf { false }
 
 @Composable
 fun OpenLauncherTheme(
-    accent: Color     = AccentWhite,
-    background: Color = Black,
+    accent: Color     = Aw11Primary,
+    background: Color = Aw11Background,
     textColor: Color  = Color.White,
     fontBold: Boolean = false,
     textScale: Float  = 1.0f,
-    appFont: AppFont  = AppFont.JETBRAINS_MONO,
+    appFont: AppFont  = AppFont.DSEG14_CLASSIC,
     isDayMode: Boolean = false,
     useCustomBg: Boolean = false,
     content: @Composable () -> Unit

@@ -24,10 +24,15 @@ val SourceCodePro = FontFamily(
     Font(R.font.source_code_pro_bold,    FontWeight.Bold),
 )
 
+val DSEG14Classic = FontFamily(
+    Font(R.font.dseg14_classic_regular, FontWeight.Normal),
+)
+
 fun AppFont.toFontFamily(): FontFamily = when (this) {
     AppFont.SYSTEM          -> FontFamily.Default
     AppFont.JETBRAINS_MONO  -> JetBrainsMono
     AppFont.SOURCE_CODE_PRO -> SourceCodePro
+    AppFont.DSEG14_CLASSIC  -> DSEG14Classic
 }
 
 fun launcherTypography(bold: Boolean, scale: Float, fontFamily: FontFamily = FontFamily.Default): Typography {

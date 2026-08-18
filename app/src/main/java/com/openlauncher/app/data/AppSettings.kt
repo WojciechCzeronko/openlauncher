@@ -2,10 +2,16 @@ package com.openlauncher.app.data
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import com.openlauncher.app.ui.theme.Aw11Primary
 
 enum class ClockStyle { DIGITAL, ANALOG }
 enum class UnitSystem { METRIC, IMPERIAL }
-enum class AppFont { SYSTEM, JETBRAINS_MONO, SOURCE_CODE_PRO }
+enum class AppFont {
+    SYSTEM,
+    JETBRAINS_MONO,
+    SOURCE_CODE_PRO,
+    DSEG14_CLASSIC
+}
 enum class DayNightMode { DARK, LIGHT, AUTO, SYSTEM }
 enum class SidebarPosition { LEFT, RIGHT, BOTTOM }
 enum class GradientDirection { TOP_TO_BOTTOM, LEFT_TO_RIGHT, DIAGONAL, RADIAL }
@@ -63,17 +69,17 @@ data class WidgetConfig(
 )
 
 data class AppSettings(
-    val vehicleName: String = "MY CAR",
-    val accentColor: Int = Color.White.toArgb(),
+    val vehicleName: String = "MR2 AW11",
+    val accentColor: Int = Aw11Primary.toArgb(),
     val backgroundColor: Int = Color.Black.toArgb(),
-    val fontColor: Int = Color.White.toArgb(),
+    val fontColor: Int = Aw11Primary.toArgb(),
     val wallpaperUri: String = "",
     val fontBold: Boolean = false,
     val textScale: Float = 1.2f,
     val uiScale: Float = 1.0f,
     val clockStyle: ClockStyle = ClockStyle.DIGITAL,
     val unitSystem: UnitSystem = UnitSystem.METRIC,
-    val appFont: AppFont = AppFont.JETBRAINS_MONO,
+    val appFont: AppFont = AppFont.DSEG14_CLASSIC,
     val showWeather: Boolean = true,
     val showClock: Boolean = true,
     val showTelemetry: Boolean = true,

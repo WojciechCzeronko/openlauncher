@@ -17,5 +17,31 @@ val AccentGreen = Color(0xFF00E676)
 val AccentAmber = Color(0xFFFFAB00)
 val AccentRed   = Color(0xFFFF1744)
 
-val accentPresets      = listOf(AccentBlack, AccentWhite, AccentBlue, AccentGreen, AccentAmber, AccentRed)
-val accentPresetLabels = listOf("Black", "White", "Blue", "Green", "Amber", "Red")
+// AW11 retro LCD theme
+val Aw11Background = Color(0xFF050600)
+val Aw11Primary    = Color(0xFFD7E800)
+val Aw11Secondary  = Color(0xFF8A9300)
+val Aw11Dim        = Color(0xFF555900)
+val Aw11Border     = Color(0xFF626900)
+val Aw11Warning    = Color(0xFFFFAA00)
+
+val accentPresets = listOf(
+    AccentBlack,
+    AccentWhite,
+    AccentBlue,
+    AccentGreen,
+    AccentAmber,
+    AccentRed,
+    Aw11Primary
+)
+
+val accentPresetLabels = listOf(
+    "Black",
+    "White",
+    "Blue",
+    "Green",
+    "Amber",
+    "Red",
+    "AW11 LCD"
+)
+

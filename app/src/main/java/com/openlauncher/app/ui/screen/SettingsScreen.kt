@@ -38,6 +38,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import com.openlauncher.app.ui.components.ColorPickerDialog
 import com.openlauncher.app.ui.components.ConfirmDialog
+import com.openlauncher.app.ui.theme.Aw11Background
+import com.openlauncher.app.ui.theme.JetBrainsMono
 
 // Resolved at call site via LocalDayMode — see SettingsDivider / SettingsSection
 
@@ -480,7 +482,7 @@ fun SettingsScreen(
                                 onUpdate {
                                     copy(
                                         useCustomBackgroundColor = false,
-                                        backgroundColor = Color.Black.toArgb(),
+                                        backgroundColor = Aw11Background.toArgb(),
                                         useGradient = false
                                     )
                                 }
@@ -894,10 +896,31 @@ private fun SettingsRow(
     ) {
         Icon(icon, null, tint = iconTint, modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(14.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(label, style = MaterialTheme.typography.bodyMedium, color = labelColor, fontSize = 13.sp)
-            if (sublabel.isNotEmpty())
-                Text(sublabel, style = MaterialTheme.typography.labelSmall, color = subColor, fontSize = 11.sp)
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontFamily = JetBrainsMono,
+                    fontSize = 13.sp,
+                    lineHeight = 16.sp
+                ),
+                color = labelColor
+            )
+
+            if (sublabel.isNotEmpty()) {
+                Text(
+                    text = sublabel,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontFamily = JetBrainsMono,
+                        fontSize = 10.sp,
+                        lineHeight = 13.sp
+                    ),
+                    color = subColor
+                )
+            }
         }
         content()
     }
@@ -983,4 +1006,5 @@ private fun fontDisplayName(font: AppFont): String = when (font) {
     AppFont.SYSTEM          -> "System"
     AppFont.JETBRAINS_MONO  -> "JetBrains Mono"
     AppFont.SOURCE_CODE_PRO -> "Source Code Pro"
+    AppFont.DSEG14_CLASSIC  -> "DSEG14 Classic"
 }
