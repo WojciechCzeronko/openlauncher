@@ -39,11 +39,15 @@ import com.openlauncher.app.data.ClockStyle
 import com.openlauncher.app.data.computeWidgetMove
 import com.openlauncher.app.data.GRID_COLS
 import com.openlauncher.app.data.GRID_ROWS
+import com.openlauncher.app.data.UnitSystem
 import com.openlauncher.app.data.WidgetConfig
 import com.openlauncher.app.model.NowPlayingState
 import com.openlauncher.app.model.WeatherState
 import com.openlauncher.app.ui.theme.Aw11Border
 import com.openlauncher.app.ui.theme.Aw11Dim
+import com.openlauncher.app.ui.theme.Aw11Primary
+import com.openlauncher.app.ui.theme.Aw11Secondary
+import com.openlauncher.app.ui.theme.DSEG14Classic
 import com.openlauncher.app.ui.theme.LocalDayMode
 import com.openlauncher.app.ui.widget.*
 import java.util.Calendar
@@ -94,6 +98,156 @@ private fun canAddWidget(settings: com.openlauncher.app.data.AppSettings): Boole
     // Also true if any active widget spans >1 cell and can be shrunk to make room
     val hasShrinkable = activeWidgets.any { it.spanX * it.spanY > 1 }
     return hasFreeCell || hasShrinkable
+}
+
+@Composable
+private fun Aw11HomeLayout(
+    location: LocationData?,
+    isMetric: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val speedDisplay =
+        ((location?.speedMps ?: 0f) * if (isMetric) 3.6f else 2.237f)
+            .coerceAtLeast(0f)
+
+    val unitLabel = if (isMetric) "KM/H" else "MPH"
+
+    val speedBarMax = if (isMetric) 150f else 93f
+    val speedProgress = (speedDisplay / speedBarMax).coerceIn(0f, 1f)
+    Row(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(3.dp)
+    ) {
+        // LEFT — NAV / MUSIC / CAR / APPS / SETTINGS
+        Box(
+            modifier = Modifier
+                .weight(0.13f)
+                .fillMaxHeight()
+                .border(1.dp, Aw11Border.copy(alpha = 0.45f))
+        )
+
+        Spacer(Modifier.width(3.dp))
+
+        // CENTER — NAVIGATION / MAP
+        Box(
+            modifier = Modifier
+                .weight(0.55f)
+                .fillMaxHeight()
+                .border(1.dp, Aw11Border.copy(alpha = 0.45f))
+        )
+
+        Spacer(Modifier.width(3.dp))
+
+        // RIGHT — SPEED / MUSIC / CAR DATA
+        Column(
+            modifier = Modifier
+                .weight(0.32f)
+                .fillMaxHeight()
+        ) {
+            // SPEED
+            Box(
+                modifier = Modifier
+                    .weight(0.28f)
+                    .fillMaxWidth()
+                    .border(1.dp, Aw11Border.copy(alpha = 0.45f))
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(12.dp)
+                ) {
+                    Text(
+                        text = "SPEED",
+                        color = Aw11Primary,
+                        fontSize = 12.sp,
+                        letterSpacing = 1.5.sp
+                    )
+
+                    Spacer(Modifier.weight(1f))
+
+                    Row(
+                        verticalAlignment = Alignment.Bottom
+                    ) {
+                        Text(
+                            text = "%03.0f".format(speedDisplay),
+                            color = Aw11Primary,
+                            fontFamily = DSEG14Classic,
+                            fontSize = 54.sp
+                        )
+
+                        Spacer(Modifier.width(10.dp))
+
+                        Text(
+                            text = unitLabel,
+                            color = Aw11Secondary,
+                            fontSize = 14.sp,
+                            modifier = Modifier.padding(bottom = 6.dp)
+                        )
+                    }
+
+                    Spacer(Modifier.height(8.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        repeat(6) {
+                            Box(
+                                modifier = Modifier
+                                    .width(1.dp)
+                                    .height(4.dp)
+                                    .background(Aw11Secondary.copy(alpha = 0.55f))
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.height(3.dp))
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        repeat(20) { index ->
+                            val active = index < (speedProgress * 20f).toInt()
+
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                                    .background(
+                                        if (active) Aw11Primary
+                                        else Aw11Dim.copy(alpha = 0.35f)
+                                    )
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(3.dp))
+
+            // MUSIC
+            Box(
+                modifier = Modifier
+                    .weight(0.32f)
+                    .fillMaxWidth()
+                    .border(1.dp, Aw11Border.copy(alpha = 0.45f))
+            )
+
+            Spacer(Modifier.height(3.dp))
+
+            // CAR DATA
+            Box(
+                modifier = Modifier
+                    .weight(0.40f)
+                    .fillMaxWidth()
+                    .border(1.dp, Aw11Border.copy(alpha = 0.45f))
+            )
+        }
+    }
 }
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
@@ -164,6 +318,13 @@ fun HomeScreen(
     val isLandscape      = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     var editMode         by remember { mutableStateOf(false) }
     var widgetLibraryOpen by remember { mutableStateOf(false) }
+
+    Aw11HomeLayout(
+        location = location,
+        isMetric = settings.unitSystem == UnitSystem.METRIC,
+        modifier = modifier
+    )
+    return
 
     Column(modifier = modifier.fillMaxSize()) {
 
