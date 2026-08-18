@@ -1,5 +1,6 @@
 package com.openlauncher.app.ui.screen
 
+import android.annotation.SuppressLint
 import android.content.res.Configuration
 import androidx.compose.animation.*
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -41,6 +42,8 @@ import com.openlauncher.app.data.GRID_ROWS
 import com.openlauncher.app.data.WidgetConfig
 import com.openlauncher.app.model.NowPlayingState
 import com.openlauncher.app.model.WeatherState
+import com.openlauncher.app.ui.theme.Aw11Border
+import com.openlauncher.app.ui.theme.Aw11Dim
 import com.openlauncher.app.ui.theme.LocalDayMode
 import com.openlauncher.app.ui.widget.*
 import java.util.Calendar
@@ -93,6 +96,7 @@ private fun canAddWidget(settings: com.openlauncher.app.data.AppSettings): Boole
     return hasFreeCell || hasShrinkable
 }
 
+@SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
 fun HomeScreen(
     settings: AppSettings,
@@ -136,17 +140,18 @@ fun HomeScreen(
     modifier: Modifier = Modifier
 ) {
     val accent       = Color(settings.accentColor)
-    val gap          = 6.dp
+    val gap          = 3.dp
     val hasWallpaper = settings.wallpaperUri.isNotEmpty()
-    val widgetBg     = when {
+    val widgetBg = when {
         isDayMode    -> Color(0xFFFFFFFF)
         hasWallpaper -> Color(0xCC000000)
         else         -> Color.Black.copy(alpha = 0.35f)
     }
+
     val widgetBorder = when {
         isDayMode    -> Color(0xFFCCCCCC)
         hasWallpaper -> Color(0x22FFFFFF)
-        else         -> MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f)
+        else         -> Aw11Border.copy(alpha = 0.45f)
     }
     val headerTextColor   = if (isDayMode) Color(0xFF111111) else accent
     val statusIconColor   = if (isDayMode) Color(0xFF444444) else Color(0xFF666666)
@@ -339,7 +344,7 @@ fun HomeScreen(
                         .clip(WIDGET_RADIUS)
                         .background(if (isGhost) Color.Transparent else widgetBg)
                         .border(
-                            width = if (editMode) 1.5.dp else 1.dp,
+                            width = if (editMode) 1.5.dp else 0.8.dp,
                             color = when {
                                 editMode -> accent.copy(alpha = 0.45f)
                                 isGhost  -> Color.Transparent

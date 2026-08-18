@@ -35,6 +35,10 @@ fun AppFont.toFontFamily(): FontFamily = when (this) {
     AppFont.DSEG14_CLASSIC  -> DSEG14Classic
 }
 
+val DSEGWeather = FontFamily(
+    Font(R.font.dseg_weather, FontWeight.Normal),
+)
+
 fun launcherTypography(bold: Boolean, scale: Float, fontFamily: FontFamily = FontFamily.Default): Typography {
     val weight = if (bold) FontWeight.Bold else FontWeight.Normal
     return Typography(

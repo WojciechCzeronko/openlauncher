@@ -17,6 +17,9 @@ import kotlinx.coroutines.delay
 import java.util.*
 import kotlin.math.cos
 import kotlin.math.sin
+import com.openlauncher.app.ui.theme.Aw11Primary
+import com.openlauncher.app.ui.theme.Aw11Secondary
+import com.openlauncher.app.ui.theme.DSEG14Classic
 
 import androidx.compose.material3.MaterialTheme
 
@@ -59,15 +62,18 @@ private fun DigitalClock(cal: Calendar, contentColor: Color, subColor: Color) {
     ) {
         Text(
             text          = "%02d:%02d".format(hour, minute),
-            color         = contentColor,
+            color         = Aw11Primary,
+            fontFamily    = DSEG14Classic,
             fontSize      = 48.sp,
-            fontWeight    = androidx.compose.ui.text.font.FontWeight.Light,
-            letterSpacing = 1.sp
+            letterSpacing = 1.sp,
+            modifier      = Modifier.offset(x = (-4).dp)
         )
+
         Text(
-            text     = buildDateString(cal),
-            color    = subColor,
-            fontSize = 12.sp
+            text          = buildDateString(cal),
+            color         = Aw11Secondary,
+            fontSize      = 12.sp,
+            letterSpacing = 1.2.sp
         )
     }
 }
@@ -178,10 +184,18 @@ private fun shortDateString(cal: Calendar): String {
 }
 
 private fun buildDateString(cal: Calendar): String {
-    val days   = arrayOf("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
-    val months = arrayOf("January", "February", "March", "April", "May", "June",
-                         "July", "August", "September", "October", "November", "December")
-    return "${days[cal.get(Calendar.DAY_OF_WEEK) - 1]}, ${months[cal.get(Calendar.MONTH)]} ${cal.get(Calendar.DAY_OF_MONTH)}"
+    val days = arrayOf("SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT")
+    val months = arrayOf(
+        "JAN", "FEB", "MAR", "APR", "MAY", "JUN",
+        "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"
+    )
+
+    return "%s %02d %s %04d".format(
+        days[cal.get(Calendar.DAY_OF_WEEK) - 1],
+        cal.get(Calendar.DAY_OF_MONTH),
+        months[cal.get(Calendar.MONTH)],
+        cal.get(Calendar.YEAR)
+    )
 }
 
 fun clockTimeLabel(cal: Calendar): String = when (cal.get(Calendar.HOUR_OF_DAY)) {

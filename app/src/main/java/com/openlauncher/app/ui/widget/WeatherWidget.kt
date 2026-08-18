@@ -11,6 +11,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.openlauncher.app.model.WeatherState
+import com.openlauncher.app.ui.theme.DSEGWeather
 
 @Composable
 fun WeatherWidget(
@@ -31,10 +32,12 @@ fun WeatherWidget(
                 horizontalAlignment = Alignment.Start
             ) {
                 Text(
-                    text     = state.conditionIcon,
-                    fontSize = 34.sp
+                    text       = dsegWeatherGlyph(state.weatherCode, state.isDay),
+                    color      = accent,
+                    fontFamily = DSEGWeather,
+                    fontSize   = 84.sp
                 )
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(0.dp))
                 Text(
                     text       = state.temperatureDisplay(metric),
                     color      = contentColor,
@@ -51,4 +54,18 @@ fun WeatherWidget(
             }
         }
     }
+}
+
+private fun dsegWeatherGlyph(code: Int, isDay: Boolean): String = when (code) {
+    0 -> if (isDay) "1" else "0"      // clear / night
+    1, 2 -> "9"                       // sun + cloud
+    3 -> "2"                          // cloud
+    45, 48 -> "2"                     // fog -> cloud fallback
+    51, 53, 55 -> "3"                 // rain / drizzle
+    61, 63, 65 -> "3"                 // rain
+    71, 73, 75 -> "5"                 // snow
+    80, 81, 82 -> "3"                 // showers
+    95 -> "8"                         // thunder
+    96, 99 -> "6"                     // thunder + rain
+    else -> "2"
 }
