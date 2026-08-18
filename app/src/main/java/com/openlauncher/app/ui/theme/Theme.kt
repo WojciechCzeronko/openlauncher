@@ -19,7 +19,7 @@ fun OpenLauncherTheme(
     textColor: Color  = Color.White,
     fontBold: Boolean = false,
     textScale: Float  = 1.0f,
-    appFont: AppFont  = AppFont.DSEG14_CLASSIC,
+    appFont: AppFont  = AppFont.JETBRAINS_MONO,
     isDayMode: Boolean = false,
     useCustomBg: Boolean = false,
     content: @Composable () -> Unit

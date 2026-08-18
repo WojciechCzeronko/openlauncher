@@ -14,6 +14,10 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.openlauncher.app.ui.theme.Aw11Dim
+import com.openlauncher.app.ui.theme.Aw11Primary
+import com.openlauncher.app.ui.theme.Aw11Secondary
+import com.openlauncher.app.ui.theme.DSEG14Classic
 import com.openlauncher.app.util.LocationData
 import kotlin.math.cos
 import kotlin.math.sin
@@ -49,16 +53,20 @@ fun SpeedometerWidget(
                 modifier            = Modifier.fillMaxSize()
             ) {
                 Text(
-                    text          = "%.0f".format(speedDisplay),
-                    color         = contentColor,
+                    text          = "%03.0f".format(speedDisplay),
+                    color = if (isDayMode) contentColor else Aw11Primary,
+                    fontFamily    = DSEG14Classic,
                     fontSize      = 54.sp,
-                    fontWeight    = androidx.compose.ui.text.font.FontWeight.SemiBold,
-                    letterSpacing = (-1.5).sp
+                    letterSpacing = (-0.5).sp
                 )
                 Spacer(Modifier.height(2.dp))
                 Text(
                     text          = unitLabel,
-                    color         = contentColor.copy(alpha = subAlpha * 1.5f),
+                    color = if (isDayMode) {
+                        contentColor.copy(alpha = subAlpha)
+                    } else {
+                        Aw11Secondary
+                    },
                     fontSize      = 10.sp,
                     fontWeight    = androidx.compose.ui.text.font.FontWeight.Bold,
                     letterSpacing = 2.sp
@@ -69,7 +77,7 @@ fun SpeedometerWidget(
                 val cx    = size.width  / 2f
                 val cy    = size.height / 2f
                 val arcR  = minOf(size.width, size.height) * 0.37f
-                val trackW = arcR * 0.13f
+                val trackW = arcR * 0.055f
                 val startAngle    = 150f
                 val sweepTotal    = 240f
                 val progressSweep = (speedDisplay / maxSpeed).coerceIn(0f, 1f) * sweepTotal
@@ -78,24 +86,28 @@ fun SpeedometerWidget(
                 val sz   = Size(arcR * 2f, arcR * 2f)
 
                 drawArc(
-                    color      = contentColor.copy(alpha = trackAlpha),
+                    color = if (isDayMode) {
+                        contentColor.copy(alpha = trackAlpha)
+                    } else {
+                        Aw11Dim.copy(alpha = 0.55f)
+                    },
                     startAngle = startAngle,
                     sweepAngle = sweepTotal,
                     useCenter  = false,
                     topLeft    = tl,
                     size       = sz,
-                    style      = Stroke(width = trackW, cap = StrokeCap.Round)
+                    style      = Stroke(width = trackW, cap = StrokeCap.Butt)
                 )
 
                 if (progressSweep > 0.5f) {
                     drawArc(
-                        color      = accent,
+                        color = if (isDayMode) accent else Aw11Primary,
                         startAngle = startAngle,
                         sweepAngle = progressSweep,
                         useCenter  = false,
                         topLeft    = tl,
                         size       = sz,
-                        style      = Stroke(width = trackW, cap = StrokeCap.Round)
+                        style      = Stroke(width = trackW, cap = StrokeCap.Butt)
                     )
                 }
 
@@ -119,14 +131,19 @@ fun SpeedometerWidget(
                 modifier            = Modifier.offset(y = (-4).dp)
             ) {
                 Text(
-                    text          = "%.0f".format(speedDisplay),
-                    color         = contentColor,
+                    text          = "%03.0f".format(speedDisplay),
+                    color = if (isDayMode) contentColor else Aw11Primary,
+                    fontFamily    = DSEG14Classic,
                     fontSize      = 34.sp,
-                    letterSpacing = (-1).sp
+                    letterSpacing = 0.sp
                 )
                 Text(
                     text          = unitLabel,
-                    color         = contentColor.copy(alpha = subAlpha),
+                    color = if (isDayMode) {
+                        contentColor.copy(alpha = subAlpha)
+                    } else {
+                        Aw11Secondary
+                    },
                     fontSize      = 8.sp,
                     letterSpacing = 2.sp
                 )

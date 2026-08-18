@@ -79,7 +79,7 @@ data class AppSettings(
     val uiScale: Float = 1.0f,
     val clockStyle: ClockStyle = ClockStyle.DIGITAL,
     val unitSystem: UnitSystem = UnitSystem.METRIC,
-    val appFont: AppFont = AppFont.DSEG14_CLASSIC,
+    val appFont: AppFont = AppFont.JETBRAINS_MONO,
     val showWeather: Boolean = true,
     val showClock: Boolean = true,
     val showTelemetry: Boolean = true,
