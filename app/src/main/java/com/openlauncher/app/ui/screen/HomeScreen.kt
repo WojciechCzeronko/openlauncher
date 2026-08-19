@@ -2,13 +2,23 @@ package com.openlauncher.app.ui.screen
 
 import android.annotation.SuppressLint
 import android.content.res.Configuration
+import android.media.MediaMetadata
+import android.media.session.PlaybackState
+import android.os.SystemClock
 import androidx.compose.animation.*
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -52,6 +62,7 @@ import com.openlauncher.app.ui.theme.LocalDayMode
 import com.openlauncher.app.ui.widget.*
 import java.util.Calendar
 import com.openlauncher.app.util.LocationData
+import kotlinx.coroutines.delay
 
 private val WIDGET_RADIUS = RoundedCornerShape(0.dp)
 
@@ -104,6 +115,10 @@ private fun canAddWidget(settings: com.openlauncher.app.data.AppSettings): Boole
 private fun Aw11HomeLayout(
     location: LocationData?,
     isMetric: Boolean,
+    nowPlaying: NowPlayingState?,
+    onPrev: () -> Unit,
+    onPlayPause: () -> Unit,
+    onNext: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val speedDisplay =
@@ -235,7 +250,258 @@ private fun Aw11HomeLayout(
                     .weight(0.32f)
                     .fillMaxWidth()
                     .border(1.dp, Aw11Border.copy(alpha = 0.45f))
-            )
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(12.dp)
+                ) {
+                    Text(
+                        text = "MUSIC",
+                        color = Aw11Primary,
+                        fontSize = 12.sp,
+                        letterSpacing = 1.5.sp
+                    )
+
+                    Spacer(Modifier.weight(1f))
+
+                    if (nowPlaying != null) {
+                        val controller = nowPlaying.controller
+                        val playbackState = controller?.playbackState
+                        val canSkipPrevious =
+                            playbackState != null &&
+                                    (playbackState.actions and PlaybackState.ACTION_SKIP_TO_PREVIOUS) != 0L
+
+                        val canSkipNext =
+                            playbackState != null &&
+                                    (playbackState.actions and PlaybackState.ACTION_SKIP_TO_NEXT) != 0L
+                        val actions = playbackState?.actions ?: 0L
+
+                        val canPlay =
+                            (actions and PlaybackState.ACTION_PLAY) != 0L ||
+                                    (actions and PlaybackState.ACTION_PLAY_PAUSE) != 0L
+
+                        val canPause =
+                            (actions and PlaybackState.ACTION_PAUSE) != 0L ||
+                                    (actions and PlaybackState.ACTION_PLAY_PAUSE) != 0L
+
+                        val canPlayPause =
+                            if (nowPlaying.isPlaying) canPause else canPlay
+                        val canSeek =
+                            playbackState != null &&
+                                    (playbackState.actions and PlaybackState.ACTION_SEEK_TO) != 0L
+                        val progressColor =
+                            if (canSeek) Aw11Primary
+                            else Aw11Secondary
+                        val durationMs =
+                            controller?.metadata?.getLong(MediaMetadata.METADATA_KEY_DURATION) ?: 0L
+
+                        var currentPositionMs by remember(
+                            nowPlaying.title,
+                            nowPlaying.artist,
+                            nowPlaying.isPlaying
+                        ) {
+                            mutableLongStateOf(playbackState?.position ?: 0L)
+                        }
+
+                        LaunchedEffect(
+                            nowPlaying.title,
+                            nowPlaying.artist,
+                            nowPlaying.isPlaying
+                        ) {
+                            while (true) {
+                                val state = controller?.playbackState
+
+                                currentPositionMs = if (
+                                    state != null &&
+                                    state.state == PlaybackState.STATE_PLAYING
+                                ) {
+                                    val elapsedSinceUpdate =
+                                        SystemClock.elapsedRealtime() - state.lastPositionUpdateTime
+
+                                    (
+                                            state.position +
+                                                    elapsedSinceUpdate * state.playbackSpeed
+                                            ).toLong()
+                                        .coerceAtLeast(0L)
+                                        .coerceAtMost(durationMs)
+                                } else {
+                                    state?.position ?: 0L
+                                }
+
+                                delay(500)
+                            }
+                        }
+                        val progress = if (durationMs > 0L) {
+                            (currentPositionMs.toFloat() / durationMs.toFloat())
+                                .coerceIn(0f, 1f)
+                        } else {
+                            0f
+                        }
+
+                        fun formatTime(ms: Long): String {
+                            val totalSeconds = ms / 1000
+                            val minutes = totalSeconds / 60
+                            val seconds = totalSeconds % 60
+
+                            return "%02d:%02d".format(minutes, seconds)
+                        }
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                //artist
+                                Text(
+                                    text = nowPlaying.artist.uppercase(),
+                                    color = Aw11Secondary,
+                                    fontSize = 11.sp,
+                                    letterSpacing = 1.sp,
+                                    maxLines = 1
+                                )
+
+                                //title
+                                Text(
+                                    text = nowPlaying.title.uppercase(),
+                                    color = Aw11Primary,
+                                    fontSize = 15.sp,
+                                    letterSpacing = 0.8.sp,
+                                    maxLines = 1
+                                )
+                                Spacer(Modifier.height(12.dp))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .clickable(enabled = canSkipPrevious) { onPrev() },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = "⏮",
+                                            color = if (canSkipPrevious) Aw11Secondary else Aw11Dim,
+                                            fontSize = 17.sp
+                                        )
+                                    }
+
+                                    Box(
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .clickable(enabled = canPlayPause) { onPlayPause() },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = if (nowPlaying.isPlaying) "Ⅱ" else "▶",
+                                            color = if (canPlayPause) Aw11Primary else Aw11Dim,
+                                            fontSize = 18.sp,
+                                            modifier = Modifier.offset(y = 2.dp)
+                                        )
+                                    }
+
+                                    Box(
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .clickable(enabled = canSkipNext) { onNext() },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = "⏭",
+                                            color = if (canSkipNext) Aw11Secondary else Aw11Dim,
+                                            fontSize = 17.sp
+                                        )
+                                    }
+                                }
+                                Spacer(Modifier.height(10.dp))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    //elapsed time
+                                    Text(
+                                        text = formatTime(currentPositionMs),
+                                        color = Aw11Secondary,
+                                        fontSize = 9.sp
+                                    )
+
+                                    Spacer(Modifier.width(8.dp))
+
+                                    //progress bar
+                                    Row(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(12.dp)
+                                            .pointerInput(durationMs, canSeek) {
+                                                detectTapGestures { offset ->
+                                                    if (canSeek && durationMs > 0L && size.width > 0) {
+                                                        val progress =
+                                                            (offset.x / size.width.toFloat())
+                                                                .coerceIn(0f, 1f)
+
+                                                        val newPosition =
+                                                            (durationMs * progress).toLong()
+
+                                                        controller
+                                                            ?.transportControls
+                                                            ?.seekTo(newPosition)
+                                                    }
+                                                }
+                                            },
+                                        horizontalArrangement = Arrangement.spacedBy(1.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        repeat(24) { index ->
+                                            val active = index < (progress * 24f).toInt()
+
+                                            Box(
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .height(5.dp)
+                                                    .background(
+                                                        if (active) progressColor
+                                                        else Aw11Dim.copy(alpha = 0.35f)
+                                                    )
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(Modifier.width(8.dp))
+
+                                    //total time
+                                    Text(
+                                        text = formatTime(durationMs),
+                                        color = Aw11Secondary,
+                                        fontSize = 9.sp
+                                    )
+                                }
+                                Spacer(Modifier.height(10.dp))
+
+                                RetroEqualizer(
+                                    isPlaying = nowPlaying?.isPlaying == true,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(34.dp)
+                                )
+                            }
+                        }
+                    } else {
+                        Text(
+                            text = "NO MEDIA",
+                            color = Aw11Dim,
+                            fontSize = 11.sp,
+                            letterSpacing = 1.5.sp
+                        )
+                    }
+
+                    Spacer(Modifier.weight(1f))
+                }
+            }
 
             Spacer(Modifier.height(3.dp))
 
@@ -246,6 +512,81 @@ private fun Aw11HomeLayout(
                     .fillMaxWidth()
                     .border(1.dp, Aw11Border.copy(alpha = 0.45f))
             )
+        }
+    }
+}
+
+@Composable
+private fun RetroEqualizer(
+    isPlaying: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val transition = rememberInfiniteTransition(
+        label = "retro_equalizer"
+    )
+
+    val phase by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(
+                durationMillis = 900,
+                easing = LinearEasing
+            ),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "equalizer_phase"
+    )
+
+    val levels = if (isPlaying) {
+        listOf(
+            2 + ((phase * 5).toInt() % 5),
+            4 + ((phase * 7).toInt() % 3),
+            3 + ((phase * 9).toInt() % 4),
+            5 + ((phase * 6).toInt() % 2),
+            2 + ((phase * 8).toInt() % 5),
+            4 + ((phase * 11).toInt() % 3),
+            3 + ((phase * 5).toInt() % 4),
+            5 + ((phase * 9).toInt() % 2),
+            3 + ((phase * 7).toInt() % 4),
+            2 + ((phase * 10).toInt() % 5),
+            4 + ((phase * 6).toInt() % 3),
+            3 + ((phase * 8).toInt() % 4)
+        )
+    } else {
+        List(12) { 1 }
+    }
+
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
+        verticalAlignment = Alignment.Bottom
+    ) {
+        levels.forEach { level ->
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
+                verticalArrangement = Arrangement.Bottom
+            ) {
+                repeat(7) { segment ->
+                    val active = segment < level
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .padding(vertical = 1.dp)
+                            .background(
+                                if (active) {
+                                    Aw11Primary.copy(alpha = 0.85f)
+                                } else {
+                                    Aw11Dim.copy(alpha = 0.25f)
+                                }
+                            )
+                    )
+                }
+            }
         }
     }
 }
@@ -322,6 +663,10 @@ fun HomeScreen(
     Aw11HomeLayout(
         location = location,
         isMetric = settings.unitSystem == UnitSystem.METRIC,
+        nowPlaying = nowPlaying,
+        onPrev = onPrev,
+        onPlayPause = onPlayPause,
+        onNext = onNext,
         modifier = modifier
     )
     return
