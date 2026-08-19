@@ -114,6 +114,7 @@ private fun canAddWidget(settings: com.openlauncher.app.data.AppSettings): Boole
 @Composable
 private fun Aw11HomeLayout(
     location: LocationData?,
+    bearing: Float,
     isMetric: Boolean,
     nowPlaying: NowPlayingState?,
     onPrev: () -> Unit,
@@ -511,7 +512,64 @@ private fun Aw11HomeLayout(
                     .weight(0.40f)
                     .fillMaxWidth()
                     .border(1.dp, Aw11Border.copy(alpha = 0.45f))
-            )
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(12.dp)
+                ) {
+                    Text(
+                        text = "TRIP DATA",
+                        color = Aw11Primary,
+                        fontSize = 12.sp,
+                        letterSpacing = 1.5.sp
+                    )
+
+                    Spacer(Modifier.height(8.dp))
+
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                    ) {
+                        Aw11DataCell(
+                            label = "ALTITUDE",
+                            value = if (location != null)
+                                "${location.altitude.toInt()} M"
+                            else
+                                "--- M",
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        Aw11DataCell(
+                            label = "HEADING",
+                            value = "%03.0f°".format(bearing),
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    Spacer(Modifier.height(3.dp))
+
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                    ) {
+                        Aw11DataCell(
+                            label = "SPEED",
+                            value = "%03.0f".format(speedDisplay),
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        Aw11DataCell(
+                            label = "GPS ACC",
+                            value = if (location != null)
+                                "${location.accuracy.toInt()} M"
+                            else
+                                "-- M",
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -591,6 +649,38 @@ private fun RetroEqualizer(
     }
 }
 
+@Composable
+private fun Aw11DataCell(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxHeight()
+            .border(1.dp, Aw11Border.copy(alpha = 0.45f))
+            .padding(6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = label,
+            color = Aw11Secondary,
+            fontSize = 8.sp,
+            letterSpacing = 1.sp
+        )
+
+        Spacer(Modifier.height(5.dp))
+
+        Text(
+            text = value,
+            color = Aw11Primary,
+            fontFamily = DSEG14Classic,
+            fontSize = 20.sp
+        )
+    }
+}
+
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
 fun HomeScreen(
@@ -662,6 +752,7 @@ fun HomeScreen(
 
     Aw11HomeLayout(
         location = location,
+        bearing = bearing,
         isMetric = settings.unitSystem == UnitSystem.METRIC,
         nowPlaying = nowPlaying,
         onPrev = onPrev,
