@@ -62,6 +62,7 @@ import com.openlauncher.app.ui.theme.LocalDayMode
 import com.openlauncher.app.ui.widget.*
 import java.util.Calendar
 import com.openlauncher.app.util.LocationData
+import com.openlauncher.app.viewmodel.TripData
 import kotlinx.coroutines.delay
 
 private val WIDGET_RADIUS = RoundedCornerShape(0.dp)
@@ -114,6 +115,8 @@ private fun canAddWidget(settings: com.openlauncher.app.data.AppSettings): Boole
 @Composable
 private fun Aw11HomeLayout(
     location: LocationData?,
+    tripData: TripData,
+    onResetTrip: () -> Unit,
     bearing: Float,
     isMetric: Boolean,
     nowPlaying: NowPlayingState?,
@@ -130,6 +133,25 @@ private fun Aw11HomeLayout(
 
     val speedBarMax = if (isMetric) 150f else 93f
     val speedProgress = (speedDisplay / speedBarMax).coerceIn(0f, 1f)
+    val distanceDisplay =
+        if (isMetric) {
+            "%.1f KM".format(tripData.distanceMeters / 1000.0)
+        } else {
+            "%.1f MI".format(tripData.distanceMeters / 1609.344)
+        }
+
+    val avgSpeed =
+        tripData.averageSpeedMps * if (isMetric) 3.6f else 2.237f
+
+    val maxSpeed =
+        tripData.maxSpeedMps * if (isMetric) 3.6f else 2.237f
+
+    val totalMinutes = tripData.driveTimeMs / 60_000L
+    val driveTimeDisplay =
+        "%02d:%02d".format(
+            totalMinutes / 60,
+            totalMinutes % 60
+        )
     Row(
         modifier = modifier
             .fillMaxSize()
@@ -518,12 +540,29 @@ private fun Aw11HomeLayout(
                         .fillMaxSize()
                         .padding(12.dp)
                 ) {
-                    Text(
-                        text = "TRIP DATA",
-                        color = Aw11Primary,
-                        fontSize = 12.sp,
-                        letterSpacing = 1.5.sp
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "TRIP DATA",
+                            color = Aw11Primary,
+                            fontSize = 12.sp,
+                            letterSpacing = 1.5.sp
+                        )
+
+                        Spacer(Modifier.weight(1f))
+
+                        Text(
+                            text = "RESET",
+                            color = Aw11Secondary,
+                            fontSize = 9.sp,
+                            letterSpacing = 1.sp,
+                            modifier = Modifier
+                                .clickable { onResetTrip() }
+                                .padding(6.dp)
+                        )
+                    }
 
                     Spacer(Modifier.height(8.dp))
 
@@ -532,17 +571,14 @@ private fun Aw11HomeLayout(
                         horizontalArrangement = Arrangement.spacedBy(3.dp)
                     ) {
                         Aw11DataCell(
-                            label = "ALTITUDE",
-                            value = if (location != null)
-                                "${location.altitude.toInt()} M"
-                            else
-                                "--- M",
+                            label = "DISTANCE",
+                            value = distanceDisplay,
                             modifier = Modifier.weight(1f)
                         )
 
                         Aw11DataCell(
-                            label = "HEADING",
-                            value = "%03.0f°".format(bearing),
+                            label = "DRIVE TIME",
+                            value = driveTimeDisplay,
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -554,17 +590,14 @@ private fun Aw11HomeLayout(
                         horizontalArrangement = Arrangement.spacedBy(3.dp)
                     ) {
                         Aw11DataCell(
-                            label = "SPEED",
-                            value = "%03.0f".format(speedDisplay),
+                            label = "AVG SPEED",
+                            value = "%03.0f".format(avgSpeed),
                             modifier = Modifier.weight(1f)
                         )
 
                         Aw11DataCell(
-                            label = "GPS ACC",
-                            value = if (location != null)
-                                "${location.accuracy.toInt()} M"
-                            else
-                                "-- M",
+                            label = "MAX SPEED",
+                            value = "%03.0f".format(maxSpeed),
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -688,6 +721,8 @@ fun HomeScreen(
     weather: WeatherState?,
     nowPlaying: NowPlayingState?,
     location: LocationData?,
+    tripData: TripData,
+    onResetTrip: () -> Unit,
     bearing: Float,
     isWifi: Boolean,
     isData: Boolean,
@@ -752,6 +787,8 @@ fun HomeScreen(
 
     Aw11HomeLayout(
         location = location,
+        tripData = tripData,
+        onResetTrip = onResetTrip,
         bearing = bearing,
         isMetric = settings.unitSystem == UnitSystem.METRIC,
         nowPlaying = nowPlaying,

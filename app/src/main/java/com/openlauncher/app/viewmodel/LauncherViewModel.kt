@@ -5,11 +5,13 @@ import android.app.Application
 import android.content.Context
 import android.content.Intent
 import android.database.ContentObserver
+import android.location.Location
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import androidx.annotation.RequiresPermission
 import android.provider.Settings as AndroidSettings
 import androidx.lifecycle.AndroidViewModel
@@ -37,8 +39,25 @@ import com.openlauncher.app.util.LocationData
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 
+data class TripData(
+    val distanceMeters: Double = 0.0,
+    val driveTimeMs: Long = 0L,
+    val maxSpeedMps: Float = 0f
+) {
+    val averageSpeedMps: Float
+        get() = if (driveTimeMs > 0L) {
+            (distanceMeters / (driveTimeMs / 1000.0)).toFloat()
+        } else {
+            0f
+        }
+}
 class LauncherViewModel(application: Application) : AndroidViewModel(application) {
 
+    private val _tripData = MutableStateFlow(TripData())
+    val tripData: StateFlow<TripData> = _tripData
+
+    private var lastTripLocation: LocationData? = null
+    private var lastTripUpdateMs: Long? = null
     private val settingsRepo = SettingsRepository(application)
     private val locationMgr  = LocationCompassManager(application)
 
@@ -50,6 +69,72 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         .onEach { _settingsLoaded.value = true }
         .stateIn(viewModelScope, SharingStarted.Eagerly, AppSettings())
 
+    init {
+        viewModelScope.launch {
+            locationMgr.location
+                .filterNotNull()
+                .collect { location ->
+                    updateTripData(location)
+                }
+        }
+    }
+
+    private fun updateTripData(current: LocationData) {
+        val now = SystemClock.elapsedRealtime()
+        val previous = lastTripLocation
+        val previousTime = lastTripUpdateMs
+
+        val currentSpeed = current.speedMps.coerceAtLeast(0f)
+
+        var distanceDelta = 0f
+        var timeDelta = 0L
+
+        if (previous != null && previousTime != null) {
+            val results = FloatArray(1)
+
+            Location.distanceBetween(
+                previous.latitude,
+                previous.longitude,
+                current.latitude,
+                current.longitude,
+                results
+            )
+
+            val segmentDistance = results[0]
+
+            // Ignore bad GPS fixes / obvious jumps.
+            if (
+                current.accuracy <= 50f &&
+                previous.accuracy <= 50f &&
+                segmentDistance in 0f..300f
+            ) {
+                distanceDelta = segmentDistance
+            }
+
+            // Count DRIVE TIME only while actually moving.
+            if (currentSpeed >= 1.5f) {
+                timeDelta = (now - previousTime)
+                    .coerceIn(0L, 10_000L)
+            }
+        }
+
+        _tripData.update { trip ->
+            trip.copy(
+                distanceMeters = trip.distanceMeters + distanceDelta,
+                driveTimeMs = trip.driveTimeMs + timeDelta,
+                maxSpeedMps = maxOf(trip.maxSpeedMps, currentSpeed)
+            )
+        }
+
+        lastTripLocation = current
+        lastTripUpdateMs = now
+    }
+
+    fun resetTrip() {
+        _tripData.value = TripData()
+        lastTripLocation = null
+        lastTripUpdateMs = null
+    }
     fun updateSettings(block: AppSettings.() -> AppSettings) {
         viewModelScope.launch { settingsRepo.updateSettings { it.block() } }
     }
