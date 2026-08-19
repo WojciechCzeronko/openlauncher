@@ -30,10 +30,18 @@ class MediaListenerService : NotificationListenerService() {
 
     override fun onListenerDisconnected() {
         super.onListenerDisconnected()
+
         instance = null
         isConnected.value = false
         clearController()
         _nowPlaying.value = null
+
+        NotificationListenerService.requestRebind(
+            ComponentName(
+                this,
+                MediaListenerService::class.java
+            )
+        )
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification?)  { refreshNowPlaying() }
@@ -41,13 +49,15 @@ class MediaListenerService : NotificationListenerService() {
 
     override fun onDestroy() {
         instance = null
+        isConnected.value = false
         clearController()
+
         // Clear the static flow so the UI doesn't keep showing a dead session
-        // (and pinning its album-art bitmap) after the service is killed
+        // after the service is killed.
         _nowPlaying.value = null
+
         super.onDestroy()
     }
-
     private fun clearController() {
         activeController?.unregisterCallback(controllerCallback)
         activeController = null

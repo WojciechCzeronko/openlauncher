@@ -34,6 +34,8 @@ import com.openlauncher.app.model.NavDestination
 import com.openlauncher.app.model.NowPlayingState
 import com.openlauncher.app.model.WeatherState
 import com.openlauncher.app.service.MediaListenerService
+import android.content.ComponentName
+import android.service.notification.NotificationListenerService
 import com.openlauncher.app.util.LocationCompassManager
 import com.openlauncher.app.util.LocationData
 import kotlinx.coroutines.*
@@ -516,7 +518,16 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     val isData: StateFlow<Boolean> = _isData
 
     fun refreshMedia() {
-        MediaListenerService.requestRefresh()
+        if (MediaListenerService.isConnected.value) {
+            MediaListenerService.requestRefresh()
+        } else {
+            NotificationListenerService.requestRebind(
+                ComponentName(
+                    getApplication<Application>(),
+                    MediaListenerService::class.java
+                )
+            )
+        }
     }
 
     // ── Radio ─────────────────────────────────────────────────────────────────

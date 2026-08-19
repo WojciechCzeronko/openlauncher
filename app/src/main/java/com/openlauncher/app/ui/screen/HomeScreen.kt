@@ -277,10 +277,10 @@ private fun Aw11HomeLayout(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(12.dp)
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
                 ) {
                     Text(
-                        text = "MUSIC",
+                        text = mediaSourceName(nowPlaying),
                         color = Aw11Primary,
                         fontSize = 12.sp,
                         letterSpacing = 1.5.sp
@@ -393,7 +393,7 @@ private fun Aw11HomeLayout(
                                     letterSpacing = 0.8.sp,
                                     maxLines = 1
                                 )
-                                Spacer(Modifier.height(12.dp))
+                                Spacer(Modifier.height(2.dp))
 
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
@@ -402,7 +402,7 @@ private fun Aw11HomeLayout(
                                 ) {
                                     Box(
                                         modifier = Modifier
-                                            .size(36.dp)
+                                            .size(28.dp)
                                             .clickable(enabled = canSkipPrevious) { onPrev() },
                                         contentAlignment = Alignment.Center
                                     ) {
@@ -415,7 +415,7 @@ private fun Aw11HomeLayout(
 
                                     Box(
                                         modifier = Modifier
-                                            .size(36.dp)
+                                            .size(28.dp)
                                             .clickable(enabled = canPlayPause) { onPlayPause() },
                                         contentAlignment = Alignment.Center
                                     ) {
@@ -429,7 +429,7 @@ private fun Aw11HomeLayout(
 
                                     Box(
                                         modifier = Modifier
-                                            .size(36.dp)
+                                            .size(28.dp)
                                             .clickable(enabled = canSkipNext) { onNext() },
                                         contentAlignment = Alignment.Center
                                     ) {
@@ -440,7 +440,7 @@ private fun Aw11HomeLayout(
                                         )
                                     }
                                 }
-                                Spacer(Modifier.height(10.dp))
+                                Spacer(Modifier.height(1.dp))
 
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
@@ -503,13 +503,14 @@ private fun Aw11HomeLayout(
                                         fontSize = 9.sp
                                     )
                                 }
-                                Spacer(Modifier.height(10.dp))
+                                Spacer(Modifier.height(3.dp))
 
+                                //equalizer
                                 RetroEqualizer(
                                     isPlaying = nowPlaying?.isPlaying == true,
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .height(34.dp)
+                                        .height(22.dp)
                                 )
                             }
                         }
@@ -711,6 +712,19 @@ private fun Aw11DataCell(
             fontFamily = DSEG14Classic,
             fontSize = 20.sp
         )
+    }
+}
+
+private fun mediaSourceName(nowPlaying: NowPlayingState?): String {
+    val packageName = nowPlaying?.controller?.packageName ?: return "MUSIC"
+
+    return when (packageName) {
+        "com.spotify.music" -> "SPOTIFY"
+        "com.google.android.apps.youtube.music" -> "YOUTUBE MUSIC"
+        else -> packageName
+            .substringAfterLast('.')
+            .replace('_', ' ')
+            .uppercase()
     }
 }
 
