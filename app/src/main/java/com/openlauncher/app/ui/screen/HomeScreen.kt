@@ -79,15 +79,15 @@ private data class WidgetTypeInfo(
 )
 
 private val ALL_WIDGET_TYPES = listOf(
-    WidgetTypeInfo("CLOCK",       "CLOCK",       Icons.Default.AccessTime,  "Time & date"),
-    WidgetTypeInfo("WEATHER",     "WEATHER",     Icons.Default.Cloud,       "Current conditions"),
-    WidgetTypeInfo("NOW_PLAYING", "NOW PLAYING", Icons.Default.MusicNote,   "Media controls"),
-    WidgetTypeInfo("TELEMETRY",   "COMPASS",     Icons.Default.Explore,     "Speed & heading"),
-    WidgetTypeInfo("ALTIMETER",   "ALTIMETER",   Icons.Default.FlightTakeoff, "Roll, pitch & altitude"),
-    WidgetTypeInfo("SPEEDOMETER", "SPEED",       Icons.Default.Speed,         "GPS speed"),
-    WidgetTypeInfo("VITALS",      "VITALS",      Icons.Default.Dns,           "Head Unit Health / Vitals"),
-    WidgetTypeInfo("TRIP_TRACKER", "TRIP TRACKER", Icons.Default.Map,          "Trip logs & stats"),
-    WidgetTypeInfo("SOUNDBOARD",  "SOUNDBOARD",  Icons.Default.Piano,         "Custom sound pads")
+    WidgetTypeInfo("CLOCK", "CLOCK", Icons.Default.AccessTime, "Time & date"),
+    WidgetTypeInfo("WEATHER", "WEATHER", Icons.Default.Cloud, "Current conditions"),
+    WidgetTypeInfo("NOW_PLAYING", "NOW PLAYING", Icons.Default.MusicNote, "Media controls"),
+    WidgetTypeInfo("TELEMETRY", "COMPASS", Icons.Default.Explore, "Speed & heading"),
+    WidgetTypeInfo("ALTIMETER", "ALTIMETER", Icons.Default.FlightTakeoff, "Roll, pitch & altitude"),
+    WidgetTypeInfo("SPEEDOMETER", "SPEED", Icons.Default.Speed, "GPS speed"),
+    WidgetTypeInfo("VITALS", "VITALS", Icons.Default.Dns, "Head Unit Health / Vitals"),
+    WidgetTypeInfo("TRIP_TRACKER", "TRIP TRACKER", Icons.Default.Map, "Trip logs & stats"),
+    WidgetTypeInfo("SOUNDBOARD", "SOUNDBOARD", Icons.Default.Piano, "Custom sound pads")
 )
 
 private fun canAddWidget(settings: com.openlauncher.app.data.AppSettings): Boolean {
@@ -427,7 +427,6 @@ private fun Aw11HomeLayout(
 
                                 //controls
                                 Row(
-                                    modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
@@ -472,81 +471,99 @@ private fun Aw11HomeLayout(
                                         )
                                     }
                                 }
-                                Spacer(Modifier.height(1.dp))
+                            }
 
-                                //Whole progress bar
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    //elapsed time
-                                    Text(
-                                        text = formatTime(currentPositionMs),
-                                        color = Aw11Secondary,
-                                        fontSize = 9.sp
-                                    )
+                            if (nowPlaying.albumArt != null) {
+                                Spacer(Modifier.width(10.dp))
 
-                                    Spacer(Modifier.width(8.dp))
-
-                                    //bar
-                                    Row(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(12.dp)
-                                            .pointerInput(durationMs, canSeek) {
-                                                detectTapGestures { offset ->
-                                                    if (canSeek && durationMs > 0L && size.width > 0) {
-                                                        val progress =
-                                                            (offset.x / size.width.toFloat())
-                                                                .coerceIn(0f, 1f)
-
-                                                        val newPosition =
-                                                            (durationMs * progress).toLong()
-
-                                                        controller
-                                                            ?.transportControls
-                                                            ?.seekTo(newPosition)
-                                                    }
-                                                }
-                                            },
-                                        horizontalArrangement = Arrangement.spacedBy(1.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        repeat(24) { index ->
-                                            val active = index < (progress * 24f).toInt()
-
-                                            Box(
-                                                modifier = Modifier
-                                                    .weight(1f)
-                                                    .height(5.dp)
-                                                    .background(
-                                                        if (active) progressColor
-                                                        else Aw11Dim.copy(alpha = 0.35f)
-                                                    )
-                                            )
-                                        }
-                                    }
-
-                                    Spacer(Modifier.width(8.dp))
-
-                                    //total time
-                                    Text(
-                                        text = formatTime(durationMs),
-                                        color = Aw11Secondary,
-                                        fontSize = 9.sp
-                                    )
-                                }
-                                Spacer(Modifier.height(2.dp))
-
-                                //equalizer
-                                RetroEqualizer(
-                                    isPlaying = nowPlaying?.isPlaying == true,
+                                Image(
+                                    bitmap = nowPlaying.albumArt.asImageBitmap(),
+                                    contentDescription = "Album art",
+                                    contentScale = ContentScale.Crop,
                                     modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(22.dp)
+                                        .size(76.dp)
+                                        .border(
+                                            width = 1.dp,
+                                            color = Aw11Border.copy(alpha = 0.45f)
+                                        )
                                 )
                             }
                         }
+                        Spacer(Modifier.height(1.dp))
+
+                        //Whole progress bar
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            //elapsed time
+                            Text(
+                                text = formatTime(currentPositionMs),
+                                color = Aw11Secondary,
+                                fontSize = 9.sp
+                            )
+
+                            Spacer(Modifier.width(8.dp))
+
+                            //bar
+                            Row(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(12.dp)
+                                    .pointerInput(durationMs, canSeek) {
+                                        detectTapGestures { offset ->
+                                            if (canSeek && durationMs > 0L && size.width > 0) {
+                                                val progress =
+                                                    (offset.x / size.width.toFloat())
+                                                        .coerceIn(0f, 1f)
+
+                                                val newPosition =
+                                                    (durationMs * progress).toLong()
+
+                                                controller
+                                                    ?.transportControls
+                                                    ?.seekTo(newPosition)
+                                            }
+                                        }
+                                    },
+                                horizontalArrangement = Arrangement.spacedBy(1.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                repeat(24) { index ->
+                                    val active = index < (progress * 24f).toInt()
+
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(5.dp)
+                                            .background(
+                                                if (active) progressColor
+                                                else Aw11Dim.copy(alpha = 0.35f)
+                                            )
+                                    )
+                                }
+                            }
+
+                            Spacer(Modifier.width(8.dp))
+
+                            //total time
+                            Text(
+                                text = formatTime(durationMs),
+                                color = Aw11Secondary,
+                                fontSize = 9.sp
+                            )
+                        }
+                        Spacer(Modifier.height(2.dp))
+
+                        //equalizer
+                        RetroEqualizer(
+                            isPlaying = nowPlaying?.isPlaying == true,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(22.dp)
+                        )
+
+
                     } else {
                         Text(
                             text = "NO MEDIA",
@@ -806,30 +823,30 @@ fun HomeScreen(
     onAssignRadio: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val accent       = Color(settings.accentColor)
-    val gap          = 3.dp
+    val accent = Color(settings.accentColor)
+    val gap = 3.dp
     val hasWallpaper = settings.wallpaperUri.isNotEmpty()
     val widgetBg = when {
-        isDayMode    -> Color(0xFFFFFFFF)
+        isDayMode -> Color(0xFFFFFFFF)
         hasWallpaper -> Color(0xCC000000)
-        else         -> Color.Black.copy(alpha = 0.35f)
+        else -> Color.Black.copy(alpha = 0.35f)
     }
 
     val widgetBorder = when {
-        isDayMode    -> Color(0xFFCCCCCC)
+        isDayMode -> Color(0xFFCCCCCC)
         hasWallpaper -> Color(0x22FFFFFF)
-        else         -> Aw11Border.copy(alpha = 0.45f)
+        else -> Aw11Border.copy(alpha = 0.45f)
     }
-    val headerTextColor   = if (isDayMode) Color(0xFF111111) else accent
-    val statusIconColor   = if (isDayMode) Color(0xFF444444) else Color(0xFF666666)
-    val controlIconColor  = if (isDayMode) Color(0xFF666666) else Color(0xFF444444)
+    val headerTextColor = if (isDayMode) Color(0xFF111111) else accent
+    val statusIconColor = if (isDayMode) Color(0xFF444444) else Color(0xFF666666)
+    val controlIconColor = if (isDayMode) Color(0xFF666666) else Color(0xFF444444)
 
-    var resizingId    by remember { mutableStateOf<String?>(null) }
+    var resizingId by remember { mutableStateOf<String?>(null) }
     var contextMenuId by remember { mutableStateOf<String?>(null) }
 
-    val configuration    = LocalConfiguration.current
-    val isLandscape      = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-    var editMode         by remember { mutableStateOf(false) }
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+    var editMode by remember { mutableStateOf(false) }
     var widgetLibraryOpen by remember { mutableStateOf(false) }
 
     Aw11HomeLayout(
@@ -857,45 +874,55 @@ fun HomeScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text          = settings.vehicleName.uppercase(),
-                style         = MaterialTheme.typography.titleLarge,
-                color         = headerTextColor,
+                text = settings.vehicleName.uppercase(),
+                style = MaterialTheme.typography.titleLarge,
+                color = headerTextColor,
                 letterSpacing = 3.sp,
-                fontSize      = 14.sp
+                fontSize = 14.sp
             )
             Spacer(Modifier.weight(1f))
             AnimatedVisibility(visible = isWifi, enter = fadeIn(), exit = fadeOut()) {
-                Icon(Icons.Default.Wifi, "WiFi", tint = statusIconColor, modifier = Modifier.size(16.dp))
+                Icon(
+                    Icons.Default.Wifi,
+                    "WiFi",
+                    tint = statusIconColor,
+                    modifier = Modifier.size(16.dp)
+                )
             }
             if (isWifi) Spacer(Modifier.width(6.dp))
             AnimatedVisibility(visible = isData, enter = fadeIn(), exit = fadeOut()) {
-                Icon(Icons.Default.SignalCellularAlt, "Data", tint = statusIconColor, modifier = Modifier.size(16.dp))
+                Icon(
+                    Icons.Default.SignalCellularAlt,
+                    "Data",
+                    tint = statusIconColor,
+                    modifier = Modifier.size(16.dp)
+                )
             }
             if (isLandscape) {
                 Spacer(Modifier.width(8.dp))
                 if (editMode) {
                     IconButton(
-                        onClick  = { widgetLibraryOpen = true },
+                        onClick = { widgetLibraryOpen = true },
                         modifier = Modifier.size(28.dp)
                     ) {
                         Icon(
-                            imageVector        = Icons.Default.Dashboard,
+                            imageVector = Icons.Default.Dashboard,
                             contentDescription = "Widget library",
-                            tint               = controlIconColor,
-                            modifier           = Modifier.size(15.dp)
+                            tint = controlIconColor,
+                            modifier = Modifier.size(15.dp)
                         )
                     }
                     Spacer(Modifier.width(2.dp))
                 }
                 IconButton(
-                    onClick  = { editMode = !editMode },
+                    onClick = { editMode = !editMode },
                     modifier = Modifier.size(28.dp)
                 ) {
                     Icon(
-                        imageVector        = Icons.Default.Edit,
+                        imageVector = Icons.Default.Edit,
                         contentDescription = "Edit widgets",
-                        tint               = if (editMode) accent else controlIconColor,
-                        modifier           = Modifier.size(15.dp)
+                        tint = if (editMode) accent else controlIconColor,
+                        modifier = Modifier.size(15.dp)
                     )
                 }
             }
@@ -909,7 +936,7 @@ fun HomeScreen(
                 .fillMaxSize()
                 .padding(gap)
         ) {
-            val cellW = (maxWidth  - gap * (GRID_COLS - 1)) / GRID_COLS
+            val cellW = (maxWidth - gap * (GRID_COLS - 1)) / GRID_COLS
             val cellH = (maxHeight - gap * (GRID_ROWS - 1)) / GRID_ROWS
             val density = LocalDensity.current
             val cellStepXPx = with(density) { (cellW + gap).toPx() }
@@ -936,22 +963,30 @@ fun HomeScreen(
             val rendered = visible
 
             // ── Drag state ───────────────────────────────────────────────────
-            var draggingId   by remember { mutableStateOf<String?>(null) }
+            var draggingId by remember { mutableStateOf<String?>(null) }
             var dragOffsetPx by remember { mutableStateOf(Offset.Zero) }
 
             // Compute snap target for the widget being dragged (uses original spanX)
-            val draggingOriginal = if (draggingId != null) visible.find { it.id == draggingId } else null
+            val draggingOriginal =
+                if (draggingId != null) visible.find { it.id == draggingId } else null
             val targetGridX = draggingOriginal?.let {
-                (it.gridX + (dragOffsetPx.x / cellStepXPx).roundToInt()).coerceIn(0, GRID_COLS - it.spanX)
+                (it.gridX + (dragOffsetPx.x / cellStepXPx).roundToInt()).coerceIn(
+                    0,
+                    GRID_COLS - it.spanX
+                )
             }
             val targetGridY = draggingOriginal?.let {
-                (it.gridY + (dragOffsetPx.y / cellStepYPx).roundToInt()).coerceIn(0, GRID_ROWS - it.spanY)
+                (it.gridY + (dragOffsetPx.y / cellStepYPx).roundToInt()).coerceIn(
+                    0,
+                    GRID_ROWS - it.spanY
+                )
             }
 
             // Compute proposed layout (push preview) while dragging
-            val proposedLayout = if (draggingOriginal != null && targetGridX != null && targetGridY != null)
-                computeWidgetMove(visible, draggingOriginal.id, targetGridX, targetGridY)
-            else null
+            val proposedLayout =
+                if (draggingOriginal != null && targetGridX != null && targetGridY != null)
+                    computeWidgetMove(visible, draggingOriginal.id, targetGridX, targetGridY)
+                else null
 
             // Drop ghost — rendered before widgets so it appears beneath them
             if (draggingOriginal != null && targetGridX != null && targetGridY != null) {
@@ -990,31 +1025,31 @@ fun HomeScreen(
             }
 
             rendered.forEach { w ->
-                val xOff   = (cellW + gap) * w.gridX
-                val yOff   = (cellH + gap) * w.gridY
-                val width  = cellW * w.spanX + gap * (w.spanX - 1)
+                val xOff = (cellW + gap) * w.gridX
+                val yOff = (cellH + gap) * w.gridY
+                val width = cellW * w.spanX + gap * (w.spanX - 1)
                 val height = cellH * w.spanY + gap * (w.spanY - 1)
 
                 val label = when (w.id) {
-                    "CLOCK"       -> clockTimeLabel(Calendar.getInstance())
-                    "WEATHER"     -> "WEATHER"
+                    "CLOCK" -> clockTimeLabel(Calendar.getInstance())
+                    "WEATHER" -> "WEATHER"
                     "NOW_PLAYING" -> "NOW PLAYING"
-                    "TELEMETRY"   -> "COMPASS"
-                    "ALTIMETER"   -> "ALTIMETER"
+                    "TELEMETRY" -> "COMPASS"
+                    "ALTIMETER" -> "ALTIMETER"
                     "SPEEDOMETER" -> "SPEED"
                     "TRIP_TRACKER" -> "TRIP"
-                    "SOUNDBOARD"  -> "SOUND"
-                    else          -> w.id
+                    "SOUNDBOARD" -> "SOUND"
+                    else -> w.id
                 }
 
                 // Original (pre-auto-expand) spanX needed for drag boundary clamping
-                val origSpanX  = visible.find { it.id == w.id }?.spanX ?: 1
+                val origSpanX = visible.find { it.id == w.id }?.spanX ?: 1
                 val isDragging = draggingId == w.id
                 // Weather with no data reserves its cell but draws nothing
                 // (still visible in edit mode so it can be moved/removed)
-                val isGhost    = w.id == "WEATHER" && weather == null && !editMode
-                val dragDpX    = if (isDragging) with(density) { dragOffsetPx.x.toDp() } else 0.dp
-                val dragDpY    = if (isDragging) with(density) { dragOffsetPx.y.toDp() } else 0.dp
+                val isGhost = w.id == "WEATHER" && weather == null && !editMode
+                val dragDpX = if (isDragging) with(density) { dragOffsetPx.x.toDp() } else 0.dp
+                val dragDpY = if (isDragging) with(density) { dragOffsetPx.y.toDp() } else 0.dp
 
                 @OptIn(ExperimentalFoundationApi::class)
                 Box(
@@ -1028,16 +1063,16 @@ fun HomeScreen(
                             width = if (editMode) 1.5.dp else 0.8.dp,
                             color = when {
                                 editMode -> accent.copy(alpha = 0.45f)
-                                isGhost  -> Color.Transparent
-                                else     -> widgetBorder
+                                isGhost -> Color.Transparent
+                                else -> widgetBorder
                             },
                             shape = WIDGET_RADIUS
                         )
                         .combinedClickable(
-                            indication        = null,
+                            indication = null,
                             interactionSource = remember { MutableInteractionSource() },
-                            onClick           = { if (editMode) contextMenuId = w.id },
-                            onLongClick       = { if (!editMode) contextMenuId = w.id }
+                            onClick = { if (editMode) contextMenuId = w.id },
+                            onLongClick = { if (!editMode) contextMenuId = w.id }
                         )
                         .then(
                             if (editMode) Modifier.pointerInput(editMode, w.id, w.gridX, w.gridY) {
@@ -1047,32 +1082,34 @@ fun HomeScreen(
                                 val slop = viewConfiguration.touchSlop
                                 detectDragGesturesAfterLongPress(
                                     onDragStart = { _ ->
-                                        draggingId         = w.id
-                                        dragOffsetPx       = Offset.Zero
+                                        draggingId = w.id
+                                        dragOffsetPx = Offset.Zero
                                         hasSignificantDrag = false
                                     },
                                     onDrag = { change, dragAmount ->
                                         change.consume()
-                                        dragOffsetPx      += dragAmount
+                                        dragOffsetPx += dragAmount
                                         if (!hasSignificantDrag && dragOffsetPx.getDistance() > slop) {
                                             hasSignificantDrag = true
                                         }
                                     },
                                     onDragEnd = {
                                         if (hasSignificantDrag) {
-                                            val newX = (w.gridX + (dragOffsetPx.x / cellStepXPx).roundToInt())
-                                                .coerceIn(0, GRID_COLS - origSpanX)
-                                            val newY = (w.gridY + (dragOffsetPx.y / cellStepYPx).roundToInt())
-                                                .coerceIn(0, GRID_ROWS - w.spanY)
+                                            val newX =
+                                                (w.gridX + (dragOffsetPx.x / cellStepXPx).roundToInt())
+                                                    .coerceIn(0, GRID_COLS - origSpanX)
+                                            val newY =
+                                                (w.gridY + (dragOffsetPx.y / cellStepYPx).roundToInt())
+                                                    .coerceIn(0, GRID_ROWS - w.spanY)
                                             onMoveWidget(w.id, newX, newY)
                                         } else {
                                             contextMenuId = w.id
                                         }
-                                        draggingId   = null
+                                        draggingId = null
                                         dragOffsetPx = Offset.Zero
                                     },
                                     onDragCancel = {
-                                        draggingId   = null
+                                        draggingId = null
                                         dragOffsetPx = Offset.Zero
                                     }
                                 )
@@ -1081,84 +1118,92 @@ fun HomeScreen(
                 ) {
                     when (w.id) {
                         "CLOCK" -> ClockWidget(
-                            style      = settings.clockStyle,
-                            accent     = accent,
-                            isDayMode  = isDayMode,
-                            modifier   = Modifier.fillMaxSize()
+                            style = settings.clockStyle,
+                            accent = accent,
+                            isDayMode = isDayMode,
+                            modifier = Modifier.fillMaxSize()
                         )
+
                         "WEATHER" -> WeatherWidget(
-                            state      = weather,
-                            accent     = accent,
-                            metric     = settings.unitSystem.name == "METRIC",
-                            isDayMode  = isDayMode,
-                            modifier   = Modifier.fillMaxSize()
+                            state = weather,
+                            accent = accent,
+                            metric = settings.unitSystem.name == "METRIC",
+                            isDayMode = isDayMode,
+                            modifier = Modifier.fillMaxSize()
                         )
+
                         "NOW_PLAYING" -> NowPlayingWidget(
-                            state               = nowPlaying,
-                            accent              = accent,
-                            carPlayPackage      = settings.carPlayPackage,
-                            androidAutoPackage  = settings.androidAutoPackage,
-                            onPlayPause         = onPlayPause,
-                            onNext              = onNext,
-                            onPrev              = onPrev,
-                            onLaunchCarPlay     = onLaunchCarPlay,
+                            state = nowPlaying,
+                            accent = accent,
+                            carPlayPackage = settings.carPlayPackage,
+                            androidAutoPackage = settings.androidAutoPackage,
+                            onPlayPause = onPlayPause,
+                            onNext = onNext,
+                            onPrev = onPrev,
+                            onLaunchCarPlay = onLaunchCarPlay,
                             onLaunchAndroidAuto = onLaunchAndroidAuto,
-                            onTapToOpenApp      = onTapNowPlaying,
-                            modifier            = Modifier.fillMaxSize(),
-                            isEditing           = editMode,
-                            isDayMode           = isDayMode,
-                            hardwareRadio         = hardwareRadio,
+                            onTapToOpenApp = onTapNowPlaying,
+                            modifier = Modifier.fillMaxSize(),
+                            isEditing = editMode,
+                            isDayMode = isDayMode,
+                            hardwareRadio = hardwareRadio,
                             onLaunchHardwareRadio = onLaunchHardwareRadio,
-                            onStopHardwareRadio   = onStopHardwareRadio,
-                            onRadioSeekUp         = onRadioSeekUp,
-                            onRadioSeekDown       = onRadioSeekDown,
-                            onRadioCycleFm        = onRadioCycleFm,
-                            onRadioSwitchAm       = onRadioSwitchAm,
-                            onRadioTune           = onRadioTune,
-                            onAssignRadio         = onAssignRadio
+                            onStopHardwareRadio = onStopHardwareRadio,
+                            onRadioSeekUp = onRadioSeekUp,
+                            onRadioSeekDown = onRadioSeekDown,
+                            onRadioCycleFm = onRadioCycleFm,
+                            onRadioSwitchAm = onRadioSwitchAm,
+                            onRadioTune = onRadioTune,
+                            onAssignRadio = onAssignRadio
                         )
+
                         "TELEMETRY" -> TelemetryWidget(
-                            location  = location,
-                            bearing   = (bearing + settings.compassOffset + 360f) % 360f,
-                            accent    = accent,
+                            location = location,
+                            bearing = (bearing + settings.compassOffset + 360f) % 360f,
+                            accent = accent,
                             isDayMode = isDayMode,
-                            modifier  = Modifier.fillMaxSize()
+                            modifier = Modifier.fillMaxSize()
                         )
+
                         "ALTIMETER" -> AltimeterWidget(
-                            location  = location,
-                            isMetric  = settings.unitSystem == com.openlauncher.app.data.UnitSystem.METRIC,
-                            accent    = accent,
+                            location = location,
+                            isMetric = settings.unitSystem == com.openlauncher.app.data.UnitSystem.METRIC,
+                            accent = accent,
                             isDayMode = isDayMode,
-                            modifier  = Modifier.fillMaxSize()
+                            modifier = Modifier.fillMaxSize()
                         )
+
                         "SPEEDOMETER" -> SpeedometerWidget(
-                            location  = location,
-                            isMetric  = settings.unitSystem == com.openlauncher.app.data.UnitSystem.METRIC,
-                            accent    = accent,
+                            location = location,
+                            isMetric = settings.unitSystem == com.openlauncher.app.data.UnitSystem.METRIC,
+                            accent = accent,
                             isDayMode = isDayMode,
                             digitalOnly = settings.speedometerDigitalOnly,
-                            modifier  = Modifier.fillMaxSize()
+                            modifier = Modifier.fillMaxSize()
                         )
+
                         "VITALS" -> VitalsWidget(
-                            accent    = accent,
+                            accent = accent,
                             isDayMode = isDayMode,
-                            asBars    = settings.vitalsAsBars,
-                            modifier  = Modifier.fillMaxSize()
+                            asBars = settings.vitalsAsBars,
+                            modifier = Modifier.fillMaxSize()
                         )
+
                         "TRIP_TRACKER" -> TripTrackerWidget(
-                            location  = location,
-                            isMetric  = settings.unitSystem == com.openlauncher.app.data.UnitSystem.METRIC,
-                            accent    = accent,
+                            location = location,
+                            isMetric = settings.unitSystem == com.openlauncher.app.data.UnitSystem.METRIC,
+                            accent = accent,
                             isDayMode = isDayMode,
-                            modifier  = Modifier.fillMaxSize()
+                            modifier = Modifier.fillMaxSize()
                         )
+
                         "SOUNDBOARD" -> SoundboardWidget(
-                            pads      = settings.soundboardPads,
-                            accent    = accent,
+                            pads = settings.soundboardPads,
+                            accent = accent,
                             isDayMode = isDayMode,
                             isEditing = editMode,
                             onUpdatePad = onUpdateSoundPad,
-                            modifier  = Modifier.fillMaxSize()
+                            modifier = Modifier.fillMaxSize()
                         )
                     }
 
@@ -1167,15 +1212,15 @@ fun HomeScreen(
                         isGhost -> Color.Transparent
                         w.id == "NOW_PLAYING" && nowPlaying?.albumArt != null && nowPlaying.title.isNotEmpty() -> Color.Transparent
                         isDayMode -> Color(0xFF999999)
-                        else      -> Color(0xFF3A3A3A)
+                        else -> Color(0xFF3A3A3A)
                     }
                     Text(
-                        text          = label,
-                        style         = MaterialTheme.typography.labelSmall,
-                        color         = labelColor,
+                        text = label,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = labelColor,
                         letterSpacing = 2.sp,
-                        fontSize      = 8.sp,
-                        modifier      = Modifier
+                        fontSize = 8.sp,
+                        modifier = Modifier
                             .align(Alignment.TopStart)
                             .padding(start = 10.dp, top = 7.dp)
                     )
@@ -1187,26 +1232,26 @@ fun HomeScreen(
     // ── Widget context menu (long-press any cell) ────────────────────────────
     contextMenuId?.let { id ->
         WidgetContextMenu(
-            widgetId            = id,
-            accent              = accent,
-            clockStyle          = settings.clockStyle,
-            vitalsAsBars        = settings.vitalsAsBars,
+            widgetId = id,
+            accent = accent,
+            clockStyle = settings.clockStyle,
+            vitalsAsBars = settings.vitalsAsBars,
             speedometerDigitalOnly = settings.speedometerDigitalOnly,
-            carPlayPackage      = settings.carPlayPackage,
-            androidAutoPackage  = settings.androidAutoPackage,
-            pipAppPackage       = settings.pipAppPackage,
-            isDayMode           = isDayMode,
-            onResize            = { contextMenuId = null; resizingId = id },
-            onAssignCarPlay     = { contextMenuId = null; onAssignCarPlay() },
+            carPlayPackage = settings.carPlayPackage,
+            androidAutoPackage = settings.androidAutoPackage,
+            pipAppPackage = settings.pipAppPackage,
+            isDayMode = isDayMode,
+            onResize = { contextMenuId = null; resizingId = id },
+            onAssignCarPlay = { contextMenuId = null; onAssignCarPlay() },
             onAssignAndroidAuto = { contextMenuId = null; onAssignAndroidAuto() },
-            onClearCarPlay      = { contextMenuId = null; onClearCarPlay() },
-            onClearAndroidAuto  = { contextMenuId = null; onClearAndroidAuto() },
-            onAssignPip         = { contextMenuId = null; onAssignPip() },
-            onClearPip          = { contextMenuId = null; onClearPip() },
-            onSetClockStyle     = { onSetClockStyle(it) },
-            onSetVitalsAsBars   = { onSetVitalsAsBars(it) },
+            onClearCarPlay = { contextMenuId = null; onClearCarPlay() },
+            onClearAndroidAuto = { contextMenuId = null; onClearAndroidAuto() },
+            onAssignPip = { contextMenuId = null; onAssignPip() },
+            onClearPip = { contextMenuId = null; onClearPip() },
+            onSetClockStyle = { onSetClockStyle(it) },
+            onSetVitalsAsBars = { onSetVitalsAsBars(it) },
             onSetSpeedometerDigitalOnly = { onSetSpeedometerDigitalOnly(it) },
-            onDismiss           = { contextMenuId = null }
+            onDismiss = { contextMenuId = null }
         )
     }
 
@@ -1215,8 +1260,8 @@ fun HomeScreen(
         val config = settings.widgetLayout.find { it.id == id }
         if (config != null) {
             WidgetResizeDialog(
-                config    = config,
-                accent    = accent,
+                config = config,
+                accent = accent,
                 isDayMode = isDayMode,
                 onDismiss = { resizingId = null },
                 onConfirm = { sx, sy ->
@@ -1230,11 +1275,11 @@ fun HomeScreen(
     // ── Widget library ────────────────────────────────────────────────────────
     if (widgetLibraryOpen) {
         WidgetLibraryDialog(
-            settings  = settings,
-            accent    = accent,
+            settings = settings,
+            accent = accent,
             isDayMode = isDayMode,
-            onAdd     = { id -> onAddWidget(id) },
-            onRemove  = { id -> onRemoveWidget(id) },
+            onAdd = { id -> onAddWidget(id) },
+            onRemove = { id -> onRemoveWidget(id) },
             onDismiss = { widgetLibraryOpen = false }
         )
     }
@@ -1263,7 +1308,7 @@ private fun WidgetContextMenu(
     onSetSpeedometerDigitalOnly: (Boolean) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val menuBg    = if (isDayMode) Color(0xFFFFFFFF) else Color(0xFF111111)
+    val menuBg = if (isDayMode) Color(0xFFFFFFFF) else Color(0xFF111111)
     val menuBorder = if (isDayMode) Color(0xFFDDE1E5) else Color(0xFF1E1E1E)
     val menuDivider = if (isDayMode) Color(0xFFF1F3F5) else Color(0xFF1A1A1A)
     Dialog(onDismissRequest = onDismiss) {
@@ -1280,17 +1325,17 @@ private fun WidgetContextMenu(
             if (widgetId == "CLOCK") {
                 HorizontalDivider(color = menuDivider)
                 ContextRow(
-                    label   = "DIGITAL",
-                    icon    = Icons.Default.Schedule,
-                    tint    = if (clockStyle == ClockStyle.DIGITAL) accent else inactiveMenuTint,
+                    label = "DIGITAL",
+                    icon = Icons.Default.Schedule,
+                    tint = if (clockStyle == ClockStyle.DIGITAL) accent else inactiveMenuTint,
                     onClick = { onSetClockStyle(ClockStyle.DIGITAL); onDismiss() },
                     isDayMode = isDayMode
                 )
                 HorizontalDivider(color = menuDivider)
                 ContextRow(
-                    label   = "ANALOG",
-                    icon    = Icons.Default.Watch,
-                    tint    = if (clockStyle == ClockStyle.ANALOG) accent else inactiveMenuTint,
+                    label = "ANALOG",
+                    icon = Icons.Default.Watch,
+                    tint = if (clockStyle == ClockStyle.ANALOG) accent else inactiveMenuTint,
                     onClick = { onSetClockStyle(ClockStyle.ANALOG); onDismiss() },
                     isDayMode = isDayMode
                 )
@@ -1298,17 +1343,17 @@ private fun WidgetContextMenu(
             if (widgetId == "VITALS") {
                 HorizontalDivider(color = menuDivider)
                 ContextRow(
-                    label   = "DIAL GAUGES",
-                    icon    = Icons.Default.Adjust,
-                    tint    = if (!vitalsAsBars) accent else inactiveMenuTint,
+                    label = "DIAL GAUGES",
+                    icon = Icons.Default.Adjust,
+                    tint = if (!vitalsAsBars) accent else inactiveMenuTint,
                     onClick = { onSetVitalsAsBars(false); onDismiss() },
                     isDayMode = isDayMode
                 )
                 HorizontalDivider(color = menuDivider)
                 ContextRow(
-                    label   = "BARS VIEW",
-                    icon    = Icons.Default.FormatAlignLeft,
-                    tint    = if (vitalsAsBars) accent else inactiveMenuTint,
+                    label = "BARS VIEW",
+                    icon = Icons.Default.FormatAlignLeft,
+                    tint = if (vitalsAsBars) accent else inactiveMenuTint,
                     onClick = { onSetVitalsAsBars(true); onDismiss() },
                     isDayMode = isDayMode
                 )
@@ -1316,33 +1361,57 @@ private fun WidgetContextMenu(
             if (widgetId == "SPEEDOMETER") {
                 HorizontalDivider(color = menuDivider)
                 ContextRow(
-                    label   = "DIAL TRACK",
-                    icon    = Icons.Default.Speed,
-                    tint    = if (!speedometerDigitalOnly) accent else inactiveMenuTint,
+                    label = "DIAL TRACK",
+                    icon = Icons.Default.Speed,
+                    tint = if (!speedometerDigitalOnly) accent else inactiveMenuTint,
                     onClick = { onSetSpeedometerDigitalOnly(false); onDismiss() },
                     isDayMode = isDayMode
                 )
                 HorizontalDivider(color = menuDivider)
                 ContextRow(
-                    label   = "DIGITAL ONLY",
-                    icon    = Icons.Default.Dialpad,
-                    tint    = if (speedometerDigitalOnly) accent else inactiveMenuTint,
+                    label = "DIGITAL ONLY",
+                    icon = Icons.Default.Dialpad,
+                    tint = if (speedometerDigitalOnly) accent else inactiveMenuTint,
                     onClick = { onSetSpeedometerDigitalOnly(true); onDismiss() },
                     isDayMode = isDayMode
                 )
             }
             if (widgetId == "NOW_PLAYING") {
                 HorizontalDivider(color = menuDivider)
-                ContextRow("ASSIGN CARPLAY APP",      Icons.Default.PhoneAndroid,  accent, onAssignCarPlay, isDayMode = isDayMode)
+                ContextRow(
+                    "ASSIGN CARPLAY APP",
+                    Icons.Default.PhoneAndroid,
+                    accent,
+                    onAssignCarPlay,
+                    isDayMode = isDayMode
+                )
                 if (carPlayPackage.isNotEmpty()) {
                     HorizontalDivider(color = menuDivider)
-                    ContextRow("CLEAR CARPLAY APP", Icons.Default.PhoneAndroid, Color(0xFF884444), onClearCarPlay, isDayMode = isDayMode)
+                    ContextRow(
+                        "CLEAR CARPLAY APP",
+                        Icons.Default.PhoneAndroid,
+                        Color(0xFF884444),
+                        onClearCarPlay,
+                        isDayMode = isDayMode
+                    )
                 }
                 HorizontalDivider(color = menuDivider)
-                ContextRow("ASSIGN ANDROID AUTO APP", Icons.Default.DirectionsCar, accent, onAssignAndroidAuto, isDayMode = isDayMode)
+                ContextRow(
+                    "ASSIGN ANDROID AUTO APP",
+                    Icons.Default.DirectionsCar,
+                    accent,
+                    onAssignAndroidAuto,
+                    isDayMode = isDayMode
+                )
                 if (androidAutoPackage.isNotEmpty()) {
                     HorizontalDivider(color = menuDivider)
-                    ContextRow("CLEAR ANDROID AUTO APP", Icons.Default.DirectionsCar, Color(0xFF884444), onClearAndroidAuto, isDayMode = isDayMode)
+                    ContextRow(
+                        "CLEAR ANDROID AUTO APP",
+                        Icons.Default.DirectionsCar,
+                        Color(0xFF884444),
+                        onClearAndroidAuto,
+                        isDayMode = isDayMode
+                    )
                 }
             }
 
@@ -1396,23 +1465,38 @@ private fun WidgetResizeDialog(
     val maxSpanX = GRID_COLS - config.gridX
     val maxSpanY = GRID_ROWS - config.gridY
 
-    val dialogBg     = if (isDayMode) Color(0xFFFFFFFF) else MaterialTheme.colorScheme.background
-    val dialogText   = if (isDayMode) Color(0xFF111111) else MaterialTheme.colorScheme.onBackground
-    val cancelColor  = if (isDayMode) Color(0xFF6C757D) else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+    val dialogBg = if (isDayMode) Color(0xFFFFFFFF) else MaterialTheme.colorScheme.background
+    val dialogText = if (isDayMode) Color(0xFF111111) else MaterialTheme.colorScheme.onBackground
+    val cancelColor =
+        if (isDayMode) Color(0xFF6C757D) else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text          = config.id.replace('_', ' '),
-                color         = dialogText,
-                fontSize      = 11.sp,
+                text = config.id.replace('_', ' '),
+                color = dialogText,
+                fontSize = 11.sp,
                 letterSpacing = 2.sp
             )
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-                SpanRow(label = "WIDTH",  value = spanX, min = 1, max = maxSpanX, accent = accent, isDayMode = isDayMode) { spanX = it }
-                SpanRow(label = "HEIGHT", value = spanY, min = 1, max = maxSpanY, accent = accent, isDayMode = isDayMode) { spanY = it }
+                SpanRow(
+                    label = "WIDTH",
+                    value = spanX,
+                    min = 1,
+                    max = maxSpanX,
+                    accent = accent,
+                    isDayMode = isDayMode
+                ) { spanX = it }
+                SpanRow(
+                    label = "HEIGHT",
+                    value = spanY,
+                    min = 1,
+                    max = maxSpanY,
+                    accent = accent,
+                    isDayMode = isDayMode
+                ) { spanY = it }
             }
         },
         confirmButton = {
@@ -1425,9 +1509,9 @@ private fun WidgetResizeDialog(
                 Text("CANCEL", color = cancelColor, fontSize = 11.sp, letterSpacing = 1.sp)
             }
         },
-        containerColor    = dialogBg,
+        containerColor = dialogBg,
         titleContentColor = dialogText,
-        textContentColor  = dialogText
+        textContentColor = dialogText
     )
 }
 
@@ -1441,45 +1525,45 @@ private fun SpanRow(
     isDayMode: Boolean,
     onChange: (Int) -> Unit
 ) {
-    val textColor   = if (isDayMode) Color(0xFF111111) else MaterialTheme.colorScheme.onBackground
-    val dimColor    = if (isDayMode) Color(0xFF495057) else Color(0xFF666666)
-    val disabledC   = if (isDayMode) Color(0xFFCED4DA) else Color(0xFF333333)
-    val inactiveBg  = if (isDayMode) Color(0xFFE9ECEF) else Color(0xFF2A2A2A)
+    val textColor = if (isDayMode) Color(0xFF111111) else MaterialTheme.colorScheme.onBackground
+    val dimColor = if (isDayMode) Color(0xFF495057) else Color(0xFF666666)
+    val disabledC = if (isDayMode) Color(0xFFCED4DA) else Color(0xFF333333)
+    val inactiveBg = if (isDayMode) Color(0xFFE9ECEF) else Color(0xFF2A2A2A)
     Row(
-        verticalAlignment     = Alignment.CenterVertically,
+        verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Text(
-            text          = label,
-            color         = dimColor,
-            fontSize      = 10.sp,
+            text = label,
+            color = dimColor,
+            fontSize = 10.sp,
             letterSpacing = 1.sp,
-            modifier      = Modifier.width(52.dp)
+            modifier = Modifier.width(52.dp)
         )
         IconButton(
-            onClick  = { if (value > min) onChange(value - 1) },
+            onClick = { if (value > min) onChange(value - 1) },
             modifier = Modifier.size(32.dp)
         ) {
             Icon(
                 Icons.Default.Remove, null,
-                tint     = if (value > min) textColor else disabledC,
+                tint = if (value > min) textColor else disabledC,
                 modifier = Modifier.size(16.dp)
             )
         }
         Text(
-            text      = "$value",
-            color     = textColor,
-            fontSize  = 16.sp,
+            text = "$value",
+            color = textColor,
+            fontSize = 16.sp,
             textAlign = TextAlign.Center,
-            modifier  = Modifier.width(24.dp)
+            modifier = Modifier.width(24.dp)
         )
         IconButton(
-            onClick  = { if (value < max) onChange(value + 1) },
+            onClick = { if (value < max) onChange(value + 1) },
             modifier = Modifier.size(32.dp)
         ) {
             Icon(
                 Icons.Default.Add, null,
-                tint     = if (value < max) accent else disabledC,
+                tint = if (value < max) accent else disabledC,
                 modifier = Modifier.size(16.dp)
             )
         }
@@ -1510,10 +1594,10 @@ private fun WidgetLibraryDialog(
     onRemove: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val dialogBg    = if (isDayMode) Color(0xFFEEEEEE) else Color(0xFF0C0C0C)
+    val dialogBg = if (isDayMode) Color(0xFFEEEEEE) else Color(0xFF0C0C0C)
     val dialogBorder = if (isDayMode) Color(0xFFCCCCCC) else Color(0xFF1E1E1E)
-    val titleColor  = if (isDayMode) Color(0xFF495057) else Color(0xFF555555)
-    val closeColor  = if (isDayMode) Color(0xFF495057) else Color(0xFF444444)
+    val titleColor = if (isDayMode) Color(0xFF495057) else Color(0xFF555555)
+    val closeColor = if (isDayMode) Color(0xFF495057) else Color(0xFF444444)
 
     val activeIds = buildSet {
         if (settings.showClock) add("CLOCK")
@@ -1538,34 +1622,41 @@ private fun WidgetLibraryDialog(
                 .widthIn(min = 320.dp, max = 520.dp)
         ) {
             Row(
-                modifier          = Modifier.fillMaxWidth().padding(bottom = 14.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 14.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text          = "WIDGET LIBRARY",
-                    color         = titleColor,
-                    fontSize      = 9.sp,
+                    text = "WIDGET LIBRARY",
+                    color = titleColor,
+                    fontSize = 9.sp,
                     letterSpacing = 2.sp
                 )
                 Spacer(Modifier.weight(1f))
                 IconButton(onClick = onDismiss, modifier = Modifier.size(24.dp)) {
-                    Icon(Icons.Default.Close, null, tint = closeColor, modifier = Modifier.size(14.dp))
+                    Icon(
+                        Icons.Default.Close,
+                        null,
+                        tint = closeColor,
+                        modifier = Modifier.size(14.dp)
+                    )
                 }
             }
 
             LazyVerticalGrid(
-                columns               = GridCells.Fixed(4),
+                columns = GridCells.Fixed(4),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalArrangement   = Arrangement.spacedBy(6.dp),
-                modifier              = Modifier.fillMaxWidth()
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.fillMaxWidth()
             ) {
                 items(ALL_WIDGET_TYPES) { info ->
                     val isActive = info.id in activeIds
                     WidgetLibraryCard(
-                        info     = info,
+                        info = info,
                         isActive = isActive,
-                        canAdd   = canAdd,
-                        accent   = accent,
+                        canAdd = canAdd,
+                        accent = accent,
                         isDayMode = isDayMode,
                         onToggle = { if (isActive) onRemove(info.id) else onAdd(info.id) }
                     )
@@ -1575,12 +1666,12 @@ private fun WidgetLibraryDialog(
             if (!canAdd) {
                 Spacer(Modifier.height(10.dp))
                 Text(
-                    text          = "ALL ${GRID_COLS * GRID_ROWS} CELLS OCCUPIED — REMOVE A WIDGET TO ADD MORE",
-                    color         = if (isDayMode) Color(0xFFE03131) else Color(0xFF3A3A3A),
-                    fontSize      = 8.sp,
+                    text = "ALL ${GRID_COLS * GRID_ROWS} CELLS OCCUPIED — REMOVE A WIDGET TO ADD MORE",
+                    color = if (isDayMode) Color(0xFFE03131) else Color(0xFF3A3A3A),
+                    fontSize = 8.sp,
                     letterSpacing = 1.sp,
-                    modifier      = Modifier.fillMaxWidth(),
-                    textAlign     = TextAlign.Center
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
                 )
             }
         }
@@ -1596,11 +1687,16 @@ private fun WidgetLibraryCard(
     isDayMode: Boolean,
     onToggle: () -> Unit
 ) {
-    val enabled    = isActive || canAdd
-    val cardBorder = if (isActive) accent else if (isDayMode) Color(0xFFCCCCCC) else Color(0xFF1A1A1A)
-    val cardBg     = if (isActive) accent.copy(alpha = 0.15f) else if (isDayMode) Color(0xFFFFFFFF) else Color(0xFF0E0E0E)
-    val iconTint   = if (isActive) accent else if (isDayMode) Color(0xFF495057) else Color(0xFF333333)
-    val labelColor = if (isActive) accent else if (isDayMode) Color(0xFF212529) else Color(0xFF3A3A3A)
+    val enabled = isActive || canAdd
+    val cardBorder =
+        if (isActive) accent else if (isDayMode) Color(0xFFCCCCCC) else Color(0xFF1A1A1A)
+    val cardBg =
+        if (isActive) accent.copy(alpha = 0.15f) else if (isDayMode) Color(0xFFFFFFFF) else Color(
+            0xFF0E0E0E
+        )
+    val iconTint = if (isActive) accent else if (isDayMode) Color(0xFF495057) else Color(0xFF333333)
+    val labelColor =
+        if (isActive) accent else if (isDayMode) Color(0xFF212529) else Color(0xFF3A3A3A)
 
     Column(
         modifier = Modifier
@@ -1617,29 +1713,29 @@ private fun WidgetLibraryCard(
         Icon(info.icon, null, tint = iconTint, modifier = Modifier.size(18.dp))
         Spacer(Modifier.height(5.dp))
         Text(
-            text          = info.label,
-            color         = labelColor,
-            fontSize      = 7.sp,
+            text = info.label,
+            color = labelColor,
+            fontSize = 7.sp,
             letterSpacing = 1.sp,
-            textAlign     = TextAlign.Center,
-            maxLines      = 2,
-            lineHeight    = 9.sp
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+            lineHeight = 9.sp
         )
         Spacer(Modifier.height(3.dp))
         Text(
-            text          = when {
+            text = when {
                 isActive -> "ACTIVE"
-                !canAdd  -> "FULL"
-                else     -> "ADD"
+                !canAdd -> "FULL"
+                else -> "ADD"
             },
-            color         = when {
+            color = when {
                 isActive -> accent.copy(alpha = 0.75f)
-                !canAdd  -> if (isDayMode) Color(0xFFADB5BD) else Color(0xFF282828)
-                else     -> if (isDayMode) Color(0xFF495057) else Color(0xFF3A3A3A)
+                !canAdd -> if (isDayMode) Color(0xFFADB5BD) else Color(0xFF282828)
+                else -> if (isDayMode) Color(0xFF495057) else Color(0xFF3A3A3A)
             },
-            fontSize      = 6.sp,
+            fontSize = 6.sp,
             letterSpacing = 1.sp,
-            textAlign     = TextAlign.Center
+            textAlign = TextAlign.Center
         )
     }
 }
