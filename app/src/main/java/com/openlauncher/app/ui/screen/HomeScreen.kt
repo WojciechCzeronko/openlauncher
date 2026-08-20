@@ -2,6 +2,7 @@ package com.openlauncher.app.ui.screen
 
 import android.annotation.SuppressLint
 import android.content.res.Configuration
+import android.graphics.Bitmap
 import android.media.MediaMetadata
 import android.media.session.PlaybackState
 import android.os.SystemClock
@@ -64,6 +65,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import com.openlauncher.app.ui.widget.*
+import com.openlauncher.app.util.CoverArtHelper.createRetroAlbumArt
 import java.util.Calendar
 import com.openlauncher.app.util.LocationData
 import com.openlauncher.app.viewmodel.TripData
@@ -188,7 +190,7 @@ private fun Aw11HomeLayout(
             // SPEED
             Box(
                 modifier = Modifier
-                    .weight(0.28f)
+                    .weight(0.26f)
                     .fillMaxWidth()
                     .border(1.dp, Aw11Border.copy(alpha = 0.45f))
             ) {
@@ -214,7 +216,7 @@ private fun Aw11HomeLayout(
                             text = "%03.0f".format(speedDisplay),
                             color = Aw11Primary,
                             fontFamily = DSEG14Classic,
-                            fontSize = 52.sp
+                            fontSize = 44.sp
                         )
 
                         Spacer(Modifier.width(10.dp))
@@ -300,7 +302,7 @@ private fun Aw11HomeLayout(
             // MUSIC
             Box(
                 modifier = Modifier
-                    .weight(0.32f)
+                    .weight(0.36f)
                     .fillMaxWidth()
                     .border(1.dp, Aw11Border.copy(alpha = 0.45f))
             ) {
@@ -423,7 +425,7 @@ private fun Aw11HomeLayout(
                                     letterSpacing = 0.8.sp,
                                     maxLines = 1
                                 )
-                                Spacer(Modifier.height(2.dp))
+                                Spacer(Modifier.height(1.dp))
 
                                 //controls
                                 Row(
@@ -473,15 +475,16 @@ private fun Aw11HomeLayout(
                                 }
                             }
 
-                            if (nowPlaying.albumArt != null) {
-                                Spacer(Modifier.width(10.dp))
-
+                            val retroAlbumArt = remember(nowPlaying.albumArt) {
+                                nowPlaying.albumArt?.let { createRetroAlbumArt(it) }
+                            }
+                            if (retroAlbumArt != null) {
                                 Image(
-                                    bitmap = nowPlaying.albumArt.asImageBitmap(),
+                                    bitmap = retroAlbumArt.asImageBitmap(),
                                     contentDescription = "Album art",
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier
-                                        .size(76.dp)
+                                        .size(72.dp)
                                         .border(
                                             width = 1.dp,
                                             color = Aw11Border.copy(alpha = 0.45f)
@@ -582,7 +585,7 @@ private fun Aw11HomeLayout(
             // CAR DATA
             Box(
                 modifier = Modifier
-                    .weight(0.40f)
+                    .weight(0.38f)
                     .fillMaxWidth()
                     .border(1.dp, Aw11Border.copy(alpha = 0.45f))
             ) {
