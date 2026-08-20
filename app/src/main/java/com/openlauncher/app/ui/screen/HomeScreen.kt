@@ -10,6 +10,7 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
@@ -63,6 +64,7 @@ import com.openlauncher.app.ui.theme.DSEG14Classic
 import com.openlauncher.app.ui.theme.LocalDayMode
 import androidx.compose.foundation.Image
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import com.openlauncher.app.ui.widget.*
 import com.openlauncher.app.util.CoverArtHelper.createRetroAlbumArt
@@ -118,6 +120,11 @@ private fun canAddWidget(settings: com.openlauncher.app.data.AppSettings): Boole
     return hasFreeCell || hasShrinkable
 }
 
+private enum class StartupPhase {
+    SEGMENT_TEST,
+    FADE_OUT,
+    LIVE
+}
 @Composable
 private fun Aw11HomeLayout(
     location: LocationData?,
@@ -131,6 +138,35 @@ private fun Aw11HomeLayout(
     onNext: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var startupPhase by remember {
+        mutableStateOf(StartupPhase.SEGMENT_TEST)
+    }
+
+    LaunchedEffect(Unit) {
+        delay(1600)
+        startupPhase = StartupPhase.FADE_OUT
+
+        delay(500)
+        startupPhase = StartupPhase.LIVE
+    }
+
+    val showTestValues = startupPhase != StartupPhase.LIVE
+    val isLive = startupPhase == StartupPhase.LIVE
+    val startupAlpha by animateFloatAsState(
+        targetValue = when (startupPhase) {
+            StartupPhase.SEGMENT_TEST -> 1f
+            StartupPhase.FADE_OUT -> 0.08f
+            StartupPhase.LIVE -> 1f
+        },
+        animationSpec = tween(
+            durationMillis = when (startupPhase) {
+                StartupPhase.SEGMENT_TEST -> 0
+                StartupPhase.FADE_OUT -> 450
+                StartupPhase.LIVE -> 350
+            }
+        ),
+        label = "startup_alpha"
+    )
     val speedDisplay =
         ((location?.speedMps ?: 0f) * if (isMetric) 3.6f else 2.237f)
             .coerceAtLeast(0f)
@@ -156,6 +192,18 @@ private fun Aw11HomeLayout(
             totalMinutes / 60,
             totalMinutes % 60
         )
+
+    val displayedDistance =
+        if (showTestValues) "88.8 KM" else distanceDisplay
+
+    val displayedDriveTime =
+        if (showTestValues) "88:88" else driveTimeDisplay
+
+    val displayedAvgSpeed =
+        if (showTestValues) "888" else "%03.0f".format(avgSpeed)
+
+    val displayedMaxSpeed =
+        if (showTestValues) "888" else "%03.0f".format(maxSpeed)
     Row(
         modifier = modifier
             .fillMaxSize()
@@ -186,6 +234,9 @@ private fun Aw11HomeLayout(
             modifier = Modifier
                 .weight(0.32f)
                 .fillMaxHeight()
+                .graphicsLayer {
+                    alpha = startupAlpha
+                }
         ) {
             // SPEED
             Box(
@@ -213,7 +264,11 @@ private fun Aw11HomeLayout(
                         verticalAlignment = Alignment.Top
                     ) {
                         Text(
-                            text = "%03.0f".format(speedDisplay),
+                            text = if (showTestValues) {
+                                "888"
+                            } else {
+                                "%03.0f".format(speedDisplay)
+                            },
                             color = Aw11Primary,
                             fontFamily = DSEG14Classic,
                             fontSize = 44.sp
@@ -281,7 +336,12 @@ private fun Aw11HomeLayout(
                         horizontalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
                         repeat(20) { index ->
-                            val active = index < (speedProgress * 20f).toInt()
+                            val active =
+                                if (showTestValues) {
+                                    true
+                                } else {
+                                    index < (speedProgress * 20f).toInt()
+                                }
 
                             Box(
                                 modifier = Modifier
@@ -626,13 +686,13 @@ private fun Aw11HomeLayout(
                     ) {
                         Aw11DataCell(
                             label = "DISTANCE",
-                            value = distanceDisplay,
+                            value = displayedDistance,
                             modifier = Modifier.weight(1f)
                         )
 
                         Aw11DataCell(
                             label = "DRIVE TIME",
-                            value = driveTimeDisplay,
+                            value = displayedDriveTime,
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -645,13 +705,13 @@ private fun Aw11HomeLayout(
                     ) {
                         Aw11DataCell(
                             label = "AVG SPEED",
-                            value = "%03.0f".format(avgSpeed),
+                            value = displayedAvgSpeed,
                             modifier = Modifier.weight(1f)
                         )
 
                         Aw11DataCell(
                             label = "MAX SPEED",
-                            value = "%03.0f".format(maxSpeed),
+                            value = displayedMaxSpeed,
                             modifier = Modifier.weight(1f)
                         )
                     }
