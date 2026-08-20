@@ -34,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
@@ -59,6 +60,9 @@ import com.openlauncher.app.ui.theme.Aw11Primary
 import com.openlauncher.app.ui.theme.Aw11Secondary
 import com.openlauncher.app.ui.theme.DSEG14Classic
 import com.openlauncher.app.ui.theme.LocalDayMode
+import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import com.openlauncher.app.ui.widget.*
 import java.util.Calendar
 import com.openlauncher.app.util.LocationData
@@ -128,8 +132,6 @@ private fun Aw11HomeLayout(
     val speedDisplay =
         ((location?.speedMps ?: 0f) * if (isMetric) 3.6f else 2.237f)
             .coerceAtLeast(0f)
-
-    val unitLabel = if (isMetric) "KM/H" else "MPH"
 
     val speedBarMax = if (isMetric) 150f else 93f
     val speedProgress = (speedDisplay / speedBarMax).coerceIn(0f, 1f)
@@ -205,23 +207,51 @@ private fun Aw11HomeLayout(
                     Spacer(Modifier.weight(1f))
 
                     Row(
-                        verticalAlignment = Alignment.Bottom
+                        modifier = Modifier.height(IntrinsicSize.Min),
+                        verticalAlignment = Alignment.Top
                     ) {
                         Text(
                             text = "%03.0f".format(speedDisplay),
                             color = Aw11Primary,
                             fontFamily = DSEG14Classic,
-                            fontSize = 54.sp
+                            fontSize = 52.sp
                         )
 
                         Spacer(Modifier.width(10.dp))
 
-                        Text(
-                            text = unitLabel,
-                            color = Aw11Secondary,
-                            fontSize = 14.sp,
-                            modifier = Modifier.padding(bottom = 6.dp)
-                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .width(42.dp)
+                        ) {
+                            Text(
+                                text = "MPH",
+                                color = if (!isMetric) {
+                                    Aw11Primary
+                                } else {
+                                    Aw11Dim.copy(alpha = 0.45f)
+                                },
+                                fontSize = 11.sp,
+                                letterSpacing = 0.5.sp,
+                                modifier = Modifier
+                                    .align(Alignment.TopStart)
+                                    .offset(y = (-4).dp)
+                            )
+
+                            Text(
+                                text = "KM/H",
+                                color = if (isMetric) {
+                                    Aw11Primary
+                                } else {
+                                    Aw11Dim.copy(alpha = 0.45f)
+                                },
+                                fontSize = 11.sp,
+                                letterSpacing = 0.5.sp,
+                                modifier = Modifier
+                                    .align(Alignment.BottomStart)
+                                    .offset(y = 4.dp)
+                            )
+                        }
                     }
 
                     Spacer(Modifier.height(8.dp))
@@ -395,11 +425,13 @@ private fun Aw11HomeLayout(
                                 )
                                 Spacer(Modifier.height(2.dp))
 
+                                //controls
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
+                                    //previous
                                     Box(
                                         modifier = Modifier
                                             .size(28.dp)
@@ -412,7 +444,7 @@ private fun Aw11HomeLayout(
                                             fontSize = 17.sp
                                         )
                                     }
-
+                                    //play
                                     Box(
                                         modifier = Modifier
                                             .size(28.dp)
@@ -426,7 +458,7 @@ private fun Aw11HomeLayout(
                                             modifier = Modifier.offset(y = 2.dp)
                                         )
                                     }
-
+                                    //next
                                     Box(
                                         modifier = Modifier
                                             .size(28.dp)
@@ -442,6 +474,7 @@ private fun Aw11HomeLayout(
                                 }
                                 Spacer(Modifier.height(1.dp))
 
+                                //Whole progress bar
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     verticalAlignment = Alignment.CenterVertically
@@ -455,7 +488,7 @@ private fun Aw11HomeLayout(
 
                                     Spacer(Modifier.width(8.dp))
 
-                                    //progress bar
+                                    //bar
                                     Row(
                                         modifier = Modifier
                                             .weight(1f)
@@ -503,7 +536,7 @@ private fun Aw11HomeLayout(
                                         fontSize = 9.sp
                                     )
                                 }
-                                Spacer(Modifier.height(3.dp))
+                                Spacer(Modifier.height(2.dp))
 
                                 //equalizer
                                 RetroEqualizer(
