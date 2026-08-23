@@ -10,6 +10,9 @@ import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.os.SystemClock
 import androidx.annotation.RequiresPermission
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -42,7 +45,34 @@ class LocationCompassManager(private val context: Context) {
     private var bearingSin   = 0f
     private var bearingCos   = 1f   // initial: pointing north
     private var lastLocationForBearing: Location? = null
+    private var lastGpsFixMs = 0L
+    private var filteredSpeedMps = 0f
+    private var lowSpeedSinceMs: Long? = null
+    private var lastSpeedUpdateMs = 0L
+    private val handler = Handler(Looper.getMainLooper())
 
+    private val speedTimeoutRunnable = object : Runnable {
+        override fun run() {
+            val now = SystemClock.elapsedRealtime()
+
+            if (
+                lastSpeedUpdateMs > 0L &&
+                now - lastSpeedUpdateMs > 2500L &&
+                filteredSpeedMps > 0f
+            ) {
+                filteredSpeedMps = 0f
+                lowSpeedSinceMs = null
+
+                _location.value?.let { current ->
+                    _location.value = current.copy(
+                        speedMps = 0f
+                    )
+                }
+            }
+
+            handler.postDelayed(this, 500L)
+        }
+    }
     private val sensorListener = object : SensorEventListener {
         override fun onSensorChanged(event: SensorEvent) {
             when (event.sensor.type) {
@@ -71,12 +101,42 @@ class LocationCompassManager(private val context: Context) {
 
     private val locationListener = object : LocationListener {
         override fun onLocationChanged(loc: Location) {
+            val now = SystemClock.elapsedRealtime()
+
+            val isGps = loc.provider == LocationManager.GPS_PROVIDER
+            val isNetwork = loc.provider == LocationManager.NETWORK_PROVIDER
+
+            if (isGps) {
+                lastGpsFixMs = now
+            }
+
+            // Do not let a network fix overwrite a recent GPS fix.
+            if (isNetwork && now - lastGpsFixMs < 10_000L) {
+                return
+            }
+
+            if (loc.hasSpeed()) {
+                lastSpeedUpdateMs = now
+            }
+
+            val rawSpeed =
+                if (loc.hasSpeed()) {
+                    loc.speed
+                } else {
+                    0f
+                }
+
+            val speed = filterSpeed(
+                rawSpeedMps = rawSpeed,
+                nowMs = now
+            )
+
             _location.value = LocationData(
-                latitude  = loc.latitude,
+                latitude = loc.latitude,
                 longitude = loc.longitude,
-                altitude  = loc.altitude,
-                accuracy  = loc.accuracy,
-                speedMps  = if (loc.hasSpeed()) loc.speed else 0f
+                altitude = loc.altitude,
+                accuracy = loc.accuracy,
+                speedMps = speed
             )
 
             // 1. If GPS has a hardware-computed bearing, use it (works offline)
@@ -111,6 +171,9 @@ class LocationCompassManager(private val context: Context) {
 
     @RequiresPermission(anyOf = [Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION])
     fun start() {
+        handler.removeCallbacks(speedTimeoutRunnable)
+        handler.post(speedTimeoutRunnable)
+
         // Sensors
         sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)?.let {
             sensorManager.registerListener(sensorListener, it, SensorManager.SENSOR_DELAY_UI)
@@ -128,7 +191,10 @@ class LocationCompassManager(private val context: Context) {
             try {
                 if (locationManager.allProviders.contains(LocationManager.GPS_PROVIDER)) {
                     locationManager.requestLocationUpdates(
-                        LocationManager.GPS_PROVIDER, 3000L, 5f, locationListener
+                        LocationManager.GPS_PROVIDER,
+                        500L,
+                        0f,
+                        locationListener
                     )
                     locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)?.let {
                         locationListener.onLocationChanged(it)
@@ -142,7 +208,7 @@ class LocationCompassManager(private val context: Context) {
             try {
                 if (locationManager.allProviders.contains(LocationManager.NETWORK_PROVIDER)) {
                     locationManager.requestLocationUpdates(
-                        LocationManager.NETWORK_PROVIDER, 5000L, 10f, locationListener
+                        LocationManager.NETWORK_PROVIDER, 1000L, 10f, locationListener
                     )
                     locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)?.let {
                         locationListener.onLocationChanged(it)
@@ -153,8 +219,52 @@ class LocationCompassManager(private val context: Context) {
     }
 
     fun stop() {
+        handler.removeCallbacks(speedTimeoutRunnable)
         sensorManager.unregisterListener(sensorListener)
         locationManager.removeUpdates(locationListener)
         lastLocationForBearing = null
+    }
+
+    private fun filterSpeed(
+        rawSpeedMps: Float,
+        nowMs: Long
+    ): Float {
+        val raw = rawSpeedMps.coerceAtLeast(0f)
+
+        // Treat very small GPS speeds as stationary GPS drift.
+        if (raw < 0.7f) {
+            if (filteredSpeedMps > 2.8f) {
+                val lowSpeedStart = lowSpeedSinceMs
+
+                if (lowSpeedStart == null) {
+                    lowSpeedSinceMs = nowMs
+                    return filteredSpeedMps
+                }
+
+                // Ignore a short single-frame drop while the vehicle was moving.
+                if (nowMs - lowSpeedStart < 1500L) {
+                    return filteredSpeedMps
+                }
+            }
+
+            filteredSpeedMps = 0f
+            lowSpeedSinceMs = null
+            return 0f
+        }
+
+        lowSpeedSinceMs = null
+
+        val alpha =
+            if (raw > filteredSpeedMps) {
+                0.85f
+            } else {
+                0.75f
+            }
+
+        filteredSpeedMps =
+            filteredSpeedMps * (1f - alpha) +
+                    raw * alpha
+
+        return filteredSpeedMps
     }
 }

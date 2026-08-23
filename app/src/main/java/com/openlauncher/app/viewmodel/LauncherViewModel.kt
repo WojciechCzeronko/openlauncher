@@ -105,7 +105,9 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             val segmentDistance = results[0]
 
             // Ignore bad GPS fixes / obvious jumps.
+            // Count distance only while the vehicle is actually moving.
             if (
+                currentSpeed >= 0.7f &&
                 current.accuracy <= 50f &&
                 previous.accuracy <= 50f &&
                 segmentDistance in 0f..300f
@@ -114,7 +116,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             }
 
             // Count DRIVE TIME only while actually moving.
-            if (currentSpeed >= 1.5f) {
+            if (currentSpeed >= 0.7f) {
                 timeDelta = (now - previousTime)
                     .coerceIn(0L, 10_000L)
             }

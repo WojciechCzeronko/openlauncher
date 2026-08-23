@@ -77,7 +77,7 @@ foreach ($speed in $steps) {
         -SpeedKmh $speed `
         -Bearing $bearing
 
-    Start-Sleep -Seconds 3
+    Start-Sleep -Seconds 1
 }
 
 Write-Host "Stopping..."
