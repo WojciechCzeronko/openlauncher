@@ -60,6 +60,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     private var lastTripLocation: LocationData? = null
     private var lastTripUpdateMs: Long? = null
+    private var lastAcceptedSpeedMps = 0f
     private val settingsRepo = SettingsRepository(application)
     private val locationMgr  = LocationCompassManager(application)
 
@@ -87,6 +88,19 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         val previousTime = lastTripUpdateMs
 
         val currentSpeed = current.speedMps.coerceAtLeast(0f)
+        val speedDelta = kotlin.math.abs(
+            currentSpeed - lastAcceptedSpeedMps
+        )
+
+        val acceptedSpeed =
+            if (
+                lastAcceptedSpeedMps > 0f &&
+                speedDelta > 13.9f
+            ) {
+                lastAcceptedSpeedMps
+            } else {
+                currentSpeed
+            }
 
         var distanceDelta = 0f
         var timeDelta = 0L
@@ -126,10 +140,10 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             trip.copy(
                 distanceMeters = trip.distanceMeters + distanceDelta,
                 driveTimeMs = trip.driveTimeMs + timeDelta,
-                maxSpeedMps = maxOf(trip.maxSpeedMps, currentSpeed)
+                maxSpeedMps = maxOf(trip.maxSpeedMps, acceptedSpeed)
             )
         }
-
+        lastAcceptedSpeedMps = acceptedSpeed
         lastTripLocation = current
         lastTripUpdateMs = now
     }
@@ -138,6 +152,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         _tripData.value = TripData()
         lastTripLocation = null
         lastTripUpdateMs = null
+        lastAcceptedSpeedMps = 0f
     }
     fun updateSettings(block: AppSettings.() -> AppSettings) {
         viewModelScope.launch { settingsRepo.updateSettings { it.block() } }

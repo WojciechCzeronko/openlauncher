@@ -11,6 +11,7 @@ $lon = 18.0220
 $alt = 80
 $bearing = 90
 $accuracy = 5
+$updateIntervalSeconds = 1
 
 function Send-MockLocation {
     param(
@@ -43,15 +44,15 @@ Write-Host "Enabling mock location..."
 
 Write-Host "Starting simulated trip..."
 
-# every step last 3 seconds.
-# after each step we move longitude a bit to the east.
+# Publish one mock location update every second.
+# Position movement is calculated from the simulated speed and update interval.
 
 $steps = @(
     0, 0,
     10, 20, 30, 40, 50,
     50, 50, 50, 50, 50,
     60, 70, 80, 90,
-    90, 90, 90, 90, 90,
+    220, 90, 90, 90, 90,
     80, 70, 60, 50,
     40, 30, 20, 10,
     0, 0
@@ -62,7 +63,7 @@ foreach ($speed in $steps) {
     # approximate GPS movement
     # higher speed = bigger step
     if ($speed -gt 0) {
-        $distanceMeters = ($speed / 3.6) * 3.0
+        $distanceMeters = ($speed / 3.6) * $updateIntervalSeconds
 
         # around 1 degree longitude at this coordinates
         # ~67 km
@@ -77,7 +78,7 @@ foreach ($speed in $steps) {
         -SpeedKmh $speed `
         -Bearing $bearing
 
-    Start-Sleep -Seconds 1
+    Start-Sleep -Seconds $updateIntervalSeconds
 }
 
 Write-Host "Stopping..."

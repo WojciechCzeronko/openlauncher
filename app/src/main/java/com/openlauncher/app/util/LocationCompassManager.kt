@@ -49,6 +49,7 @@ class LocationCompassManager(private val context: Context) {
     private var filteredSpeedMps = 0f
     private var lowSpeedSinceMs: Long? = null
     private var lastSpeedUpdateMs = 0L
+    private var lastRawSpeedMps = 0f
     private val handler = Handler(Looper.getMainLooper())
 
     private val speedTimeoutRunnable = object : Runnable {
@@ -61,6 +62,7 @@ class LocationCompassManager(private val context: Context) {
                 filteredSpeedMps > 0f
             ) {
                 filteredSpeedMps = 0f
+                lastRawSpeedMps = 0f
                 lowSpeedSinceMs = null
 
                 _location.value?.let { current ->
@@ -231,6 +233,18 @@ class LocationCompassManager(private val context: Context) {
     ): Float {
         val raw = rawSpeedMps.coerceAtLeast(0f)
 
+        val rawSpeedDelta = kotlin.math.abs(
+            raw - lastRawSpeedMps
+        )
+
+        // Reject implausible single-sample GPS speed spikes.
+        if (
+            lastRawSpeedMps > 2.8f &&
+            raw > lastRawSpeedMps &&
+            rawSpeedDelta > 8.3f
+        ) {
+            return filteredSpeedMps
+        }
         // Treat very small GPS speeds as stationary GPS drift.
         if (raw < 0.7f) {
             if (filteredSpeedMps > 2.8f) {
@@ -249,6 +263,7 @@ class LocationCompassManager(private val context: Context) {
 
             filteredSpeedMps = 0f
             lowSpeedSinceMs = null
+            lastRawSpeedMps = 0f
             return 0f
         }
 
@@ -265,6 +280,7 @@ class LocationCompassManager(private val context: Context) {
             filteredSpeedMps * (1f - alpha) +
                     raw * alpha
 
+        lastRawSpeedMps = raw
         return filteredSpeedMps
     }
 }
