@@ -31,6 +31,10 @@ import com.openlauncher.app.ui.screen.*
 import com.openlauncher.app.ui.theme.Aw11Background
 import com.openlauncher.app.ui.theme.OpenLauncherTheme
 import com.openlauncher.app.viewmodel.LauncherViewModel
+import com.here.sdk.core.engine.AuthenticationMode
+import com.here.sdk.core.engine.SDKNativeEngine
+import com.here.sdk.core.engine.SDKOptions
+import com.here.sdk.core.errors.InstantiationErrorException
 
 class MainActivity : ComponentActivity() {
 
@@ -76,6 +80,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        initializeHereSdk()
+
         hideSystemBars()
 
         setContent {
@@ -328,5 +334,36 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         startLocationWithPermissionCheck()
+    }
+
+    private fun initializeHereSdk() {
+        val accessKeyId = BuildConfig.HERE_ACCESS_KEY_ID
+        val accessKeySecret = BuildConfig.HERE_ACCESS_KEY_SECRET
+
+        check(
+            accessKeyId.isNotBlank() &&
+                    accessKeySecret.isNotBlank()
+        ) {
+            "HERE SDK credentials are missing."
+        }
+
+        val authenticationMode =
+            AuthenticationMode.withKeySecret(
+                accessKeyId,
+                accessKeySecret
+            )
+
+        val options = SDKOptions(authenticationMode)
+
+        try {
+            SDKNativeEngine.makeSharedInstance(
+                applicationContext,
+                options
+            )
+        } catch (e: InstantiationErrorException) {
+            throw RuntimeException(
+                "HERE SDK initialization failed: ${e.error.name}"
+            )
+        }
     }
 }

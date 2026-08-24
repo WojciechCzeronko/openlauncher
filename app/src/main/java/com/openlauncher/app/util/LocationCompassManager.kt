@@ -26,7 +26,8 @@ data class LocationData(
     val longitude: Double,
     val altitude: Double,
     val accuracy: Float,
-    val speedMps: Float = 0f
+    val speedMps: Float = 0f,
+    val bearingDegrees: Float? = null
 )
 
 class LocationCompassManager(private val context: Context) {
@@ -138,11 +139,17 @@ class LocationCompassManager(private val context: Context) {
                 longitude = loc.longitude,
                 altitude = loc.altitude,
                 accuracy = loc.accuracy,
-                speedMps = speed
+                speedMps = speed,
+                bearingDegrees =
+                    if (loc.hasBearing()) {
+                        (loc.bearing + 360f) % 360f
+                    } else {
+                        null
+                    }
             )
 
             // 1. If GPS has a hardware-computed bearing, use it (works offline)
-            if (loc.hasBearing() && loc.bearing != 0f) {
+            if (loc.hasBearing()) {
                 _bearing.value = loc.bearing
             } else {
                 // 2. Math fallback: Calculate bearing between consecutive location points (works offline & sensor-less!)

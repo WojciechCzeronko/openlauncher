@@ -18,7 +18,7 @@ function Send-MockLocation {
         [double]$Latitude,
         [double]$Longitude,
         [double]$SpeedKmh,
-        [double]$Bearing = 90
+        [double]$Bearing = 0
     )
 
     $speedMps = $SpeedKmh / 3.6

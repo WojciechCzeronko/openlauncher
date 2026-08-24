@@ -1,6 +1,16 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.plugin.compose")
+}
+
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+
+    if (file.exists()) {
+        file.inputStream().use { load(it) }
+    }
 }
 
 android {
@@ -15,6 +25,23 @@ android {
         targetSdk      = 36
         versionCode    = 6
         versionName    = "0.0.5"
+        val hereAccessKeyId =
+            localProperties.getProperty("HERE_ACCESS_KEY_ID", "")
+
+        val hereAccessKeySecret =
+            localProperties.getProperty("HERE_ACCESS_KEY_SECRET", "")
+
+        buildConfigField(
+            "String",
+            "HERE_ACCESS_KEY_ID",
+            "\"$hereAccessKeyId\""
+        )
+
+        buildConfigField(
+            "String",
+            "HERE_ACCESS_KEY_SECRET",
+            "\"$hereAccessKeySecret\""
+        )
     }
 
     buildTypes {
@@ -37,10 +64,20 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
 dependencies {
+    implementation(
+        fileTree(
+            mapOf(
+                "dir" to "libs",
+                "include" to listOf("*.aar", "*.jar"),
+                "exclude" to listOf("*mock*.jar")
+            )
+        )
+    )
     val composeBom = platform("androidx.compose:compose-bom:2024.09.00")
     implementation(composeBom)
 
