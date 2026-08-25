@@ -11,7 +11,7 @@ $lon = 18.0220
 $alt = 80
 $bearing = 90
 $accuracy = 5
-$updateIntervalSeconds = 1
+$updateIntervalMilliseconds = 1000
 
 function Send-MockLocation {
     param(
@@ -48,27 +48,66 @@ Write-Host "Starting simulated trip..."
 # Position movement is calculated from the simulated speed and update interval.
 
 $steps = @(
-    0, 0,
-    10, 20, 30, 40, 50,
-    50, 50, 50, 50, 50,
-    60, 70, 80, 90,
-    220, 90, 90, 90, 90,
-    80, 70, 60, 50,
-    40, 30, 20, 10,
-    0, 0
+    @{ Speed = 0;  Bearing = 90 },
+    @{ Speed = 20; Bearing = 90 },
+    @{ Speed = 40; Bearing = 90 },
+    @{ Speed = 50; Bearing = 90 },
+    @{ Speed = 50; Bearing = 90 },
+
+    # Right turn: east -> south
+    @{ Speed = 50; Bearing = 105 },
+    @{ Speed = 50; Bearing = 120 },
+    @{ Speed = 50; Bearing = 135 },
+    @{ Speed = 50; Bearing = 150 },
+    @{ Speed = 50; Bearing = 165 },
+    @{ Speed = 50; Bearing = 180 },
+
+    @{ Speed = 50; Bearing = 180 },
+    @{ Speed = 50; Bearing = 180 },
+    @{ Speed = 50; Bearing = 180 },
+
+    # Right turn: south -> west
+    @{ Speed = 50; Bearing = 195 },
+    @{ Speed = 50; Bearing = 210 },
+    @{ Speed = 50; Bearing = 225 },
+    @{ Speed = 50; Bearing = 240 },
+    @{ Speed = 50; Bearing = 255 },
+    @{ Speed = 50; Bearing = 270 },
+
+    @{ Speed = 50; Bearing = 270 },
+    @{ Speed = 30; Bearing = 270 },
+    @{ Speed = 10; Bearing = 270 },
+    @{ Speed = 0;  Bearing = 270 }
 )
 
-foreach ($speed in $steps) {
+foreach ($step in $steps) {
 
-    # approximate GPS movement
-    # higher speed = bigger step
+    $speed = $step.Speed
+    $bearing = $step.Bearing
+
     if ($speed -gt 0) {
-        $distanceMeters = ($speed / 3.6) * $updateIntervalSeconds
+        $distanceMeters =
+            ($speed / 3.6) * ($updateIntervalMilliseconds/1000)
 
-        # around 1 degree longitude at this coordinates
-        # ~67 km
-        $lonDelta = $distanceMeters / 67000.0
+        $bearingRadians =
+            $bearing * [Math]::PI / 180.0
 
+        $metersPerDegreeLatitude = 111320.0
+
+        $metersPerDegreeLongitude =
+            111320.0 * [Math]::Cos(
+                $lat * [Math]::PI / 180.0
+            )
+
+        $latDelta =
+            ($distanceMeters * [Math]::Cos($bearingRadians)) /
+            $metersPerDegreeLatitude
+
+        $lonDelta =
+            ($distanceMeters * [Math]::Sin($bearingRadians)) /
+            $metersPerDegreeLongitude
+
+        $lat += $latDelta
         $lon += $lonDelta
     }
 
@@ -78,7 +117,7 @@ foreach ($speed in $steps) {
         -SpeedKmh $speed `
         -Bearing $bearing
 
-    Start-Sleep -Seconds $updateIntervalSeconds
+    Start-Sleep -Milliseconds $updateIntervalMilliseconds
 }
 
 Write-Host "Stopping..."
