@@ -23,7 +23,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -34,20 +36,24 @@ import com.here.sdk.animation.AnimationState
 import com.here.sdk.core.GeoCoordinates
 import com.here.sdk.core.GeoCoordinatesUpdate
 import com.here.sdk.core.GeoOrientationUpdate
+import com.here.sdk.core.Point2D
+import com.here.sdk.mapview.LineCap
 import com.here.sdk.mapview.MapCameraAnimationFactory
 import com.here.sdk.mapview.MapImageFactory
 import com.here.sdk.mapview.MapMarker
 import com.here.sdk.mapview.MapMeasure
+import com.here.sdk.mapview.MapMeasureDependentRenderSize
+import com.here.sdk.mapview.MapPolyline
 import com.here.sdk.mapview.MapScheme
 import com.here.sdk.mapview.MapView
+import com.here.sdk.mapview.RenderSize
+import com.here.sdk.routing.Route
 import com.here.time.Duration
 import com.openlauncher.app.R
 import com.openlauncher.app.ui.theme.Aw11Background
 import com.openlauncher.app.ui.theme.Aw11Primary
 import com.openlauncher.app.util.LocationData
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.unit.IntSize
-import com.here.sdk.core.Point2D
+import com.here.sdk.core.Color as HereColor
 
 
 private const val TAG = "Aw11HereMap"
@@ -55,6 +61,8 @@ private const val TAG = "Aw11HereMap"
 private const val DEFAULT_LATITUDE = 53.1381
 private const val DEFAULT_LONGITUDE = 18.0220
 private const val DEFAULT_ZOOM_DISTANCE_METERS = 500.0
+private const val TEST_DESTINATION_LATITUDE = 53.1325
+private const val TEST_DESTINATION_LONGITUDE = 18.0120
 
 private class MapAnimationState {
     var latitude = DEFAULT_LATITUDE
@@ -81,6 +89,18 @@ fun Aw11HereMap(
 
     val animationProgress = remember {
         Animatable(1f)
+    }
+
+    val routingController = remember {
+        HereRoutingController()
+    }
+
+    val routePolyline = remember {
+        mutableStateOf<MapPolyline?>(null)
+    }
+
+    var routeRequested by remember {
+        mutableStateOf(false)
     }
 
     var isFollowing by remember {
@@ -198,6 +218,13 @@ fun Aw11HereMap(
             carMarker.value = null
 
             mapView.onPause()
+            routePolyline.value?.let { polyline ->
+                mapView.mapScene.removeMapPolyline(polyline)
+            }
+
+            routePolyline.value = null
+
+            routingController.dispose()
             mapView.onDestroy()
         }
     }
@@ -306,6 +333,63 @@ fun Aw11HereMap(
             animationState.longitude = longitude
             animationState.bearing = bearing
         }
+    }
+
+    LaunchedEffect(
+        location?.latitude,
+        location?.longitude,
+        carMarker.value
+    ) {
+        val currentLocation =
+            location ?: return@LaunchedEffect
+
+        if (
+            routeRequested ||
+            carMarker.value == null
+        ) {
+            return@LaunchedEffect
+        }
+
+        routeRequested = true
+
+        val start = GeoCoordinates(
+            currentLocation.latitude,
+            currentLocation.longitude
+        )
+
+        val destination = GeoCoordinates(
+            TEST_DESTINATION_LATITUDE,
+            TEST_DESTINATION_LONGITUDE
+        )
+
+        routingController.calculateRoute(
+            start = start,
+            destination = destination,
+            onSuccess = { route ->
+                val polyline =
+                    createRoutePolyline(route)
+
+                if (polyline != null) {
+                    routePolyline.value?.let { previous ->
+                        mapView.mapScene.removeMapPolyline(previous)
+                    }
+
+                    mapView.mapScene.addMapPolyline(polyline)
+                    routePolyline.value = polyline
+
+                    Log.d(
+                        TAG,
+                        "Route calculated successfully."
+                    )
+                }
+            },
+            onError = { error ->
+                Log.e(
+                    TAG,
+                    "Route calculation failed: ${error.name}"
+                )
+            }
+        )
     }
 
     LaunchedEffect(
@@ -432,4 +516,43 @@ private fun normalizeBearing(
     bearing: Float
 ): Float {
     return ((bearing % 360f) + 360f) % 360f
+}
+
+private fun createRoutePolyline(
+    route: Route
+): MapPolyline? {
+    return try {
+        val lineWidth =
+            MapMeasureDependentRenderSize(
+                RenderSize.Unit.PIXELS,
+                14.0
+            )
+
+        val lineColor = HereColor(
+            0.84f,
+            0.91f,
+            0.0f,
+            0.95f
+        )
+
+        val representation =
+            MapPolyline.SolidRepresentation(
+                lineWidth,
+                lineColor,
+                LineCap.ROUND
+            )
+
+        MapPolyline(
+            route.geometry,
+            representation
+        )
+    } catch (e: Exception) {
+        Log.e(
+            TAG,
+            "Failed to create route polyline.",
+            e
+        )
+
+        null
+    }
 }
