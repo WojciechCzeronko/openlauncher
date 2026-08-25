@@ -357,7 +357,7 @@ private fun Aw11HomeLayout(
                         text = "SPEED",
                         color = Aw11Primary,
                         fontSize = 12.sp,
-                        letterSpacing = 1.5.sp
+                        letterSpacing = 0.5.sp
                     )
 
                     Spacer(Modifier.weight(1f))
@@ -395,7 +395,7 @@ private fun Aw11HomeLayout(
                                 letterSpacing = 0.5.sp,
                                 modifier = Modifier
                                     .align(Alignment.TopStart)
-                                    .offset(y = (-4).dp)
+                                    .offset(y = (-2).dp)
                             )
 
                             Text(
@@ -409,7 +409,7 @@ private fun Aw11HomeLayout(
                                 letterSpacing = 0.5.sp,
                                 modifier = Modifier
                                     .align(Alignment.BottomStart)
-                                    .offset(y = 4.dp)
+                                    .offset(y = 2.dp)
                             )
                         }
                     }
@@ -487,7 +487,7 @@ private fun Aw11HomeLayout(
                         text = mediaSourceName(nowPlaying),
                         color = Aw11Primary,
                         fontSize = 12.sp,
-                        letterSpacing = 1.5.sp
+                        letterSpacing = 0.5.sp
                     )
 
                     Spacer(Modifier.weight(1f))
@@ -593,7 +593,7 @@ private fun Aw11HomeLayout(
                                         text = nowPlaying.artist.uppercase(),
                                         color = Aw11Secondary,
                                         fontSize = 11.sp,
-                                        letterSpacing = 1.sp,
+                                        letterSpacing = 0.25.sp,
                                         maxLines = 1
                                     )
 
@@ -602,7 +602,7 @@ private fun Aw11HomeLayout(
                                         text = nowPlaying.title.uppercase(),
                                         color = Aw11Primary,
                                         fontSize = 15.sp,
-                                        letterSpacing = 0.8.sp,
+                                        letterSpacing = 0.sp,
                                         maxLines = 1
                                     )
                                     Spacer(Modifier.height(1.dp))
@@ -783,7 +783,7 @@ private fun Aw11HomeLayout(
                                     text = "MEDIA LINK",
                                     color = Aw11Secondary,
                                     fontSize = 11.sp,
-                                    letterSpacing = 1.5.sp
+                                    letterSpacing = 0.5.sp
                                 )
 
                                 Spacer(Modifier.width(2.dp))
@@ -812,7 +812,7 @@ private fun Aw11HomeLayout(
                                 text = "NO MEDIA",
                                 color = Aw11Dim,
                                 fontSize = 11.sp,
-                                letterSpacing = 1.5.sp
+                                letterSpacing = 0.5.sp
                             )
                         }
                     }
@@ -843,7 +843,7 @@ private fun Aw11HomeLayout(
                             text = "TRIP DATA",
                             color = Aw11Primary,
                             fontSize = 12.sp,
-                            letterSpacing = 1.5.sp
+                            letterSpacing = 0.5.sp
                         )
 
                         Spacer(Modifier.weight(1f))
@@ -852,7 +852,7 @@ private fun Aw11HomeLayout(
                             text = "RESET",
                             color = Aw11Secondary,
                             fontSize = 9.sp,
-                            letterSpacing = 1.sp,
+                            letterSpacing = 0.5.sp,
                             modifier = Modifier
                                 .clickable { onResetTrip() }
                                 .padding(6.dp)
@@ -995,7 +995,7 @@ private fun Aw11DataCell(
             text = label,
             color = Aw11Secondary,
             fontSize = 8.sp,
-            letterSpacing = 1.sp
+            letterSpacing = 0.25.sp
         )
 
         Spacer(Modifier.height(5.dp))

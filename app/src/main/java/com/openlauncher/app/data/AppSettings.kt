@@ -10,7 +10,8 @@ enum class AppFont {
     SYSTEM,
     JETBRAINS_MONO,
     SOURCE_CODE_PRO,
-    DSEG14_CLASSIC
+    DSEG14_CLASSIC,
+    IBM_VGA_9X16
 }
 enum class DayNightMode { DARK, LIGHT, AUTO, SYSTEM }
 enum class SidebarPosition { LEFT, RIGHT, BOTTOM }

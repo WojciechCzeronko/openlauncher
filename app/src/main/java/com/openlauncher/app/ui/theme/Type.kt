@@ -28,11 +28,16 @@ val DSEG14Classic = FontFamily(
     Font(R.font.dseg14_classic_regular, FontWeight.Normal),
 )
 
+val IbmVga9x16 = FontFamily(
+    Font(R.font.ibm_vga_9x16, FontWeight.Normal),
+)
+
 fun AppFont.toFontFamily(): FontFamily = when (this) {
     AppFont.SYSTEM          -> FontFamily.Default
     AppFont.JETBRAINS_MONO  -> JetBrainsMono
     AppFont.SOURCE_CODE_PRO -> SourceCodePro
     AppFont.DSEG14_CLASSIC  -> DSEG14Classic
+    AppFont.IBM_VGA_9X16    -> IbmVga9x16
 }
 
 val DSEGWeather = FontFamily(

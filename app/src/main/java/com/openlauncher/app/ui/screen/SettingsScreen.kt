@@ -1007,4 +1007,5 @@ private fun fontDisplayName(font: AppFont): String = when (font) {
     AppFont.JETBRAINS_MONO  -> "JetBrains Mono"
     AppFont.SOURCE_CODE_PRO -> "Source Code Pro"
     AppFont.DSEG14_CLASSIC  -> "DSEG14 Classic"
+    AppFont.IBM_VGA_9X16 -> "IBM VGA 9x16"
 }
