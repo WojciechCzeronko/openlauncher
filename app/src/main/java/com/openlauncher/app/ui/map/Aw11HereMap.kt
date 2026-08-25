@@ -54,6 +54,9 @@ import com.openlauncher.app.ui.theme.Aw11Background
 import com.openlauncher.app.ui.theme.Aw11Primary
 import com.openlauncher.app.util.LocationData
 import com.here.sdk.core.Color as HereColor
+import com.here.sdk.core.GeoCircle
+import com.here.sdk.core.GeoPolygon
+import com.here.sdk.mapview.MapPolygon
 
 
 private const val TAG = "Aw11HereMap"
@@ -97,6 +100,14 @@ fun Aw11HereMap(
 
     val routePolyline = remember {
         mutableStateOf<MapPolyline?>(null)
+    }
+
+    var activeRoute by remember {
+        mutableStateOf<Route?>(null)
+    }
+
+    val destinationMarker = remember {
+        mutableStateOf<MapPolygon?>(null)
     }
 
     var routeRequested by remember {
@@ -224,6 +235,11 @@ fun Aw11HereMap(
 
             routePolyline.value = null
 
+            destinationMarker.value?.let { marker ->
+                mapView.mapScene.removeMapPolygon(marker)
+            }
+
+            destinationMarker.value = null
             routingController.dispose()
             mapView.onDestroy()
         }
@@ -366,6 +382,8 @@ fun Aw11HereMap(
             start = start,
             destination = destination,
             onSuccess = { route ->
+                activeRoute = route
+
                 val polyline =
                     createRoutePolyline(route)
 
@@ -376,12 +394,23 @@ fun Aw11HereMap(
 
                     mapView.mapScene.addMapPolyline(polyline)
                     routePolyline.value = polyline
-
-                    Log.d(
-                        TAG,
-                        "Route calculated successfully."
-                    )
                 }
+
+                destinationMarker.value?.let { previous ->
+                    mapView.mapScene.removeMapPolygon(previous)
+                }
+
+                val marker =
+                    createDestinationMarker(destination)
+
+                mapView.mapScene.addMapPolygon(marker)
+                destinationMarker.value = marker
+
+                Log.d(
+                    TAG,
+                    "Route: ${route.lengthInMeters} m, " +
+                            "${route.duration.seconds} s"
+                )
             },
             onError = { error ->
                 Log.e(
@@ -435,6 +464,44 @@ fun Aw11HereMap(
                     mapSize = size
                 }
         )
+
+        activeRoute?.let { route ->
+            val distanceKm =
+                route.lengthInMeters / 1000.0
+
+            val durationSeconds =
+                route.duration.seconds
+
+            val durationMinutes =
+                (durationSeconds + 59) / 60
+
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(10.dp)
+                    .background(
+                        Aw11Background.copy(alpha = 0.90f)
+                    )
+                    .border(
+                        width = 1.dp,
+                        color = Aw11Primary.copy(alpha = 0.85f)
+                    )
+                    .padding(
+                        horizontal = 10.dp,
+                        vertical = 6.dp
+                    )
+            ) {
+                Text(
+                    text = String.format(
+                        "%.1f KM  •  %d MIN",
+                        distanceKm,
+                        durationMinutes
+                    ),
+                    color = Aw11Primary,
+                    fontSize = 14.sp
+                )
+            }
+        }
 
         if (!isFollowing) {
             Box(
@@ -555,4 +622,29 @@ private fun createRoutePolyline(
 
         null
     }
+}
+
+private fun createDestinationMarker(
+    coordinates: GeoCoordinates
+): MapPolygon {
+    val circle = GeoCircle(
+        coordinates,
+        10.0
+    )
+
+    val polygon = GeoPolygon(
+        circle
+    )
+
+    val color = HereColor(
+        0.84f,
+        0.91f,
+        0.0f,
+        1.0f
+    )
+
+    return MapPolygon(
+        polygon,
+        color
+    )
 }
