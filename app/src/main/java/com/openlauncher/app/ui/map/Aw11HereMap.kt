@@ -1,33 +1,51 @@
 package com.openlauncher.app.ui.map
 
+import android.os.SystemClock
 import android.util.Log
+import android.view.MotionEvent
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.here.sdk.animation.AnimationState
 import com.here.sdk.core.GeoCoordinates
+import com.here.sdk.core.GeoCoordinatesUpdate
 import com.here.sdk.core.GeoOrientationUpdate
+import com.here.sdk.mapview.MapCameraAnimationFactory
 import com.here.sdk.mapview.MapImageFactory
 import com.here.sdk.mapview.MapMarker
 import com.here.sdk.mapview.MapMeasure
 import com.here.sdk.mapview.MapScheme
 import com.here.sdk.mapview.MapView
+import com.here.time.Duration
 import com.openlauncher.app.R
+import com.openlauncher.app.ui.theme.Aw11Background
+import com.openlauncher.app.ui.theme.Aw11Primary
 import com.openlauncher.app.util.LocationData
-import android.os.SystemClock
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.tween
+
 
 private const val TAG = "Aw11HereMap"
 
@@ -41,6 +59,7 @@ private class MapAnimationState {
     var bearing = 0f
     var lastLocationUpdateMs = 0L
 }
+
 @Composable
 fun Aw11HereMap(
     location: LocationData?,
@@ -61,11 +80,16 @@ fun Aw11HereMap(
         Animatable(1f)
     }
 
+    var isFollowing by remember {
+        mutableStateOf(true)
+    }
+
+    var isRecentering by remember {
+        mutableStateOf(false)
+    }
+
     val carMarker = remember {
         mutableStateOf<MapMarker?>(null)
-    }
-    var lastMapBearing by remember {
-        mutableFloatStateOf(0f)
     }
 
     DisposableEffect(mapView, lifecycleOwner) {
@@ -263,11 +287,13 @@ fun Aw11HereMap(
                 DEFAULT_ZOOM_DISTANCE_METERS
             )
 
-            mapView.camera.lookAt(
-                coordinates,
-                orientation,
-                zoom
-            )
+            if (isFollowing && !isRecentering) {
+                mapView.camera.lookAt(
+                    coordinates,
+                    orientation,
+                    zoom
+                )
+            }
 
             animationState.latitude = latitude
             animationState.longitude = longitude
@@ -275,12 +301,94 @@ fun Aw11HereMap(
         }
     }
 
-    AndroidView(
-        factory = {
-            mapView
-        },
+    Box(
         modifier = modifier
-    )
+    ) {
+        AndroidView(
+            factory = {
+                mapView.apply {
+                    setOnTouchListener { _, event ->
+                        if (
+                            event.actionMasked == MotionEvent.ACTION_MOVE &&
+                            isFollowing
+                        ) {
+                            isFollowing = false
+                        }
+
+                        false
+                    }
+                }
+            },
+            modifier = Modifier.fillMaxSize()
+        )
+
+        if (!isFollowing) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(10.dp)
+                    .size(36.dp)
+                    .background(
+                        Aw11Background.copy(alpha = 0.90f)
+                    )
+                    .border(
+                        width = 1.dp,
+                        color = Aw11Primary.copy(alpha = 0.85f)
+                    )
+                    .clickable {
+                        if (isRecentering) {
+                            return@clickable
+                        }
+
+                        isRecentering = true
+
+                        val targetCoordinates = GeoCoordinates(
+                            animationState.latitude,
+                            animationState.longitude
+                        )
+
+                        val targetOrientation = GeoOrientationUpdate(
+                            animationState.bearing.toDouble(),
+                            0.0
+                        )
+
+                        val targetZoom = MapMeasure(
+                            MapMeasure.Kind.DISTANCE_IN_METERS,
+                            DEFAULT_ZOOM_DISTANCE_METERS
+                        )
+
+                        val cameraAnimation =
+                            MapCameraAnimationFactory.flyTo(
+                                GeoCoordinatesUpdate(targetCoordinates),
+                                targetOrientation,
+                                targetZoom,
+                                0.0,
+                                Duration.ofMillis(1000)
+                            )
+
+                        mapView.camera.startAnimation(
+                            cameraAnimation
+                        ) { animationStateResult ->
+
+                            if (
+                                animationStateResult == AnimationState.COMPLETED ||
+                                animationStateResult == AnimationState.CANCELLED
+                            ) {
+                                isRecentering = false
+                                isFollowing = true
+                            }
+                        }
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "⌖",
+                    color = Aw11Primary,
+                    fontSize = 20.sp
+                )
+            }
+        }
+    }
 }
 
 private fun shortestBearingDelta(
