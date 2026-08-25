@@ -45,6 +45,9 @@ import com.openlauncher.app.R
 import com.openlauncher.app.ui.theme.Aw11Background
 import com.openlauncher.app.ui.theme.Aw11Primary
 import com.openlauncher.app.util.LocationData
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.IntSize
+import com.here.sdk.core.Point2D
 
 
 private const val TAG = "Aw11HereMap"
@@ -86,6 +89,10 @@ fun Aw11HereMap(
 
     var isRecentering by remember {
         mutableStateOf(false)
+    }
+
+    var mapSize by remember {
+        mutableStateOf(IntSize.Zero)
     }
 
     val carMarker = remember {
@@ -301,6 +308,25 @@ fun Aw11HereMap(
         }
     }
 
+    LaunchedEffect(
+        mapSize.width,
+        mapSize.height
+    ) {
+        if (
+            mapSize.width > 0 &&
+            mapSize.height > 0
+        ) {
+            val principalPoint = Point2D(
+                mapSize.width / 2.0,
+                mapSize.height * 0.72
+            )
+
+            mapView.camera.setPrincipalPoint(
+                principalPoint
+            )
+        }
+    }
+
     Box(
         modifier = modifier
     ) {
@@ -319,7 +345,11 @@ fun Aw11HereMap(
                     }
                 }
             },
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .onSizeChanged { size ->
+                    mapSize = size
+                }
         )
 
         if (!isFollowing) {
