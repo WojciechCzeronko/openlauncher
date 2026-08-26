@@ -6,14 +6,9 @@ import android.view.MotionEvent
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -27,15 +22,16 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.here.sdk.animation.AnimationState
+import com.here.sdk.core.GeoCircle
 import com.here.sdk.core.GeoCoordinates
 import com.here.sdk.core.GeoCoordinatesUpdate
 import com.here.sdk.core.GeoOrientationUpdate
+import com.here.sdk.core.GeoPolygon
 import com.here.sdk.core.Point2D
 import com.here.sdk.mapview.LineCap
 import com.here.sdk.mapview.MapCameraAnimationFactory
@@ -43,6 +39,7 @@ import com.here.sdk.mapview.MapImageFactory
 import com.here.sdk.mapview.MapMarker
 import com.here.sdk.mapview.MapMeasure
 import com.here.sdk.mapview.MapMeasureDependentRenderSize
+import com.here.sdk.mapview.MapPolygon
 import com.here.sdk.mapview.MapPolyline
 import com.here.sdk.mapview.MapScheme
 import com.here.sdk.mapview.MapView
@@ -50,22 +47,11 @@ import com.here.sdk.mapview.RenderSize
 import com.here.sdk.routing.Route
 import com.here.time.Duration
 import com.openlauncher.app.R
-import com.openlauncher.app.ui.theme.Aw11Background
-import com.openlauncher.app.ui.theme.Aw11Primary
+import com.openlauncher.app.ui.map.components.Aw11RecenterButton
+import com.openlauncher.app.ui.map.components.Aw11RouteInfo
+import com.openlauncher.app.ui.map.components.Aw11SearchPanel
 import com.openlauncher.app.util.LocationData
 import com.here.sdk.core.Color as HereColor
-import com.here.sdk.core.GeoCircle
-import com.here.sdk.core.GeoPolygon
-import com.here.sdk.mapview.MapPolygon
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.width
-import androidx.compose.material3.OutlinedTextField
-import com.openlauncher.app.ui.theme.Aw11Secondary
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 
 private const val TAG = "Aw11HereMap"
 
@@ -89,9 +75,6 @@ fun Aw11HereMap(
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-
-    val focusManager = LocalFocusManager.current
-    val keyboardController = LocalSoftwareKeyboardController.current
 
     val mapView = remember(context) {
         MapView(context)
@@ -500,332 +483,130 @@ fun Aw11HereMap(
                 }
         )
 
-        // Search
-        if (!isSearchOpen) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(10.dp)
-                    .background(
-                        Aw11Background.copy(alpha = 0.90f)
-                    )
-                    .border(
-                        width = 1.dp,
-                        color = Aw11Primary.copy(alpha = 0.85f)
-                    )
-                    .clickable {
-                        isSearchOpen = true
-                    }
-                    .padding(
-                        horizontal = 12.dp,
-                        vertical = 8.dp
-                    )
-            ) {
-                Text(
-                    text = "SEARCH",
-                    color = Aw11Primary,
-                    fontSize = 12.sp,
-                    letterSpacing = 0.5.sp
+        Aw11SearchPanel(
+            isOpen = isSearchOpen,
+            query = searchQuery,
+            results = searchResults,
+            isSearching = isSearching,
+            error = searchError,
+            onOpen = {
+                isSearchOpen = true
+            },
+            onQueryChange = { query ->
+                searchQuery = query
+            },
+            onSearch = {
+                isSearching = true
+                searchError = null
+                searchResults = emptyList()
+
+                val center = GeoCoordinates(
+                    animationState.latitude,
+                    animationState.longitude
                 )
-            }
-        }
 
-        // Search box
-        if (isSearchOpen) {
-            Column(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(
-                        start = 10.dp,
-                        top = 10.dp
-                    )
-                    .width(420.dp)
-                    .background(
-                        Aw11Background.copy(alpha = 0.96f)
-                    )
-                    .border(
-                        width = 1.dp,
-                        color = Aw11Primary.copy(alpha = 0.85f)
-                    )
-                    .padding(10.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = {
-                            searchQuery = it
-                        },
-                        singleLine = true,
-                        trailingIcon = {
-                            if (searchQuery.isNotEmpty()) {
-                                Text(
-                                    text = "CLR",
-                                    color = Aw11Secondary,
-                                    fontSize = 10.sp,
-                                    letterSpacing = 0.sp,
-                                    modifier = Modifier
-                                        .clickable {
-                                            searchQuery = ""
-                                            searchResults = emptyList()
-                                            searchError = null
-                                        }
-                                        .padding(8.dp)
-                                )
-                            }
-                        },
-                        placeholder = {
-                            Text(
-                                text = "DESTINATION...",
-                                fontSize = 12.sp
-                            )
-                        },
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    Spacer(
-                        Modifier.width(8.dp)
-                    )
-
-                    Text(
-                        text = "SEARCH",
-                        color = Aw11Primary,
-                        fontSize = 11.sp,
-                        modifier = Modifier
-                            .border(
-                                1.dp,
-                                Aw11Primary.copy(alpha = 0.85f)
-                            )
-                            .clickable {
-                                if (
-                                    searchQuery.isBlank() ||
-                                    isSearching
-                                ) {
-                                    return@clickable
-                                }
-
-                                focusManager.clearFocus()
-                                keyboardController?.hide()
-
-                                isSearching = true
-                                searchError = null
-                                searchResults = emptyList()
-
-                                val center = GeoCoordinates(
-                                    animationState.latitude,
-                                    animationState.longitude
-                                )
-
-                                searchController.search(
-                                    queryText = searchQuery,
-                                    center = center,
-                                    onSuccess = { results ->
-                                        searchResults =
-                                            results.take(5)
-
-                                        isSearching = false
-                                    },
-                                    onError = { error ->
-                                        searchError = error.name
-                                        isSearching = false
-                                    }
-                                )
-                            }
-                            .padding(
-                                horizontal = 12.dp,
-                                vertical = 10.dp
-                            )
-                    )
-
-                    Spacer(
-                        Modifier.width(6.dp)
-                    )
-
-                    Text(
-                        text = "X",
-                        color = Aw11Secondary,
-                        fontSize = 12.sp,
-                        modifier = Modifier
-                            .clickable {
-                                focusManager.clearFocus()
-                                keyboardController?.hide()
-
-                                isSearchOpen = false
-                                searchResults = emptyList()
-                                searchError = null
-                            }
-                            .padding(8.dp)
-                    )
-                }
-
-                if (isSearching) {
-                    Text(
-                        text = "SEARCHING...",
-                        color = Aw11Secondary,
-                        fontSize = 11.sp,
-                        letterSpacing = 0.5.sp,
-                        modifier = Modifier.padding(top = 8.dp)
-                    )
-                }
-
-                searchError?.let { error ->
-                    Text(
-                        text = "SEARCH ERROR: $error",
-                        color = Aw11Primary,
-                        fontSize = 11.sp,
-                        modifier = Modifier.padding(top = 8.dp)
-                    )
-                }
-
-                searchResults.forEach { result ->
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 6.dp)
-                            .border(
-                                1.dp,
-                                Aw11Primary.copy(alpha = 0.35f)
-                            )
-                            .clickable {
-                                Log.d(
-                                    TAG,
-                                    "Selected search result: " +
-                                            "${result.title}, " +
-                                            "${result.coordinates.latitude}, " +
-                                            "${result.coordinates.longitude}"
-                                )
-                            }
-                            .padding(8.dp)
-                    ) {
-                        Column {
-                            Text(
-                                text = result.title.uppercase(),
-                                color = Aw11Primary,
-                                fontSize = 12.sp,
-                                letterSpacing = 0.25.sp
-                            )
-
-                            Text(
-                                text = result.address.uppercase(),
-                                color = Aw11Secondary,
-                                fontSize = 10.sp,
-                                letterSpacing = 0.sp
-                            )
-                        }
+                searchController.search(
+                    queryText = searchQuery,
+                    center = center,
+                    onSuccess = { results ->
+                        searchResults = results.take(5)
+                        isSearching = false
+                    },
+                    onError = { error ->
+                        searchError = error.name
+                        isSearching = false
                     }
-                }
-            }
-        }
+                )
+            },
+            onClear = {
+                searchQuery = ""
+                searchResults = emptyList()
+                searchError = null
+            },
+            onClose = {
+                isSearchOpen = false
+                searchQuery = ""
+                searchResults = emptyList()
+                searchError = null
+            },
+            onResultSelected = { result ->
+                Log.d(
+                    TAG,
+                    "Selected search result: " +
+                            "${result.title}, " +
+                            "${result.coordinates.latitude}, " +
+                            "${result.coordinates.longitude}"
+                )
+            },
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(10.dp)
+        )
 
         //Eta widget
         activeRoute?.let { route ->
-            val distanceKm =
-                route.lengthInMeters / 1000.0
-
-            val durationSeconds =
-                route.duration.seconds
-
-            val durationMinutes =
-                (durationSeconds + 59) / 60
-
-            Box(
+            Aw11RouteInfo(
+                distanceMeters = route.lengthInMeters,
+                durationSeconds = route.duration.seconds,
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .padding(
                         start = 10.dp,
                         bottom = 10.dp
                     )
-                    .background(
-                        Aw11Background.copy(alpha = 0.90f)
-                    )
-                    .border(
-                        width = 1.dp,
-                        color = Aw11Primary.copy(alpha = 0.85f)
-                    )
-                    .padding(
-                        horizontal = 10.dp,
-                        vertical = 6.dp
-                    )
-            ) {
-                Text(
-                    text = String.format(
-                        "%.1f KM  •  %d MIN",
-                        distanceKm,
-                        durationMinutes
-                    ),
-                    color = Aw11Primary,
-                    fontSize = 14.sp
-                )
-            }
+            )
         }
 
-        if (!isFollowing) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(10.dp)
-                    .size(36.dp)
-                    .background(
-                        Aw11Background.copy(alpha = 0.90f)
-                    )
-                    .border(
-                        width = 1.dp,
-                        color = Aw11Primary.copy(alpha = 0.85f)
-                    )
-                    .clickable {
-                        if (isRecentering) {
-                            return@clickable
-                        }
+        Aw11RecenterButton(
+            visible = !isFollowing,
+            onClick = {
+                if (isRecentering) {
+                    return@Aw11RecenterButton
+                }
 
-                        isRecentering = true
+                isRecentering = true
 
-                        val targetCoordinates = GeoCoordinates(
-                            animationState.latitude,
-                            animationState.longitude
-                        )
-
-                        val targetOrientation = GeoOrientationUpdate(
-                            animationState.bearing.toDouble(),
-                            0.0
-                        )
-
-                        val targetZoom = MapMeasure(
-                            MapMeasure.Kind.DISTANCE_IN_METERS,
-                            DEFAULT_ZOOM_DISTANCE_METERS
-                        )
-
-                        val cameraAnimation =
-                            MapCameraAnimationFactory.flyTo(
-                                GeoCoordinatesUpdate(targetCoordinates),
-                                targetOrientation,
-                                targetZoom,
-                                0.0,
-                                Duration.ofMillis(1000)
-                            )
-
-                        mapView.camera.startAnimation(
-                            cameraAnimation
-                        ) { animationStateResult ->
-
-                            if (
-                                animationStateResult == AnimationState.COMPLETED ||
-                                animationStateResult == AnimationState.CANCELLED
-                            ) {
-                                isRecentering = false
-                                isFollowing = true
-                            }
-                        }
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "⌖",
-                    color = Aw11Primary,
-                    fontSize = 20.sp
+                val targetCoordinates = GeoCoordinates(
+                    animationState.latitude,
+                    animationState.longitude
                 )
-            }
-        }
+
+                val targetOrientation = GeoOrientationUpdate(
+                    animationState.bearing.toDouble(),
+                    0.0
+                )
+
+                val targetZoom = MapMeasure(
+                    MapMeasure.Kind.DISTANCE_IN_METERS,
+                    DEFAULT_ZOOM_DISTANCE_METERS
+                )
+
+                val cameraAnimation =
+                    MapCameraAnimationFactory.flyTo(
+                        GeoCoordinatesUpdate(targetCoordinates),
+                        targetOrientation,
+                        targetZoom,
+                        0.0,
+                        Duration.ofMillis(1000)
+                    )
+
+                mapView.camera.startAnimation(
+                    cameraAnimation
+                ) { animationStateResult ->
+
+                    if (
+                        animationStateResult == AnimationState.COMPLETED ||
+                        animationStateResult == AnimationState.CANCELLED
+                    ) {
+                        isRecentering = false
+                        isFollowing = true
+                    }
+                }
+            },
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(10.dp)
+        )
     }
 }
 
