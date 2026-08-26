@@ -26,23 +26,17 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.here.sdk.animation.AnimationState
 import com.here.sdk.core.GeoCoordinates
-import com.here.sdk.core.GeoCoordinatesUpdate
-import com.here.sdk.core.GeoOrientationUpdate
-import com.here.sdk.core.Point2D
-import com.here.sdk.mapview.MapCameraAnimationFactory
 import com.here.sdk.mapview.MapImageFactory
 import com.here.sdk.mapview.MapMarker
-import com.here.sdk.mapview.MapMeasure
 import com.here.sdk.mapview.MapScheme
 import com.here.sdk.mapview.MapView
 import com.here.sdk.routing.Route
-import com.here.time.Duration
 import com.openlauncher.app.R
 import com.openlauncher.app.ui.map.components.Aw11RecenterButton
 import com.openlauncher.app.ui.map.components.Aw11RouteInfo
 import com.openlauncher.app.ui.map.components.Aw11SearchPanel
+import com.openlauncher.app.ui.map.here.HereCameraController
 import com.openlauncher.app.ui.map.here.HereRouteRenderer
 import com.openlauncher.app.util.LocationData
 
@@ -50,7 +44,6 @@ private const val TAG = "Aw11HereMap"
 
 private const val DEFAULT_LATITUDE = 53.1381
 private const val DEFAULT_LONGITUDE = 18.0220
-private const val DEFAULT_ZOOM_DISTANCE_METERS = 500.0
 private const val TEST_DESTINATION_LATITUDE = 53.1325
 private const val TEST_DESTINATION_LONGITUDE = 18.0120
 
@@ -75,6 +68,10 @@ fun Aw11HereMap(
 
     val routeRenderer = remember(mapView) {
         HereRouteRenderer(mapView)
+    }
+
+    val cameraController = remember(mapView) {
+        HereCameraController(mapView)
     }
 
     val animationState = remember {
@@ -166,15 +163,10 @@ fun Aw11HereMap(
                     animationState.bearing = it
                 }
 
-                val zoom = MapMeasure(
-                    MapMeasure.Kind.DISTANCE_IN_METERS,
-                    DEFAULT_ZOOM_DISTANCE_METERS
+                cameraController.showInitialPosition(
+                    initialCoordinates
                 )
 
-                mapView.camera.lookAt(
-                    initialCoordinates,
-                    zoom
-                )
                 val markerImage =
                     MapImageFactory.fromResource(
                         context.resources,
@@ -325,21 +317,10 @@ fun Aw11HereMap(
                 coordinates
             )
 
-            val orientation = GeoOrientationUpdate(
-                bearing.toDouble(),
-                0.0
-            )
-
-            val zoom = MapMeasure(
-                MapMeasure.Kind.DISTANCE_IN_METERS,
-                DEFAULT_ZOOM_DISTANCE_METERS
-            )
-
             if (isFollowing && !isRecentering) {
-                mapView.camera.lookAt(
-                    coordinates,
-                    orientation,
-                    zoom
+                cameraController.follow(
+                    coordinates = coordinates,
+                    bearingDegrees = bearing
                 )
             }
 
@@ -402,23 +383,15 @@ fun Aw11HereMap(
         )
     }
 
+    // Set principal point
     LaunchedEffect(
         mapSize.width,
         mapSize.height
     ) {
-        if (
-            mapSize.width > 0 &&
-            mapSize.height > 0
-        ) {
-            val principalPoint = Point2D(
-                mapSize.width / 2.0,
-                mapSize.height * 0.72
-            )
-
-            mapView.camera.setPrincipalPoint(
-                principalPoint
-            )
-        }
+        cameraController.setNavigationPrincipalPoint(
+            width = mapSize.width,
+            height = mapSize.height
+        )
     }
 
     Box(
@@ -534,37 +507,14 @@ fun Aw11HereMap(
                     animationState.longitude
                 )
 
-                val targetOrientation = GeoOrientationUpdate(
-                    animationState.bearing.toDouble(),
-                    0.0
-                )
-
-                val targetZoom = MapMeasure(
-                    MapMeasure.Kind.DISTANCE_IN_METERS,
-                    DEFAULT_ZOOM_DISTANCE_METERS
-                )
-
-                val cameraAnimation =
-                    MapCameraAnimationFactory.flyTo(
-                        GeoCoordinatesUpdate(targetCoordinates),
-                        targetOrientation,
-                        targetZoom,
-                        0.0,
-                        Duration.ofMillis(1000)
-                    )
-
-                mapView.camera.startAnimation(
-                    cameraAnimation
-                ) { animationStateResult ->
-
-                    if (
-                        animationStateResult == AnimationState.COMPLETED ||
-                        animationStateResult == AnimationState.CANCELLED
-                    ) {
+                cameraController.recenter(
+                    coordinates = targetCoordinates,
+                    bearingDegrees = animationState.bearing,
+                    onFinished = {
                         isRecentering = false
                         isFollowing = true
                     }
-                }
+                )
             },
             modifier = Modifier
                 .align(Alignment.BottomCenter)
