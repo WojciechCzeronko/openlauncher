@@ -57,7 +57,15 @@ import com.here.sdk.core.Color as HereColor
 import com.here.sdk.core.GeoCircle
 import com.here.sdk.core.GeoPolygon
 import com.here.sdk.mapview.MapPolygon
-
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.OutlinedTextField
+import com.openlauncher.app.ui.theme.Aw11Secondary
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 
 private const val TAG = "Aw11HereMap"
 
@@ -82,6 +90,9 @@ fun Aw11HereMap(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+
     val mapView = remember(context) {
         MapView(context)
     }
@@ -96,6 +107,30 @@ fun Aw11HereMap(
 
     val routingController = remember {
         HereRoutingController()
+    }
+
+    val searchController = remember {
+        HereSearchController()
+    }
+
+    var isSearchOpen by remember {
+        mutableStateOf(false)
+    }
+
+    var searchQuery by remember {
+        mutableStateOf("")
+    }
+
+    var searchResults by remember {
+        mutableStateOf<List<HereSearchResult>>(emptyList())
+    }
+
+    var isSearching by remember {
+        mutableStateOf(false)
+    }
+
+    var searchError by remember {
+        mutableStateOf<String?>(null)
     }
 
     val routePolyline = remember {
@@ -465,6 +500,225 @@ fun Aw11HereMap(
                 }
         )
 
+        // Search
+        if (!isSearchOpen) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(10.dp)
+                    .background(
+                        Aw11Background.copy(alpha = 0.90f)
+                    )
+                    .border(
+                        width = 1.dp,
+                        color = Aw11Primary.copy(alpha = 0.85f)
+                    )
+                    .clickable {
+                        isSearchOpen = true
+                    }
+                    .padding(
+                        horizontal = 12.dp,
+                        vertical = 8.dp
+                    )
+            ) {
+                Text(
+                    text = "SEARCH",
+                    color = Aw11Primary,
+                    fontSize = 12.sp,
+                    letterSpacing = 0.5.sp
+                )
+            }
+        }
+
+        // Search box
+        if (isSearchOpen) {
+            Column(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(
+                        start = 10.dp,
+                        top = 10.dp
+                    )
+                    .width(420.dp)
+                    .background(
+                        Aw11Background.copy(alpha = 0.96f)
+                    )
+                    .border(
+                        width = 1.dp,
+                        color = Aw11Primary.copy(alpha = 0.85f)
+                    )
+                    .padding(10.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = {
+                            searchQuery = it
+                        },
+                        singleLine = true,
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                Text(
+                                    text = "CLR",
+                                    color = Aw11Secondary,
+                                    fontSize = 10.sp,
+                                    letterSpacing = 0.sp,
+                                    modifier = Modifier
+                                        .clickable {
+                                            searchQuery = ""
+                                            searchResults = emptyList()
+                                            searchError = null
+                                        }
+                                        .padding(8.dp)
+                                )
+                            }
+                        },
+                        placeholder = {
+                            Text(
+                                text = "DESTINATION...",
+                                fontSize = 12.sp
+                            )
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    Spacer(
+                        Modifier.width(8.dp)
+                    )
+
+                    Text(
+                        text = "SEARCH",
+                        color = Aw11Primary,
+                        fontSize = 11.sp,
+                        modifier = Modifier
+                            .border(
+                                1.dp,
+                                Aw11Primary.copy(alpha = 0.85f)
+                            )
+                            .clickable {
+                                if (
+                                    searchQuery.isBlank() ||
+                                    isSearching
+                                ) {
+                                    return@clickable
+                                }
+
+                                focusManager.clearFocus()
+                                keyboardController?.hide()
+
+                                isSearching = true
+                                searchError = null
+                                searchResults = emptyList()
+
+                                val center = GeoCoordinates(
+                                    animationState.latitude,
+                                    animationState.longitude
+                                )
+
+                                searchController.search(
+                                    queryText = searchQuery,
+                                    center = center,
+                                    onSuccess = { results ->
+                                        searchResults =
+                                            results.take(5)
+
+                                        isSearching = false
+                                    },
+                                    onError = { error ->
+                                        searchError = error.name
+                                        isSearching = false
+                                    }
+                                )
+                            }
+                            .padding(
+                                horizontal = 12.dp,
+                                vertical = 10.dp
+                            )
+                    )
+
+                    Spacer(
+                        Modifier.width(6.dp)
+                    )
+
+                    Text(
+                        text = "X",
+                        color = Aw11Secondary,
+                        fontSize = 12.sp,
+                        modifier = Modifier
+                            .clickable {
+                                focusManager.clearFocus()
+                                keyboardController?.hide()
+
+                                isSearchOpen = false
+                                searchResults = emptyList()
+                                searchError = null
+                            }
+                            .padding(8.dp)
+                    )
+                }
+
+                if (isSearching) {
+                    Text(
+                        text = "SEARCHING...",
+                        color = Aw11Secondary,
+                        fontSize = 11.sp,
+                        letterSpacing = 0.5.sp,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
+
+                searchError?.let { error ->
+                    Text(
+                        text = "SEARCH ERROR: $error",
+                        color = Aw11Primary,
+                        fontSize = 11.sp,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
+
+                searchResults.forEach { result ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 6.dp)
+                            .border(
+                                1.dp,
+                                Aw11Primary.copy(alpha = 0.35f)
+                            )
+                            .clickable {
+                                Log.d(
+                                    TAG,
+                                    "Selected search result: " +
+                                            "${result.title}, " +
+                                            "${result.coordinates.latitude}, " +
+                                            "${result.coordinates.longitude}"
+                                )
+                            }
+                            .padding(8.dp)
+                    ) {
+                        Column {
+                            Text(
+                                text = result.title.uppercase(),
+                                color = Aw11Primary,
+                                fontSize = 12.sp,
+                                letterSpacing = 0.25.sp
+                            )
+
+                            Text(
+                                text = result.address.uppercase(),
+                                color = Aw11Secondary,
+                                fontSize = 10.sp,
+                                letterSpacing = 0.sp
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        //Eta widget
         activeRoute?.let { route ->
             val distanceKm =
                 route.lengthInMeters / 1000.0
@@ -477,8 +731,11 @@ fun Aw11HereMap(
 
             Box(
                 modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(10.dp)
+                    .align(Alignment.BottomStart)
+                    .padding(
+                        start = 10.dp,
+                        bottom = 10.dp
+                    )
                     .background(
                         Aw11Background.copy(alpha = 0.90f)
                     )
