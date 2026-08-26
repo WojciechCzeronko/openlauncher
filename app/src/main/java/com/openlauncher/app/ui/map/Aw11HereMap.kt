@@ -27,31 +27,24 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.here.sdk.animation.AnimationState
-import com.here.sdk.core.GeoCircle
 import com.here.sdk.core.GeoCoordinates
 import com.here.sdk.core.GeoCoordinatesUpdate
 import com.here.sdk.core.GeoOrientationUpdate
-import com.here.sdk.core.GeoPolygon
 import com.here.sdk.core.Point2D
-import com.here.sdk.mapview.LineCap
 import com.here.sdk.mapview.MapCameraAnimationFactory
 import com.here.sdk.mapview.MapImageFactory
 import com.here.sdk.mapview.MapMarker
 import com.here.sdk.mapview.MapMeasure
-import com.here.sdk.mapview.MapMeasureDependentRenderSize
-import com.here.sdk.mapview.MapPolygon
-import com.here.sdk.mapview.MapPolyline
 import com.here.sdk.mapview.MapScheme
 import com.here.sdk.mapview.MapView
-import com.here.sdk.mapview.RenderSize
 import com.here.sdk.routing.Route
 import com.here.time.Duration
 import com.openlauncher.app.R
 import com.openlauncher.app.ui.map.components.Aw11RecenterButton
 import com.openlauncher.app.ui.map.components.Aw11RouteInfo
 import com.openlauncher.app.ui.map.components.Aw11SearchPanel
+import com.openlauncher.app.ui.map.here.HereRouteRenderer
 import com.openlauncher.app.util.LocationData
-import com.here.sdk.core.Color as HereColor
 
 private const val TAG = "Aw11HereMap"
 
@@ -78,6 +71,10 @@ fun Aw11HereMap(
 
     val mapView = remember(context) {
         MapView(context)
+    }
+
+    val routeRenderer = remember(mapView) {
+        HereRouteRenderer(mapView)
     }
 
     val animationState = remember {
@@ -116,16 +113,8 @@ fun Aw11HereMap(
         mutableStateOf<String?>(null)
     }
 
-    val routePolyline = remember {
-        mutableStateOf<MapPolyline?>(null)
-    }
-
     var activeRoute by remember {
         mutableStateOf<Route?>(null)
-    }
-
-    val destinationMarker = remember {
-        mutableStateOf<MapPolygon?>(null)
     }
 
     var routeRequested by remember {
@@ -246,18 +235,9 @@ fun Aw11HereMap(
 
             carMarker.value = null
 
+            routeRenderer.clearRoute()
+
             mapView.onPause()
-            routePolyline.value?.let { polyline ->
-                mapView.mapScene.removeMapPolyline(polyline)
-            }
-
-            routePolyline.value = null
-
-            destinationMarker.value?.let { marker ->
-                mapView.mapScene.removeMapPolygon(marker)
-            }
-
-            destinationMarker.value = null
             routingController.dispose()
             mapView.onDestroy()
         }
@@ -402,27 +382,10 @@ fun Aw11HereMap(
             onSuccess = { route ->
                 activeRoute = route
 
-                val polyline =
-                    createRoutePolyline(route)
-
-                if (polyline != null) {
-                    routePolyline.value?.let { previous ->
-                        mapView.mapScene.removeMapPolyline(previous)
-                    }
-
-                    mapView.mapScene.addMapPolyline(polyline)
-                    routePolyline.value = polyline
-                }
-
-                destinationMarker.value?.let { previous ->
-                    mapView.mapScene.removeMapPolygon(previous)
-                }
-
-                val marker =
-                    createDestinationMarker(destination)
-
-                mapView.mapScene.addMapPolygon(marker)
-                destinationMarker.value = marker
+                routeRenderer.showRoute(
+                    route = route,
+                    destination = destination
+                )
 
                 Log.d(
                     TAG,
@@ -621,68 +584,4 @@ private fun normalizeBearing(
     bearing: Float
 ): Float {
     return ((bearing % 360f) + 360f) % 360f
-}
-
-private fun createRoutePolyline(
-    route: Route
-): MapPolyline? {
-    return try {
-        val lineWidth =
-            MapMeasureDependentRenderSize(
-                RenderSize.Unit.PIXELS,
-                14.0
-            )
-
-        val lineColor = HereColor(
-            0.84f,
-            0.91f,
-            0.0f,
-            0.95f
-        )
-
-        val representation =
-            MapPolyline.SolidRepresentation(
-                lineWidth,
-                lineColor,
-                LineCap.ROUND
-            )
-
-        MapPolyline(
-            route.geometry,
-            representation
-        )
-    } catch (e: Exception) {
-        Log.e(
-            TAG,
-            "Failed to create route polyline.",
-            e
-        )
-
-        null
-    }
-}
-
-private fun createDestinationMarker(
-    coordinates: GeoCoordinates
-): MapPolygon {
-    val circle = GeoCircle(
-        coordinates,
-        10.0
-    )
-
-    val polygon = GeoPolygon(
-        circle
-    )
-
-    val color = HereColor(
-        0.84f,
-        0.91f,
-        0.0f,
-        1.0f
-    )
-
-    return MapPolygon(
-        polygon,
-        color
-    )
 }
