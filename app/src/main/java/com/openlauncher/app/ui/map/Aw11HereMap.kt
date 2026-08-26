@@ -12,15 +12,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
@@ -31,7 +28,6 @@ import com.here.sdk.mapview.MapImageFactory
 import com.here.sdk.mapview.MapMarker
 import com.here.sdk.mapview.MapScheme
 import com.here.sdk.mapview.MapView
-import com.here.sdk.routing.Route
 import com.openlauncher.app.R
 import com.openlauncher.app.ui.map.components.Aw11RecenterButton
 import com.openlauncher.app.ui.map.components.Aw11RouteInfo
@@ -61,7 +57,7 @@ fun Aw11HereMap(
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-
+    val state = rememberAw11HereMapState()
     val mapView = remember(context) {
         MapView(context)
     }
@@ -88,46 +84,6 @@ fun Aw11HereMap(
 
     val searchController = remember {
         HereSearchController()
-    }
-
-    var isSearchOpen by remember {
-        mutableStateOf(false)
-    }
-
-    var searchQuery by remember {
-        mutableStateOf("")
-    }
-
-    var searchResults by remember {
-        mutableStateOf<List<HereSearchResult>>(emptyList())
-    }
-
-    var isSearching by remember {
-        mutableStateOf(false)
-    }
-
-    var searchError by remember {
-        mutableStateOf<String?>(null)
-    }
-
-    var activeRoute by remember {
-        mutableStateOf<Route?>(null)
-    }
-
-    var routeRequested by remember {
-        mutableStateOf(false)
-    }
-
-    var isFollowing by remember {
-        mutableStateOf(true)
-    }
-
-    var isRecentering by remember {
-        mutableStateOf(false)
-    }
-
-    var mapSize by remember {
-        mutableStateOf(IntSize.Zero)
     }
 
     val carMarker = remember {
@@ -317,7 +273,7 @@ fun Aw11HereMap(
                 coordinates
             )
 
-            if (isFollowing && !isRecentering) {
+            if (state.isFollowing && !state.isRecentering) {
                 cameraController.follow(
                     coordinates = coordinates,
                     bearingDegrees = bearing
@@ -339,13 +295,13 @@ fun Aw11HereMap(
             location ?: return@LaunchedEffect
 
         if (
-            routeRequested ||
+            state.routeRequested ||
             carMarker.value == null
         ) {
             return@LaunchedEffect
         }
 
-        routeRequested = true
+        state.routeRequested = true
 
         val start = GeoCoordinates(
             currentLocation.latitude,
@@ -361,7 +317,7 @@ fun Aw11HereMap(
             start = start,
             destination = destination,
             onSuccess = { route ->
-                activeRoute = route
+                state.activeRoute = route
 
                 routeRenderer.showRoute(
                     route = route,
@@ -385,12 +341,12 @@ fun Aw11HereMap(
 
     // Set principal point
     LaunchedEffect(
-        mapSize.width,
-        mapSize.height
+        state.mapSize.width,
+        state.mapSize.height
     ) {
         cameraController.setNavigationPrincipalPoint(
-            width = mapSize.width,
-            height = mapSize.height
+            width = state.mapSize.width,
+            height = state.mapSize.height
         )
     }
 
@@ -403,11 +359,10 @@ fun Aw11HereMap(
                     setOnTouchListener { _, event ->
                         if (
                             event.actionMasked == MotionEvent.ACTION_MOVE &&
-                            isFollowing
+                            state.isFollowing
                         ) {
-                            isFollowing = false
+                            state.isFollowing = false
                         }
-
                         false
                     }
                 }
@@ -415,26 +370,24 @@ fun Aw11HereMap(
             modifier = Modifier
                 .fillMaxSize()
                 .onSizeChanged { size ->
-                    mapSize = size
+                    state.mapSize = size
                 }
         )
 
         Aw11SearchPanel(
-            isOpen = isSearchOpen,
-            query = searchQuery,
-            results = searchResults,
-            isSearching = isSearching,
-            error = searchError,
+            isOpen = state.isSearchOpen,
+            query = state.searchQuery,
+            results = state.searchResults,
+            isSearching = state.isSearching,
+            error = state.searchError,
             onOpen = {
-                isSearchOpen = true
+                state.openSearch()
             },
             onQueryChange = { query ->
-                searchQuery = query
+                state.searchQuery = query
             },
             onSearch = {
-                isSearching = true
-                searchError = null
-                searchResults = emptyList()
+                state.startSearch()
 
                 val center = GeoCoordinates(
                     animationState.latitude,
@@ -442,28 +395,25 @@ fun Aw11HereMap(
                 )
 
                 searchController.search(
-                    queryText = searchQuery,
+                    queryText = state.searchQuery,
                     center = center,
                     onSuccess = { results ->
-                        searchResults = results.take(5)
-                        isSearching = false
+                        state.completeSearch(
+                            results.take(5)
+                        )
                     },
                     onError = { error ->
-                        searchError = error.name
-                        isSearching = false
+                        state.failSearch(
+                            error.name
+                        )
                     }
                 )
             },
             onClear = {
-                searchQuery = ""
-                searchResults = emptyList()
-                searchError = null
+                state.clearSearch()
             },
             onClose = {
-                isSearchOpen = false
-                searchQuery = ""
-                searchResults = emptyList()
-                searchError = null
+                state.closeSearch()
             },
             onResultSelected = { result ->
                 Log.d(
@@ -480,7 +430,7 @@ fun Aw11HereMap(
         )
 
         //Eta widget
-        activeRoute?.let { route ->
+        state.activeRoute?.let { route ->
             Aw11RouteInfo(
                 distanceMeters = route.lengthInMeters,
                 durationSeconds = route.duration.seconds,
@@ -494,13 +444,13 @@ fun Aw11HereMap(
         }
 
         Aw11RecenterButton(
-            visible = !isFollowing,
+            visible = !state.isFollowing,
             onClick = {
-                if (isRecentering) {
+                if (state.isRecentering) {
                     return@Aw11RecenterButton
                 }
 
-                isRecentering = true
+                state.isRecentering = true
 
                 val targetCoordinates = GeoCoordinates(
                     animationState.latitude,
@@ -511,8 +461,8 @@ fun Aw11HereMap(
                     coordinates = targetCoordinates,
                     bearingDegrees = animationState.bearing,
                     onFinished = {
-                        isRecentering = false
-                        isFollowing = true
+                        state.isRecentering = false
+                        state.isFollowing = true
                     }
                 )
             },
