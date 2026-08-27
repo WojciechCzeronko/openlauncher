@@ -8,6 +8,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.unit.IntSize
 import com.here.sdk.routing.Route
+import com.here.sdk.core.GeoCoordinates
+import com.openlauncher.app.ui.map.navigation.RouteProgress
 
 @Stable
 class Aw11HereMapState {
@@ -25,6 +27,9 @@ class Aw11HereMapState {
 
     var activeRoute by mutableStateOf<Route?>(null)
 
+    var routeProgress by mutableStateOf<RouteProgress?>(null)
+
+    var destination by mutableStateOf<GeoCoordinates?>(null)
     var isFollowing by mutableStateOf(true)
 
     var isRecentering by mutableStateOf(false)

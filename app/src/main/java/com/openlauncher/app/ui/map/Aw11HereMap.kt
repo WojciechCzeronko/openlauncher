@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -34,12 +35,14 @@ import com.openlauncher.app.ui.map.components.Aw11RouteInfo
 import com.openlauncher.app.ui.map.components.Aw11SearchPanel
 import com.openlauncher.app.ui.map.here.HereCameraController
 import com.openlauncher.app.ui.map.here.HereRouteRenderer
+import com.openlauncher.app.ui.map.navigation.RouteProgressTracker
 import com.openlauncher.app.util.LocationData
 
 private const val TAG = "Aw11HereMap"
 
 private const val DEFAULT_LATITUDE = 53.1381
 private const val DEFAULT_LONGITUDE = 18.0220
+private const val ROUTE_REFRESH_INTERVAL_MS = 180_000L
 
 private class MapAnimationState {
     var latitude = DEFAULT_LATITUDE
@@ -84,8 +87,16 @@ fun Aw11HereMap(
         HereSearchController()
     }
 
+    val routeProgressTracker = remember {
+        RouteProgressTracker()
+    }
+
     val carMarker = remember {
         mutableStateOf<MapMarker?>(null)
+    }
+
+    val lastRouteRefreshMs = remember {
+        mutableLongStateOf(0L)
     }
 
     DisposableEffect(mapView, lifecycleOwner) {
@@ -189,6 +200,7 @@ fun Aw11HereMap(
         }
     }
 
+    // Car movement
     LaunchedEffect(
         location?.latitude,
         location?.longitude,
@@ -284,6 +296,100 @@ fun Aw11HereMap(
         }
     }
 
+    // Route update/eatup
+    LaunchedEffect(
+        location?.latitude,
+        location?.longitude,
+        state.activeRoute
+    ) {
+        val currentLocation =
+            location ?: return@LaunchedEffect
+
+        if (state.activeRoute == null) {
+            return@LaunchedEffect
+        }
+
+        val position = GeoCoordinates(
+            currentLocation.latitude,
+            currentLocation.longitude
+        )
+
+        val progress =
+            routeProgressTracker.update(
+                position
+            ) ?: return@LaunchedEffect
+
+        state.routeProgress =
+            progress
+
+        Log.d(
+            TAG,
+            "Progress: " +
+                    "${progress.remainingDistanceMeters} m, " +
+                    "${progress.remainingDurationSeconds} s, " +
+                    "off route ${progress.distanceFromRouteMeters.toInt()} m"
+        )
+    }
+
+    // ETA update
+    LaunchedEffect(
+        location?.latitude,
+        location?.longitude,
+        state.destination
+    ) {
+        val currentLocation =
+            location ?: return@LaunchedEffect
+
+        val destination =
+            state.destination ?: return@LaunchedEffect
+
+        if (state.activeRoute == null) {
+            return@LaunchedEffect
+        }
+
+        val now =
+            SystemClock.elapsedRealtime()
+
+        if (
+            now - lastRouteRefreshMs.longValue <
+            ROUTE_REFRESH_INTERVAL_MS
+        ) {
+            return@LaunchedEffect
+        }
+
+        lastRouteRefreshMs.longValue = now
+
+        val start = GeoCoordinates(
+            currentLocation.latitude,
+            currentLocation.longitude
+        )
+
+        routingController.calculateRoute(
+            start = start,
+            destination = destination,
+            onSuccess = { route ->
+                state.activeRoute = route
+
+                routeRenderer.showRoute(
+                    route = route,
+                    destination = destination
+                )
+
+                Log.d(
+                    TAG,
+                    "Route refreshed: " +
+                            "${route.lengthInMeters} m, " +
+                            "${route.duration.seconds} s"
+                )
+            },
+            onError = { error ->
+                Log.e(
+                    TAG,
+                    "Route refresh failed: ${error.name}"
+                )
+            }
+        )
+    }
 
     // Set principal point
     LaunchedEffect(
@@ -369,6 +475,10 @@ fun Aw11HereMap(
 
                 val destination =
                     result.coordinates
+                state.destination = destination
+
+                lastRouteRefreshMs.longValue =
+                    SystemClock.elapsedRealtime()
 
                 Log.d(
                     TAG,
@@ -383,8 +493,19 @@ fun Aw11HereMap(
                 routingController.calculateRoute(
                     start = start,
                     destination = destination,
+                    startHeadingDegrees =
+                        location?.bearingDegrees,
                     onSuccess = { route ->
                         state.activeRoute = route
+
+                        routeProgressTracker.setRoute(
+                            route
+                        )
+
+                        state.routeProgress =
+                            routeProgressTracker.update(
+                                start
+                            )
 
                         routeRenderer.showRoute(
                             route = route,
@@ -412,9 +533,16 @@ fun Aw11HereMap(
 
         //Eta widget
         state.activeRoute?.let { route ->
+            val progress =
+                state.routeProgress
+
             Aw11RouteInfo(
-                distanceMeters = route.lengthInMeters,
-                durationSeconds = route.duration.seconds,
+                distanceMeters =
+                    progress?.remainingDistanceMeters
+                        ?: route.lengthInMeters,
+                durationSeconds =
+                    progress?.remainingDurationSeconds
+                        ?: route.duration.seconds,
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .padding(

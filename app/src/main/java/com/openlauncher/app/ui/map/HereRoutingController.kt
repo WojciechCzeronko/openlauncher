@@ -24,10 +24,15 @@ class HereRoutingController {
     fun calculateRoute(
         start: GeoCoordinates,
         destination: GeoCoordinates,
+        startHeadingDegrees: Float? = null,
         onSuccess: (Route) -> Unit,
         onError: (RoutingError) -> Unit
     ) {
         val startWaypoint = Waypoint(start)
+        startHeadingDegrees?.let { heading ->
+            startWaypoint.headingInDegrees =
+                heading.toDouble()
+        }
         val destinationWaypoint = Waypoint(destination)
 
         val waypoints = listOf(
