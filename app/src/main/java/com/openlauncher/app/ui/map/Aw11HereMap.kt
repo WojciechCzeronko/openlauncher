@@ -40,8 +40,6 @@ private const val TAG = "Aw11HereMap"
 
 private const val DEFAULT_LATITUDE = 53.1381
 private const val DEFAULT_LONGITUDE = 18.0220
-private const val TEST_DESTINATION_LATITUDE = 53.1325
-private const val TEST_DESTINATION_LONGITUDE = 18.0120
 
 private class MapAnimationState {
     var latitude = DEFAULT_LATITUDE
@@ -286,58 +284,6 @@ fun Aw11HereMap(
         }
     }
 
-    LaunchedEffect(
-        location?.latitude,
-        location?.longitude,
-        carMarker.value
-    ) {
-        val currentLocation =
-            location ?: return@LaunchedEffect
-
-        if (
-            state.routeRequested ||
-            carMarker.value == null
-        ) {
-            return@LaunchedEffect
-        }
-
-        state.routeRequested = true
-
-        val start = GeoCoordinates(
-            currentLocation.latitude,
-            currentLocation.longitude
-        )
-
-        val destination = GeoCoordinates(
-            TEST_DESTINATION_LATITUDE,
-            TEST_DESTINATION_LONGITUDE
-        )
-
-        routingController.calculateRoute(
-            start = start,
-            destination = destination,
-            onSuccess = { route ->
-                state.activeRoute = route
-
-                routeRenderer.showRoute(
-                    route = route,
-                    destination = destination
-                )
-
-                Log.d(
-                    TAG,
-                    "Route: ${route.lengthInMeters} m, " +
-                            "${route.duration.seconds} s"
-                )
-            },
-            onError = { error ->
-                Log.e(
-                    TAG,
-                    "Route calculation failed: ${error.name}"
-                )
-            }
-        )
-    }
 
     // Set principal point
     LaunchedEffect(
@@ -416,12 +362,47 @@ fun Aw11HereMap(
                 state.closeSearch()
             },
             onResultSelected = { result ->
+                val start = GeoCoordinates(
+                    animationState.latitude,
+                    animationState.longitude
+                )
+
+                val destination =
+                    result.coordinates
+
                 Log.d(
                     TAG,
-                    "Selected search result: " +
+                    "Calculating route to: " +
                             "${result.title}, " +
-                            "${result.coordinates.latitude}, " +
-                            "${result.coordinates.longitude}"
+                            "${destination.latitude}, " +
+                            "${destination.longitude}"
+                )
+
+                state.closeSearch()
+
+                routingController.calculateRoute(
+                    start = start,
+                    destination = destination,
+                    onSuccess = { route ->
+                        state.activeRoute = route
+
+                        routeRenderer.showRoute(
+                            route = route,
+                            destination = destination
+                        )
+
+                        Log.d(
+                            TAG,
+                            "Route: ${route.lengthInMeters} m, " +
+                                    "${route.duration.seconds} s"
+                        )
+                    },
+                    onError = { error ->
+                        Log.e(
+                            TAG,
+                            "Route calculation failed: ${error.name}"
+                        )
+                    }
                 )
             },
             modifier = Modifier

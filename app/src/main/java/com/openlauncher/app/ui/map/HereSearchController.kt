@@ -12,7 +12,8 @@ import com.here.sdk.search.TextQuery
 data class HereSearchResult(
     val title: String,
     val address: String,
-    val coordinates: GeoCoordinates
+    val coordinates: GeoCoordinates,
+    val distanceMeters: Double
 )
 
 class HereSearchController {
@@ -62,7 +63,8 @@ class HereSearchController {
                             HereSearchResult(
                                 title = place.title,
                                 address = place.address.addressText,
-                                coordinates = coordinates
+                                coordinates = coordinates,
+                                distanceMeters = center.distanceTo(coordinates)
                             )
                         }
 

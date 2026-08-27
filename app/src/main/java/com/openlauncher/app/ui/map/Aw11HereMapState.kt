@@ -19,14 +19,11 @@ class Aw11HereMapState {
     var searchResults by mutableStateOf<List<HereSearchResult>>(
         emptyList()
     )
-
     var isSearching by mutableStateOf(false)
 
     var searchError by mutableStateOf<String?>(null)
 
     var activeRoute by mutableStateOf<Route?>(null)
-
-    var routeRequested by mutableStateOf(false)
 
     var isFollowing by mutableStateOf(true)
 

@@ -8,8 +8,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -17,12 +21,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.openlauncher.app.ui.map.HereSearchResult
 import com.openlauncher.app.ui.theme.Aw11Background
 import com.openlauncher.app.ui.theme.Aw11Primary
 import com.openlauncher.app.ui.theme.Aw11Secondary
+import java.util.Locale
 
 @Composable
 fun Aw11SearchPanel(
@@ -42,9 +48,24 @@ fun Aw11SearchPanel(
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
 
+    fun triggerSearch() {
+        if (
+            query.isBlank() ||
+            isSearching
+        ) {
+            return
+        }
+
+        focusManager.clearFocus()
+        keyboardController?.hide()
+
+        onSearch()
+    }
     if (!isOpen) {
         Box(
             modifier = modifier
+                .widthIn(min = 112.dp)
+                .heightIn(min = 56.dp)
                 .background(
                     Aw11Background.copy(alpha = 0.90f)
                 )
@@ -54,14 +75,15 @@ fun Aw11SearchPanel(
                 )
                 .clickable(onClick = onOpen)
                 .padding(
-                    horizontal = 12.dp,
-                    vertical = 8.dp
-                )
+                    horizontal = 16.dp,
+                    vertical = 12.dp
+                ),
+            contentAlignment = Alignment.Center
         ) {
             Text(
                 text = "SEARCH",
                 color = Aw11Primary,
-                fontSize = 12.sp,
+                fontSize = 14.sp,
                 letterSpacing = 0.5.sp
             )
         }
@@ -85,6 +107,14 @@ fun Aw11SearchPanel(
             verticalAlignment = Alignment.CenterVertically
         ) {
             OutlinedTextField(
+                keyboardOptions = KeyboardOptions(
+                    imeAction = ImeAction.Search
+                ),
+                keyboardActions = KeyboardActions(
+                    onSearch = {
+                        triggerSearch()
+                    }
+                ),
                 value = query,
                 onValueChange = onQueryChange,
                 singleLine = true,
@@ -124,17 +154,7 @@ fun Aw11SearchPanel(
                         color = Aw11Primary.copy(alpha = 0.85f)
                     )
                     .clickable {
-                        if (
-                            query.isBlank() ||
-                            isSearching
-                        ) {
-                            return@clickable
-                        }
-
-                        focusManager.clearFocus()
-                        keyboardController?.hide()
-
-                        onSearch()
+                        triggerSearch()
                     }
                     .padding(
                         horizontal = 12.dp,
@@ -192,15 +212,32 @@ fun Aw11SearchPanel(
                     .clickable {
                         onResultSelected(result)
                     }
-                    .padding(8.dp)
+                    .padding(
+                        horizontal = 10.dp,
+                        vertical = 12.dp
+                    )
             ) {
                 Column {
-                    Text(
-                        text = result.title.uppercase(),
-                        color = Aw11Primary,
-                        fontSize = 12.sp,
-                        letterSpacing = 0.25.sp
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = result.title.uppercase(),
+                            color = Aw11Primary,
+                            fontSize = 12.sp,
+                            letterSpacing = 0.25.sp,
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        Text(
+                            text = formatDistance(
+                                result.distanceMeters
+                            ),
+                            color = Aw11Secondary,
+                            fontSize = 11.sp,
+                            letterSpacing = 0.sp
+                        )
+                    }
 
                     Text(
                         text = result.address.uppercase(),
@@ -211,5 +248,19 @@ fun Aw11SearchPanel(
                 }
             }
         }
+    }
+}
+
+private fun formatDistance(
+    distanceMeters: Double
+): String {
+    return if (distanceMeters < 1000.0) {
+        "${distanceMeters.toInt()} M"
+    } else {
+        String.format(
+            Locale.US,
+            "%.1f KM",
+            distanceMeters / 1000.0
+        )
     }
 }
