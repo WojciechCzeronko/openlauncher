@@ -11,11 +11,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.openlauncher.app.ui.theme.Aw11Background
 import com.openlauncher.app.ui.theme.Aw11Primary
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.Alignment
+import com.openlauncher.app.ui.theme.Aw11Warning
 
 @Composable
 fun Aw11RouteInfo(
     distanceMeters: Int,
     durationSeconds: Long,
+    onEndGuidance: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val distanceKm =
@@ -38,14 +45,43 @@ fun Aw11RouteInfo(
                 vertical = 6.dp
             )
     ) {
-        Text(
-            text = String.format(
-                "%.1f KM  •  %d MIN",
-                distanceKm,
-                durationMinutes
-            ),
-            color = Aw11Primary,
-            fontSize = 14.sp
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = String.format(
+                    "%.1f KM  •  %d MIN",
+                    distanceKm,
+                    durationMinutes
+                ),
+                color = Aw11Primary,
+                fontSize = 14.sp
+            )
+
+            Spacer(
+                Modifier.width(14.dp)
+            )
+
+            Box(
+                modifier = Modifier
+                    .border(
+                        width = 1.dp,
+                        color = Aw11Warning
+                    )
+                    .clickable(
+                        onClick = onEndGuidance
+                    )
+                    .padding(
+                        horizontal = 8.dp,
+                        vertical = 3.dp
+                    )
+            ) {
+                Text(
+                    text = "END",
+                    color = Aw11Warning,
+                    fontSize = 11.sp
+                )
+            }
+        }
     }
 }

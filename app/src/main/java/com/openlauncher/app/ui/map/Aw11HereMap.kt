@@ -249,6 +249,16 @@ fun Aw11HereMap(
                     routeProgress.matchedCoordinates
             )
         }
+        routeProgress?.let { progress ->
+            Log.d(
+                TAG,
+                "Route progress: " +
+                        "distance=${progress.remainingDistanceMeters} m, " +
+                        "eta=${progress.remainingDurationSeconds} s, " +
+                        "offRoute=${progress.distanceFromRouteMeters.toInt()} m, " +
+                        "progress=${"%.3f".format(progress.progressFraction)}"
+            )
+        }
         val shouldSnapToRoute =
             routeProgress?.let { progress ->
 
@@ -584,6 +594,23 @@ fun Aw11HereMap(
                 durationSeconds =
                     progress?.remainingDurationSeconds
                         ?: route.duration.seconds,
+                onEndGuidance = {
+                    routeRenderer.clearRoute()
+                    routeProgressTracker.clear()
+
+                    state.activeRoute = null
+                    state.routeProgress = null
+                    state.destination = null
+
+                    animationState.isSnappedToRoute = false
+
+                    lastRouteRefreshMs.longValue = 0L
+
+                    Log.d(
+                        TAG,
+                        "Guidance session ended."
+                    )
+                },
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .padding(

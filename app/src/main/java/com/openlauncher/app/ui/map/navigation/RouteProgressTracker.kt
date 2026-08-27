@@ -4,8 +4,8 @@ import com.here.sdk.core.GeoCoordinates
 import com.here.sdk.routing.Route
 import kotlin.math.cos
 import kotlin.math.hypot
-import kotlin.math.max
 import kotlin.math.roundToInt
+import kotlin.math.roundToLong
 
 data class RouteProgress(
     val remainingDistanceMeters: Int,
@@ -30,7 +30,11 @@ class RouteProgressTracker {
         DoubleArray(0)
 
     private var totalGeometryLengthMeters = 0.0
+    private var timedSpans: List<TimedSpan> =
+        emptyList()
 
+    private var totalTimedGeometryLengthMeters =
+        0.0
     fun setRoute(route: Route) {
         this.route = route
 
@@ -72,6 +76,7 @@ class RouteProgressTracker {
 
         totalGeometryLengthMeters =
             cumulativeDistance
+        buildTimingProfile(route)
     }
 
     fun clear() {
@@ -147,12 +152,12 @@ class RouteProgressTracker {
                 .coerceAtLeast(0)
 
         val remainingDurationSeconds =
-            (
-                    activeRoute.duration.seconds *
-                            remainingFraction
-                    )
-                .toLong()
-                .coerceAtLeast(0L)
+            calculateRemainingDurationSeconds(
+                progressFraction =
+                    progressFraction,
+                fallbackDurationSeconds =
+                    activeRoute.duration.seconds
+            )
 
         return RouteProgress(
             remainingDistanceMeters =
@@ -178,6 +183,12 @@ class RouteProgressTracker {
             DoubleArray(0)
 
         totalGeometryLengthMeters = 0.0
+
+        timedSpans =
+            emptyList()
+
+        totalTimedGeometryLengthMeters =
+            0.0
     }
 
     private fun projectOntoSegment(
@@ -335,10 +346,164 @@ class RouteProgressTracker {
         )
     }
 
+    private fun buildTimingProfile(
+        route: Route
+    ) {
+        val profile =
+            mutableListOf<TimedSpan>()
+
+        var cumulativeDistance = 0.0
+
+        for (section in route.sections) {
+            for (span in section.spans) {
+
+                val spanVertices =
+                    span.geometry.vertices
+
+                val spanLength =
+                    polylineLengthMeters(
+                        spanVertices
+                    )
+
+                if (spanLength <= 0.0) {
+                    continue
+                }
+
+                val startDistance =
+                    cumulativeDistance
+
+                cumulativeDistance +=
+                    spanLength
+
+                profile.add(
+                    TimedSpan(
+                        startDistanceMeters =
+                            startDistance,
+                        endDistanceMeters =
+                            cumulativeDistance,
+                        durationSeconds =
+                            span.duration.seconds.toDouble()
+                    )
+                )
+            }
+        }
+
+        timedSpans =
+            profile
+
+        totalTimedGeometryLengthMeters =
+            cumulativeDistance
+    }
+
+
+
+    private fun calculateRemainingDurationSeconds(
+        progressFraction: Double,
+        fallbackDurationSeconds: Long
+    ): Long {
+        if (
+            timedSpans.isEmpty() ||
+            totalTimedGeometryLengthMeters <= 0.0
+        ) {
+            return (
+                    fallbackDurationSeconds *
+                            (1.0 - progressFraction)
+                    )
+                .roundToLong()
+                .coerceAtLeast(0L)
+        }
+
+        val progressDistance =
+            totalTimedGeometryLengthMeters *
+                    progressFraction
+                        .coerceIn(
+                            0.0,
+                            1.0
+                        )
+
+        val currentSpanIndex =
+            timedSpans.indexOfFirst { span ->
+                progressDistance <=
+                        span.endDistanceMeters
+            }
+
+        if (currentSpanIndex < 0) {
+            return 0L
+        }
+
+        val currentSpan =
+            timedSpans[currentSpanIndex]
+
+        val currentSpanLength =
+            currentSpan.endDistanceMeters -
+                    currentSpan.startDistanceMeters
+
+        val remainingCurrentSpanFraction =
+            if (currentSpanLength > 0.0) {
+                (
+                        (
+                                currentSpan.endDistanceMeters -
+                                        progressDistance
+                                ) /
+                                currentSpanLength
+                        )
+                    .coerceIn(
+                        0.0,
+                        1.0
+                    )
+            } else {
+                0.0
+            }
+
+        var remainingSeconds =
+            currentSpan.durationSeconds *
+                    remainingCurrentSpanFraction
+
+        for (
+        index in currentSpanIndex + 1
+                until timedSpans.size
+        ) {
+            remainingSeconds +=
+                timedSpans[index]
+                    .durationSeconds
+        }
+
+        return remainingSeconds
+            .roundToLong()
+            .coerceAtLeast(0L)
+    }
+
+    private fun polylineLengthMeters(
+        vertices: List<GeoCoordinates>
+    ): Double {
+        if (vertices.size < 2) {
+            return 0.0
+        }
+
+        var totalDistance = 0.0
+
+        for (index in 0 until vertices.lastIndex) {
+            totalDistance +=
+                distanceMeters(
+                    vertices[index],
+                    vertices[index + 1]
+                )
+        }
+
+        return totalDistance
+    }
+
     private data class SegmentMatch(
         val segmentIndex: Int,
         val segmentFraction: Double,
         val distanceFromRouteMeters: Double,
         val coordinates: GeoCoordinates
     )
+
+    private data class TimedSpan(
+        val startDistanceMeters: Double,
+        val endDistanceMeters: Double,
+        val durationSeconds: Double
+    )
 }
+
