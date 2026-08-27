@@ -12,6 +12,7 @@ import com.here.sdk.mapview.MapView
 import com.here.sdk.mapview.RenderSize
 import com.here.sdk.routing.Route
 import com.here.sdk.core.Color as HereColor
+import com.here.sdk.core.GeoPolyline
 
 private const val TAG = "HereRouteRenderer"
 
@@ -27,7 +28,9 @@ class HereRouteRenderer(
     ) {
         clearRoute()
 
-        createRoutePolyline(route)?.let { polyline ->
+        createRoutePolyline(
+            route.geometry
+        )?.let { polyline ->
             mapView.mapScene.addMapPolyline(polyline)
             routePolyline = polyline
         }
@@ -53,7 +56,7 @@ class HereRouteRenderer(
     }
 
     private fun createRoutePolyline(
-        route: Route
+        geometry: GeoPolyline
     ): MapPolyline? {
         return try {
             val lineWidth =
@@ -77,7 +80,7 @@ class HereRouteRenderer(
                 )
 
             MapPolyline(
-                route.geometry,
+                geometry,
                 representation
             )
         } catch (e: Exception) {
@@ -114,5 +117,82 @@ class HereRouteRenderer(
             polygon,
             color
         )
+    }
+
+    fun updateRouteProgress(
+        route: Route,
+        matchedSegmentIndex: Int,
+        matchedCoordinates: GeoCoordinates
+    ) {
+        val routeVertices =
+            route.geometry.vertices
+
+        if (routeVertices.size < 2) {
+            return
+        }
+
+        val nextVertexIndex =
+            (matchedSegmentIndex + 1)
+                .coerceIn(
+                    1,
+                    routeVertices.lastIndex
+                )
+
+        val remainingVertices =
+            ArrayList<GeoCoordinates>()
+
+        remainingVertices.add(
+            matchedCoordinates
+        )
+
+        for (
+        index in nextVertexIndex..routeVertices.lastIndex
+        ) {
+            remainingVertices.add(
+                routeVertices[index]
+            )
+        }
+
+        if (remainingVertices.size < 2) {
+            return
+        }
+
+        try {
+            val remainingGeometry =
+                GeoPolyline(
+                    remainingVertices
+                )
+
+            replaceRoutePolyline(
+                remainingGeometry
+            )
+        } catch (e: Exception) {
+            Log.e(
+                TAG,
+                "Failed to update route progress.",
+                e
+            )
+        }
+    }
+    private fun replaceRoutePolyline(
+        geometry: GeoPolyline
+    ) {
+        routePolyline?.let { polyline ->
+            mapView.mapScene.removeMapPolyline(
+                polyline
+            )
+        }
+
+        routePolyline = null
+
+        createRoutePolyline(
+            geometry
+        )?.let { polyline ->
+            mapView.mapScene.addMapPolyline(
+                polyline
+            )
+
+            routePolyline = polyline
+        }
     }
 }

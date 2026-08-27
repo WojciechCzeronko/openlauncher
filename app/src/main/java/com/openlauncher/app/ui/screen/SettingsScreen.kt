@@ -342,6 +342,204 @@ fun SettingsScreen(
             }
         }
 
+        // Navigation settings
+        SettingsSection("Navigation") {
+
+            SettingsRow(
+                label = "Auto Reroute",
+                sublabel = if (settings.autoReroute) {
+                    "Automatically recalculate route when off route"
+                } else {
+                    "Disabled"
+                },
+                icon = Icons.Default.Navigation
+            ) {
+                Switch(
+                    checked = settings.autoReroute,
+                    onCheckedChange = {
+                        onUpdate {
+                            copy(autoReroute = it)
+                        }
+                    },
+                    colors = switchColors(accent)
+                )
+            }
+
+            SettingsDivider()
+
+            SettingsRow(
+                label = "Traffic Refresh",
+                sublabel = "${settings.routeRefreshIntervalSeconds / 60} min",
+                icon = Icons.Default.Update
+            ) {
+                Row(
+                    horizontalArrangement =
+                        Arrangement.spacedBy(4.dp)
+                ) {
+                    listOf(60, 120, 180, 300)
+                        .forEach { seconds ->
+
+                            FilterChip(
+                                selected =
+                                    settings.routeRefreshIntervalSeconds ==
+                                            seconds,
+                                onClick = {
+                                    onUpdate {
+                                        copy(
+                                            routeRefreshIntervalSeconds =
+                                                seconds
+                                        )
+                                    }
+                                },
+                                label = {
+                                    Text(
+                                        "${seconds / 60}m",
+                                        fontSize = 9.sp
+                                    )
+                                },
+                                colors =
+                                    FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = accent,
+                                        selectedLabelColor = Color.Black
+                                    )
+                            )
+                        }
+                }
+            }
+
+            SettingsDivider()
+
+            SettingsRow(
+                label = "Off Route Distance",
+                sublabel = "${settings.offRouteThresholdMeters} m",
+                icon = Icons.Default.Route
+            ) {
+                Row(
+                    horizontalArrangement =
+                        Arrangement.spacedBy(4.dp)
+                ) {
+                    listOf(20, 50, 75, 100)
+                        .forEach { meters ->
+
+                            FilterChip(
+                                selected =
+                                    settings.offRouteThresholdMeters ==
+                                            meters,
+                                onClick = {
+                                    onUpdate {
+                                        copy(
+                                            offRouteThresholdMeters =
+                                                meters
+                                        )
+                                    }
+                                },
+                                label = {
+                                    Text(
+                                        "${meters}m",
+                                        fontSize = 9.sp
+                                    )
+                                },
+                                colors =
+                                    FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = accent,
+                                        selectedLabelColor = Color.Black
+                                    )
+                            )
+                        }
+                }
+            }
+
+            SettingsDivider()
+
+            SettingsRow(
+                label = "Reroute Delay",
+                sublabel = "${settings.rerouteDelaySeconds} sec",
+                icon = Icons.Default.Timer
+            ) {
+                Row(
+                    horizontalArrangement =
+                        Arrangement.spacedBy(4.dp)
+                ) {
+                    listOf(2, 3, 5, 10)
+                        .forEach { seconds ->
+
+                            FilterChip(
+                                selected =
+                                    settings.rerouteDelaySeconds ==
+                                            seconds,
+                                onClick = {
+                                    onUpdate {
+                                        copy(
+                                            rerouteDelaySeconds =
+                                                seconds
+                                        )
+                                    }
+                                },
+                                label = {
+                                    Text(
+                                        "${seconds}s",
+                                        fontSize = 9.sp
+                                    )
+                                },
+                                colors =
+                                    FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = accent,
+                                        selectedLabelColor = Color.Black
+                                    )
+                            )
+                        }
+                }
+            }
+
+            SettingsDivider()
+
+            SettingsRow(
+                label = "Minimum Route Gain",
+                sublabel =
+                    "${settings.minimumRouteGainSeconds} sec",
+                icon = Icons.Default.AccessTime
+            ) {
+                Row(
+                    horizontalArrangement =
+                        Arrangement.spacedBy(4.dp)
+                ) {
+                    listOf(30, 60, 120, 300)
+                        .forEach { seconds ->
+
+                            FilterChip(
+                                selected =
+                                    settings.minimumRouteGainSeconds ==
+                                            seconds,
+                                onClick = {
+                                    onUpdate {
+                                        copy(
+                                            minimumRouteGainSeconds =
+                                                seconds
+                                        )
+                                    }
+                                },
+                                label = {
+                                    Text(
+                                        when (seconds) {
+                                            30 -> "30s"
+                                            60 -> "1m"
+                                            120 -> "2m"
+                                            else -> "5m"
+                                        },
+                                        fontSize = 9.sp
+                                    )
+                                },
+                                colors =
+                                    FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = accent,
+                                        selectedLabelColor = Color.Black
+                                    )
+                            )
+                        }
+                }
+            }
+        }
+
         // ── Sidebar Shortcuts ─────────────────────────────────────────────────
         SettingsSection("Sidebar") {
             settings.shortcuts.forEachIndexed { index, shortcut ->

@@ -43,12 +43,15 @@ private const val TAG = "Aw11HereMap"
 private const val DEFAULT_LATITUDE = 53.1381
 private const val DEFAULT_LONGITUDE = 18.0220
 private const val ROUTE_REFRESH_INTERVAL_MS = 180_000L
+private const val ROUTE_SNAP_ENTER_METERS = 15.0
+private const val ROUTE_SNAP_EXIT_METERS = 20.0
 
 private class MapAnimationState {
     var latitude = DEFAULT_LATITUDE
     var longitude = DEFAULT_LONGITUDE
     var bearing = 0f
     var lastLocationUpdateMs = 0L
+    var isSnappedToRoute = false
 }
 
 @Composable
@@ -205,7 +208,8 @@ fun Aw11HereMap(
         location?.latitude,
         location?.longitude,
         location?.bearingDegrees,
-        carMarker.value
+        carMarker.value,
+        state.activeRoute
     ) {
         val currentLocation =
             location ?: return@LaunchedEffect
@@ -213,8 +217,69 @@ fun Aw11HereMap(
         val marker =
             carMarker.value ?: return@LaunchedEffect
 
-        val targetLatitude = currentLocation.latitude
-        val targetLongitude = currentLocation.longitude
+        val rawCoordinates = GeoCoordinates(
+            currentLocation.latitude,
+            currentLocation.longitude
+        )
+
+        val activeRoute =
+            state.activeRoute
+
+        val routeProgress =
+            if (activeRoute != null) {
+                routeProgressTracker.update(
+                    rawCoordinates
+                )
+            } else {
+                null
+            }
+
+        if (
+            routeProgress != null &&
+            activeRoute != null
+        ) {
+            state.routeProgress =
+                routeProgress
+
+            routeRenderer.updateRouteProgress(
+                route = activeRoute,
+                matchedSegmentIndex =
+                    routeProgress.matchedSegmentIndex,
+                matchedCoordinates =
+                    routeProgress.matchedCoordinates
+            )
+        }
+        val shouldSnapToRoute =
+            routeProgress?.let { progress ->
+
+                if (animationState.isSnappedToRoute) {
+                    progress.distanceFromRouteMeters <=
+                            ROUTE_SNAP_EXIT_METERS
+                } else {
+                    progress.distanceFromRouteMeters <=
+                            ROUTE_SNAP_ENTER_METERS
+                }
+
+            } ?: false
+
+        animationState.isSnappedToRoute =
+            shouldSnapToRoute
+
+        val displayCoordinates =
+            if (
+                shouldSnapToRoute &&
+                routeProgress != null
+            ) {
+                routeProgress.matchedCoordinates
+            } else {
+                rawCoordinates
+            }
+
+        val targetLatitude =
+            displayCoordinates.latitude
+
+        val targetLongitude =
+            displayCoordinates.longitude
 
         val startLatitude = animationState.latitude
         val startLongitude = animationState.longitude
@@ -296,40 +361,7 @@ fun Aw11HereMap(
         }
     }
 
-    // Route update/eatup
-    LaunchedEffect(
-        location?.latitude,
-        location?.longitude,
-        state.activeRoute
-    ) {
-        val currentLocation =
-            location ?: return@LaunchedEffect
 
-        if (state.activeRoute == null) {
-            return@LaunchedEffect
-        }
-
-        val position = GeoCoordinates(
-            currentLocation.latitude,
-            currentLocation.longitude
-        )
-
-        val progress =
-            routeProgressTracker.update(
-                position
-            ) ?: return@LaunchedEffect
-
-        state.routeProgress =
-            progress
-
-        Log.d(
-            TAG,
-            "Progress: " +
-                    "${progress.remainingDistanceMeters} m, " +
-                    "${progress.remainingDurationSeconds} s, " +
-                    "off route ${progress.distanceFromRouteMeters.toInt()} m"
-        )
-    }
 
     // ETA update
     LaunchedEffect(
@@ -369,6 +401,15 @@ fun Aw11HereMap(
             destination = destination,
             onSuccess = { route ->
                 state.activeRoute = route
+
+                routeProgressTracker.setRoute(
+                    route
+                )
+
+                state.routeProgress =
+                    routeProgressTracker.update(
+                        start
+                    )
 
                 routeRenderer.showRoute(
                     route = route,

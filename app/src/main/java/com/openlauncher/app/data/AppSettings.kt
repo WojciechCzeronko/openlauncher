@@ -110,7 +110,14 @@ data class AppSettings(
     val vitalsAsBars: Boolean = false,
     val speedometerDigitalOnly: Boolean = false,
     val gradientDirection: GradientDirection = GradientDirection.DIAGONAL,
-    val useCustomBackgroundColor: Boolean = false
+    val useCustomBackgroundColor: Boolean = false,
+
+    // Navigation
+    val autoReroute: Boolean = true,
+    val routeRefreshIntervalSeconds: Int = 180,
+    val offRouteThresholdMeters: Int = 20,
+    val rerouteDelaySeconds: Int = 3,
+    val minimumRouteGainSeconds: Int = 60
 )
 
 fun defaultShortcuts() = listOf(
