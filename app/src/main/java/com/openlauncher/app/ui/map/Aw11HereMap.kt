@@ -49,9 +49,9 @@ private const val ROUTE_SNAP_ENTER_METERS = 15.0
 private const val ROUTE_SNAP_EXIT_METERS = 20.0
 private const val AUTO_REROUTE_COOLDOWN_MS = 30_000L
 private const val MAX_AUTO_REROUTES_PER_GUIDANCE = 5
-private const val LOOK_AHEAD_SECONDS = 4.0
-private const val LOOK_AHEAD_MIN_METERS = 15.0
-private const val LOOK_AHEAD_MAX_METERS = 120.0
+private const val LOOK_AHEAD_SECONDS = 1.5
+private const val LOOK_AHEAD_MIN_METERS = 10.0
+private const val LOOK_AHEAD_MAX_METERS = 30.0
 private const val LOOK_AHEAD_MIN_SPEED_MPS = 1.0f
 
 private class MapAnimationState {

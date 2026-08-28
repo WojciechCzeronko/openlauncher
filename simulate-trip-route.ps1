@@ -1,8 +1,8 @@
 # Simulates a car driving south along Gdanska Street in Bydgoszcz.
 # The route points follow the road from around Gdanska 100 toward Gdanska 20.
 
-$SpeedKmh = 8.0
-$UpdateIntervalSeconds = 3.0
+$SpeedKmh = 70.0
+$UpdateIntervalSeconds = 1.0
 $Altitude = 70.0
 $Accuracy = 3.0
 
