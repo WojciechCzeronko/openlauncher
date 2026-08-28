@@ -14,6 +14,7 @@ private const val DEFAULT_ZOOM_DISTANCE_METERS = 500.0
 private const val PRINCIPAL_POINT_VERTICAL_RATIO = 0.72
 private const val RECENTER_DURATION_MS = 1000L
 
+
 class HereCameraController(
     private val mapView: MapView
 ) {
@@ -29,7 +30,8 @@ class HereCameraController(
 
     fun follow(
         coordinates: GeoCoordinates,
-        bearingDegrees: Float
+        bearingDegrees: Float,
+        zoomDistanceMeters: Double
     ) {
         val orientation = GeoOrientationUpdate(
             bearingDegrees.toDouble(),
@@ -39,7 +41,9 @@ class HereCameraController(
         mapView.camera.lookAt(
             coordinates,
             orientation,
-            createZoom()
+            createZoom(
+                zoomDistanceMeters
+            )
         )
     }
 
@@ -64,6 +68,7 @@ class HereCameraController(
     fun recenter(
         coordinates: GeoCoordinates,
         bearingDegrees: Float,
+        zoomDistanceMeters: Double,
         onFinished: () -> Unit
     ) {
         val orientation = GeoOrientationUpdate(
@@ -75,7 +80,9 @@ class HereCameraController(
             MapCameraAnimationFactory.flyTo(
                 GeoCoordinatesUpdate(coordinates),
                 orientation,
-                createZoom(),
+                createZoom(
+                    zoomDistanceMeters
+                ),
                 0.0,
                 Duration.ofMillis(
                     RECENTER_DURATION_MS
@@ -94,10 +101,13 @@ class HereCameraController(
         }
     }
 
-    private fun createZoom(): MapMeasure {
+    private fun createZoom(
+        distanceMeters: Double =
+            DEFAULT_ZOOM_DISTANCE_METERS
+    ): MapMeasure {
         return MapMeasure(
             MapMeasure.Kind.DISTANCE_IN_METERS,
-            DEFAULT_ZOOM_DISTANCE_METERS
+            distanceMeters
         )
     }
 }

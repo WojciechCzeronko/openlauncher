@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,7 +39,6 @@ import com.openlauncher.app.ui.map.here.HereCameraController
 import com.openlauncher.app.ui.map.here.HereRouteRenderer
 import com.openlauncher.app.ui.map.navigation.RouteProgressTracker
 import com.openlauncher.app.util.LocationData
-import androidx.compose.runtime.mutableIntStateOf
 
 private const val TAG = "Aw11HereMap"
 
@@ -54,13 +54,16 @@ private const val LOOK_AHEAD_MIN_METERS = 10.0
 private const val LOOK_AHEAD_MAX_METERS = 30.0
 private const val LOOK_AHEAD_MIN_SPEED_MPS = 1.0f
 
+private const val DEFAULT_CAMERA_DISTANCE_METERS = 500.0
+private const val ZOOM_RESPONSE_FACTOR = 0.25
+
 private class MapAnimationState {
     var latitude = DEFAULT_LATITUDE
     var longitude = DEFAULT_LONGITUDE
-
     var cameraLatitude = DEFAULT_LATITUDE
     var cameraLongitude = DEFAULT_LONGITUDE
-
+    var cameraDistanceMeters =
+        DEFAULT_CAMERA_DISTANCE_METERS
     var bearing = 0f
     var lastLocationUpdateMs = 0L
     var isSnappedToRoute = false
@@ -534,6 +537,22 @@ fun Aw11HereMap(
                     1500L
                 )
 
+        val requestedCameraDistanceMeters =
+            calculateCameraDistanceMeters(
+                currentLocation.speedMps
+            )
+
+        val targetCameraDistanceMeters =
+            animationState.cameraDistanceMeters +
+                    (
+                            requestedCameraDistanceMeters -
+                                    animationState.cameraDistanceMeters
+                            ) *
+                    ZOOM_RESPONSE_FACTOR
+
+        val startCameraDistanceMeters =
+            animationState.cameraDistanceMeters
+
         animationProgress.snapTo(0f)
 
         animationProgress.animateTo(
@@ -558,6 +577,14 @@ fun Aw11HereMap(
                     startBearing +
                             bearingDelta * progress
                 )
+
+            val cameraDistanceMeters =
+                startCameraDistanceMeters +
+                        (
+                                targetCameraDistanceMeters -
+                                        startCameraDistanceMeters
+                                ) *
+                        progress
 
             val cameraLatitude =
                 startCameraLatitude +
@@ -596,7 +623,9 @@ fun Aw11HereMap(
             ) {
                 cameraController.follow(
                     coordinates = cameraCoordinates,
-                    bearingDegrees = bearing
+                    bearingDegrees = bearing,
+                    zoomDistanceMeters =
+                        cameraDistanceMeters
                 )
             }
 
@@ -608,9 +637,10 @@ fun Aw11HereMap(
 
             animationState.cameraLongitude =
                 cameraLongitude
+            animationState.cameraDistanceMeters =
+                cameraDistanceMeters
         }
     }
-
 
 
     // ETA update
@@ -947,6 +977,8 @@ fun Aw11HereMap(
                 cameraController.recenter(
                     coordinates = targetCoordinates,
                     bearingDegrees = animationState.bearing,
+                    zoomDistanceMeters =
+                        animationState.cameraDistanceMeters,
                     onFinished = {
                         state.isRecentering = false
                         state.isFollowing = true
@@ -988,4 +1020,86 @@ private fun calculateLookAheadDistanceMeters(
             LOOK_AHEAD_MIN_METERS,
             LOOK_AHEAD_MAX_METERS
         )
+}
+
+private fun calculateCameraDistanceMeters(
+    speedMps: Float
+): Double {
+    val speedKmh =
+        speedMps * 3.6
+
+    return when {
+        speedKmh <= 30.0 ->
+            500.0
+
+        speedKmh <= 50.0 ->
+            interpolateZoom(
+                speedKmh,
+                30.0,
+                50.0,
+                500.0,
+                575.0
+            )
+
+        speedKmh <= 70.0 ->
+            interpolateZoom(
+                speedKmh,
+                50.0,
+                70.0,
+                575.0,
+                650.0
+            )
+
+        speedKmh <= 90.0 ->
+            interpolateZoom(
+                speedKmh,
+                70.0,
+                90.0,
+                650.0,
+                725.0
+            )
+
+        speedKmh <= 110.0 ->
+            interpolateZoom(
+                speedKmh,
+                90.0,
+                110.0,
+                725.0,
+                825.0
+            )
+
+        speedKmh <= 130.0 ->
+            interpolateZoom(
+                speedKmh,
+                110.0,
+                130.0,
+                825.0,
+                950.0
+            )
+
+        else ->
+            950.0
+    }
+}
+
+private fun interpolateZoom(
+    value: Double,
+    startValue: Double,
+    endValue: Double,
+    startZoom: Double,
+    endZoom: Double
+): Double {
+    val fraction =
+        (
+                (value - startValue) /
+                        (endValue - startValue)
+                )
+            .coerceIn(
+                0.0,
+                1.0
+            )
+
+    return startZoom +
+            (endZoom - startZoom) *
+            fraction
 }
