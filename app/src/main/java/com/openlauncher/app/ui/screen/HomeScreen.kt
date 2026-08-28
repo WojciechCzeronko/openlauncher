@@ -191,6 +191,7 @@ private enum class StartupPhase {
 
 @Composable
 private fun Aw11HomeLayout(
+    settings: AppSettings,
     location: LocationData?,
     tripData: TripData,
     onResetTrip: () -> Unit,
@@ -327,6 +328,7 @@ private fun Aw11HomeLayout(
         ) {
             Aw11HereMap(
                 location = location,
+                settings = settings,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(1.dp)
@@ -1094,6 +1096,7 @@ fun HomeScreen(
     var widgetLibraryOpen by remember { mutableStateOf(false) }
 
     Aw11HomeLayout(
+        settings = settings,
         location = location,
         tripData = tripData,
         onResetTrip = onResetTrip,

@@ -30,6 +30,7 @@ import com.here.sdk.mapview.MapMarker
 import com.here.sdk.mapview.MapScheme
 import com.here.sdk.mapview.MapView
 import com.openlauncher.app.R
+import com.openlauncher.app.data.AppSettings
 import com.openlauncher.app.ui.map.components.Aw11RecenterButton
 import com.openlauncher.app.ui.map.components.Aw11RouteInfo
 import com.openlauncher.app.ui.map.components.Aw11SearchPanel
@@ -42,7 +43,7 @@ private const val TAG = "Aw11HereMap"
 
 private const val DEFAULT_LATITUDE = 53.1381
 private const val DEFAULT_LONGITUDE = 18.0220
-private const val ROUTE_REFRESH_INTERVAL_MS = 180_000L
+private const val MAX_REROUTE_GPS_ACCURACY_METERS = 50f
 private const val ROUTE_SNAP_ENTER_METERS = 15.0
 private const val ROUTE_SNAP_EXIT_METERS = 20.0
 
@@ -57,6 +58,7 @@ private class MapAnimationState {
 @Composable
 fun Aw11HereMap(
     location: LocationData?,
+    settings: AppSettings,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -101,6 +103,17 @@ fun Aw11HereMap(
     val lastRouteRefreshMs = remember {
         mutableLongStateOf(0L)
     }
+
+    val offRouteSinceMs = remember {
+        mutableLongStateOf(0L)
+    }
+
+    val isRouteRequestInProgress = remember {
+        mutableStateOf(false)
+    }
+
+    val routeRefreshIntervalMs =
+        settings.routeRefreshIntervalSeconds * 1000L
 
     DisposableEffect(mapView, lifecycleOwner) {
         mapView.onCreate(null)
@@ -209,7 +222,11 @@ fun Aw11HereMap(
         location?.longitude,
         location?.bearingDegrees,
         carMarker.value,
-        state.activeRoute
+        state.activeRoute,
+        state.destination,
+        settings.autoReroute,
+        settings.offRouteThresholdMeters,
+        settings.rerouteDelaySeconds
     ) {
         val currentLocation =
             location ?: return@LaunchedEffect
@@ -258,6 +275,118 @@ fun Aw11HereMap(
                         "offRoute=${progress.distanceFromRouteMeters.toInt()} m, " +
                         "progress=${"%.3f".format(progress.progressFraction)}"
             )
+            if (
+                settings.autoReroute &&
+                routeProgress != null &&
+                state.destination != null
+            ) {
+                val gpsAccuracyIsGood =
+                    currentLocation.accuracy <=
+                            MAX_REROUTE_GPS_ACCURACY_METERS
+
+                val isOffRoute =
+                    routeProgress.distanceFromRouteMeters >
+                            settings.offRouteThresholdMeters
+
+                val now =
+                    SystemClock.elapsedRealtime()
+
+                if (
+                    !gpsAccuracyIsGood ||
+                    !isOffRoute
+                ) {
+                    offRouteSinceMs.longValue = 0L
+                } else if (
+                    offRouteSinceMs.longValue == 0L
+                ) {
+                    offRouteSinceMs.longValue = now
+
+                    Log.d(
+                        TAG,
+                        "Off route detected: " +
+                                "${routeProgress.distanceFromRouteMeters.toInt()} m"
+                    )
+                } else {
+                    val offRouteDurationMs =
+                        now - offRouteSinceMs.longValue
+
+                    val rerouteDelayMs =
+                        settings.rerouteDelaySeconds * 1000L
+
+                    if (
+                        offRouteDurationMs >= rerouteDelayMs &&
+                        !isRouteRequestInProgress.value
+                    ) {
+                        val destination =
+                            state.destination
+
+                        if (destination != null) {
+                            isRouteRequestInProgress.value = true
+
+                            // Reset now so a failed request does not immediately fire again.
+                            offRouteSinceMs.longValue = 0L
+
+                            Log.d(
+                                TAG,
+                                "Auto reroute started: " +
+                                        "offRoute=${routeProgress.distanceFromRouteMeters.toInt()} m"
+                            )
+
+                            routingController.calculateRoute(
+                                start = rawCoordinates,
+                                destination = destination,
+                                startHeadingDegrees =
+                                    currentLocation.bearingDegrees,
+                                onSuccess = { newRoute ->
+                                    routeProgressTracker.setRoute(
+                                        newRoute
+                                    )
+
+                                    val newProgress =
+                                        routeProgressTracker.update(
+                                            rawCoordinates
+                                        )
+
+                                    state.activeRoute =
+                                        newRoute
+
+                                    state.routeProgress =
+                                        newProgress
+
+                                    routeRenderer.showRoute(
+                                        route = newRoute,
+                                        destination = destination
+                                    )
+
+                                    lastRouteRefreshMs.longValue =
+                                        SystemClock.elapsedRealtime()
+
+                                    isRouteRequestInProgress.value =
+                                        false
+
+                                    Log.d(
+                                        TAG,
+                                        "Auto reroute completed: " +
+                                                "${newRoute.lengthInMeters} m, " +
+                                                "${newRoute.duration.seconds} s"
+                                    )
+                                },
+                                onError = { error ->
+                                    isRouteRequestInProgress.value =
+                                        false
+
+                                    Log.e(
+                                        TAG,
+                                        "Auto reroute failed: ${error.name}"
+                                    )
+                                }
+                            )
+                        }
+                    }
+                }
+            } else {
+                offRouteSinceMs.longValue = 0L
+            }
         }
         val shouldSnapToRoute =
             routeProgress?.let { progress ->
@@ -394,7 +523,7 @@ fun Aw11HereMap(
 
         if (
             now - lastRouteRefreshMs.longValue <
-            ROUTE_REFRESH_INTERVAL_MS
+            routeRefreshIntervalMs
         ) {
             return@LaunchedEffect
         }
@@ -409,6 +538,8 @@ fun Aw11HereMap(
         routingController.calculateRoute(
             start = start,
             destination = destination,
+            startHeadingDegrees =
+                currentLocation.bearingDegrees,
             onSuccess = { route ->
                 state.activeRoute = route
 
