@@ -115,7 +115,7 @@ data class AppSettings(
     // Navigation
     val autoReroute: Boolean = true,
     val routeRefreshIntervalSeconds: Int = 180,
-    val offRouteThresholdMeters: Int = 20,
+    val offRouteThresholdMeters: Int = 25,
     val rerouteDelaySeconds: Int = 3,
     val minimumRouteGainSeconds: Int = 60
 )

@@ -175,6 +175,78 @@ class RouteProgressTracker {
         )
     }
 
+    fun getLookAheadCoordinates(
+        progress: RouteProgress,
+        distanceMeters: Double
+    ): GeoCoordinates? {
+        if (
+            vertices.size < 2 ||
+            distanceMeters <= 0.0
+        ) {
+            return progress.matchedCoordinates
+        }
+
+        var remainingDistance =
+            distanceMeters
+
+        var segmentIndex =
+            progress.matchedSegmentIndex
+                .coerceIn(
+                    0,
+                    vertices.lastIndex - 1
+                )
+
+        var currentCoordinates =
+            progress.matchedCoordinates
+
+        while (segmentIndex < vertices.lastIndex) {
+            val segmentEnd =
+                vertices[segmentIndex + 1]
+
+            val availableDistance =
+                distanceMeters(
+                    currentCoordinates,
+                    segmentEnd
+                )
+
+            if (availableDistance <= 0.01) {
+                currentCoordinates =
+                    segmentEnd
+
+                segmentIndex++
+                continue
+            }
+
+            if (remainingDistance <= availableDistance) {
+                val fraction =
+                    (
+                            remainingDistance /
+                                    availableDistance
+                            )
+                        .coerceIn(
+                            0.0,
+                            1.0
+                        )
+
+                return interpolateCoordinates(
+                    start = currentCoordinates,
+                    end = segmentEnd,
+                    fraction = fraction
+                )
+            }
+
+            remainingDistance -=
+                availableDistance
+
+            currentCoordinates =
+                segmentEnd
+
+            segmentIndex++
+        }
+
+        return vertices.last()
+    }
+
     private fun clearGeometry() {
         segmentLengthsMeters =
             DoubleArray(0)
@@ -346,6 +418,32 @@ class RouteProgressTracker {
         )
     }
 
+    private fun interpolateCoordinates(
+        start: GeoCoordinates,
+        end: GeoCoordinates,
+        fraction: Double
+    ): GeoCoordinates {
+        val clampedFraction =
+            fraction.coerceIn(
+                0.0,
+                1.0
+            )
+
+        return GeoCoordinates(
+            start.latitude +
+                    (
+                            end.latitude -
+                                    start.latitude
+                            ) *
+                    clampedFraction,
+            start.longitude +
+                    (
+                            end.longitude -
+                                    start.longitude
+                            ) *
+                    clampedFraction
+        )
+    }
     private fun buildTimingProfile(
         route: Route
     ) {

@@ -418,7 +418,7 @@ fun SettingsScreen(
                     horizontalArrangement =
                         Arrangement.spacedBy(4.dp)
                 ) {
-                    listOf(20, 50, 75, 100)
+                    listOf(25, 50, 75, 100)
                         .forEach { meters ->
 
                             FilterChip(

@@ -1,8 +1,8 @@
 # Simulates a car driving south along Gdanska Street in Bydgoszcz.
 # The route points follow the road from around Gdanska 100 toward Gdanska 20.
 
-$SpeedKmh = 30.0
-$UpdateIntervalSeconds = 1.0
+$SpeedKmh = 8.0
+$UpdateIntervalSeconds = 3.0
 $Altitude = 70.0
 $Accuracy = 3.0
 
@@ -11,6 +11,7 @@ $SpeedMps = $SpeedKmh / 3.6
 # Road anchor points.
 $Route = @(
     @{ Lat = 53.133333; Lon = 18.011111 },
+    @{ Lat = 53.13713424411774; Lon = 18.0150885890683 },
     @{ Lat = 53.132800; Lon = 18.010620 },
     @{ Lat = 53.131800; Lon = 18.009650 },
     @{ Lat = 53.130833; Lon = 18.008889 }, # Gdanska 60

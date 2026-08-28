@@ -49,10 +49,18 @@ private const val ROUTE_SNAP_ENTER_METERS = 15.0
 private const val ROUTE_SNAP_EXIT_METERS = 20.0
 private const val AUTO_REROUTE_COOLDOWN_MS = 30_000L
 private const val MAX_AUTO_REROUTES_PER_GUIDANCE = 5
+private const val LOOK_AHEAD_SECONDS = 4.0
+private const val LOOK_AHEAD_MIN_METERS = 15.0
+private const val LOOK_AHEAD_MAX_METERS = 120.0
+private const val LOOK_AHEAD_MIN_SPEED_MPS = 1.0f
 
 private class MapAnimationState {
     var latitude = DEFAULT_LATITUDE
     var longitude = DEFAULT_LONGITUDE
+
+    var cameraLatitude = DEFAULT_LATITUDE
+    var cameraLongitude = DEFAULT_LONGITUDE
+
     var bearing = 0f
     var lastLocationUpdateMs = 0L
     var isSnappedToRoute = false
@@ -150,6 +158,8 @@ fun Aw11HereMap(
 
                 animationState.latitude = initialCoordinates.latitude
                 animationState.longitude = initialCoordinates.longitude
+                animationState.cameraLatitude = initialCoordinates.latitude
+                animationState.cameraLongitude = initialCoordinates.longitude
 
                 location?.bearingDegrees?.let {
                     animationState.bearing = it
@@ -452,7 +462,27 @@ fun Aw11HereMap(
             } else {
                 rawCoordinates
             }
+        val lookAheadDistanceMeters =
+            calculateLookAheadDistanceMeters(
+                currentLocation.speedMps
+            )
 
+        val cameraTargetCoordinates =
+            if (
+                shouldSnapToRoute &&
+                routeProgress != null &&
+                lookAheadDistanceMeters > 0.0
+            ) {
+                routeProgressTracker
+                    .getLookAheadCoordinates(
+                        progress = routeProgress,
+                        distanceMeters =
+                            lookAheadDistanceMeters
+                    )
+                    ?: displayCoordinates
+            } else {
+                displayCoordinates
+            }
         val targetLatitude =
             displayCoordinates.latitude
 
@@ -462,6 +492,18 @@ fun Aw11HereMap(
         val startLatitude = animationState.latitude
         val startLongitude = animationState.longitude
         val startBearing = animationState.bearing
+
+        val startCameraLatitude =
+            animationState.cameraLatitude
+
+        val startCameraLongitude =
+            animationState.cameraLongitude
+
+        val targetCameraLatitude =
+            cameraTargetCoordinates.latitude
+
+        val targetCameraLongitude =
+            cameraTargetCoordinates.longitude
 
         val targetBearing =
             currentLocation.bearingDegrees
@@ -517,6 +559,22 @@ fun Aw11HereMap(
                             bearingDelta * progress
                 )
 
+            val cameraLatitude =
+                startCameraLatitude +
+                        (
+                                targetCameraLatitude -
+                                        startCameraLatitude
+                                ) *
+                        progress
+
+            val cameraLongitude =
+                startCameraLongitude +
+                        (
+                                targetCameraLongitude -
+                                        startCameraLongitude
+                                ) *
+                        progress
+
             val coordinates = GeoCoordinates(
                 latitude,
                 longitude
@@ -526,9 +584,18 @@ fun Aw11HereMap(
                 coordinates
             )
 
-            if (state.isFollowing && !state.isRecentering) {
+            val cameraCoordinates =
+                GeoCoordinates(
+                    cameraLatitude,
+                    cameraLongitude
+                )
+
+            if (
+                state.isFollowing &&
+                !state.isRecentering
+            ) {
                 cameraController.follow(
-                    coordinates = coordinates,
+                    coordinates = cameraCoordinates,
                     bearingDegrees = bearing
                 )
             }
@@ -536,6 +603,11 @@ fun Aw11HereMap(
             animationState.latitude = latitude
             animationState.longitude = longitude
             animationState.bearing = bearing
+            animationState.cameraLatitude =
+                cameraLatitude
+
+            animationState.cameraLongitude =
+                cameraLongitude
         }
     }
 
@@ -853,8 +925,7 @@ fun Aw11HereMap(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .padding(
-                        start = 10.dp,
-                        bottom = 10.dp
+                        start = 10.dp, bottom = 10.dp
                     )
             )
         }
@@ -900,4 +971,21 @@ private fun normalizeBearing(
     bearing: Float
 ): Float {
     return ((bearing % 360f) + 360f) % 360f
+}
+
+private fun calculateLookAheadDistanceMeters(
+    speedMps: Float
+): Double {
+    if (speedMps <= LOOK_AHEAD_MIN_SPEED_MPS) {
+        return 0.0
+    }
+
+    return (
+            speedMps *
+                    LOOK_AHEAD_SECONDS
+            )
+        .coerceIn(
+            LOOK_AHEAD_MIN_METERS,
+            LOOK_AHEAD_MAX_METERS
+        )
 }
