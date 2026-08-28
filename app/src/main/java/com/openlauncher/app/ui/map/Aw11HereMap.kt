@@ -38,6 +38,7 @@ import com.openlauncher.app.ui.map.here.HereCameraController
 import com.openlauncher.app.ui.map.here.HereRouteRenderer
 import com.openlauncher.app.ui.map.navigation.RouteProgressTracker
 import com.openlauncher.app.util.LocationData
+import androidx.compose.runtime.mutableIntStateOf
 
 private const val TAG = "Aw11HereMap"
 
@@ -46,6 +47,8 @@ private const val DEFAULT_LONGITUDE = 18.0220
 private const val MAX_REROUTE_GPS_ACCURACY_METERS = 50f
 private const val ROUTE_SNAP_ENTER_METERS = 15.0
 private const val ROUTE_SNAP_EXIT_METERS = 20.0
+private const val AUTO_REROUTE_COOLDOWN_MS = 30_000L
+private const val MAX_AUTO_REROUTES_PER_GUIDANCE = 5
 
 private class MapAnimationState {
     var latitude = DEFAULT_LATITUDE
@@ -106,6 +109,14 @@ fun Aw11HereMap(
 
     val offRouteSinceMs = remember {
         mutableLongStateOf(0L)
+    }
+
+    val lastAutoRerouteRequestMs = remember {
+        mutableLongStateOf(0L)
+    }
+
+    val autoRerouteCount = remember {
+        mutableIntStateOf(0)
     }
 
     val isRouteRequestInProgress = remember {
@@ -313,8 +324,19 @@ fun Aw11HereMap(
                     val rerouteDelayMs =
                         settings.rerouteDelaySeconds * 1000L
 
+                    val cooldownFinished =
+                        lastAutoRerouteRequestMs.longValue == 0L ||
+                                now - lastAutoRerouteRequestMs.longValue >=
+                                AUTO_REROUTE_COOLDOWN_MS
+
+                    val rerouteLimitNotReached =
+                        autoRerouteCount.intValue <
+                                MAX_AUTO_REROUTES_PER_GUIDANCE
+
                     if (
                         offRouteDurationMs >= rerouteDelayMs &&
+                        cooldownFinished &&
+                        rerouteLimitNotReached &&
                         !isRouteRequestInProgress.value
                     ) {
                         val destination =
@@ -325,6 +347,9 @@ fun Aw11HereMap(
 
                             // Reset now so a failed request does not immediately fire again.
                             offRouteSinceMs.longValue = 0L
+
+                            lastAutoRerouteRequestMs.longValue =
+                                SystemClock.elapsedRealtime()
 
                             Log.d(
                                 TAG,
@@ -364,12 +389,24 @@ fun Aw11HereMap(
                                     isRouteRequestInProgress.value =
                                         false
 
+                                    autoRerouteCount.intValue++
                                     Log.d(
                                         TAG,
                                         "Auto reroute completed: " +
                                                 "${newRoute.lengthInMeters} m, " +
-                                                "${newRoute.duration.seconds} s"
+                                                "${newRoute.duration.seconds} s, " +
+                                                "count=${autoRerouteCount.intValue}/$MAX_AUTO_REROUTES_PER_GUIDANCE"
                                     )
+                                    if (
+                                        autoRerouteCount.intValue >=
+                                        MAX_AUTO_REROUTES_PER_GUIDANCE
+                                    ) {
+                                        Log.d(
+                                            TAG,
+                                            "Auto reroute limit reached. " +
+                                                    "Further reroutes disabled for this guidance session."
+                                        )
+                                    }
                                 },
                                 onError = { error ->
                                     isRouteRequestInProgress.value =
@@ -659,6 +696,10 @@ fun Aw11HereMap(
                     result.coordinates
                 state.destination = destination
 
+                offRouteSinceMs.longValue = 0L
+                lastAutoRerouteRequestMs.longValue = 0L
+                autoRerouteCount.intValue = 0
+
                 lastRouteRefreshMs.longValue =
                     SystemClock.elapsedRealtime()
 
@@ -736,6 +777,10 @@ fun Aw11HereMap(
                     animationState.isSnappedToRoute = false
 
                     lastRouteRefreshMs.longValue = 0L
+
+                    offRouteSinceMs.longValue = 0L
+                    lastAutoRerouteRequestMs.longValue = 0L
+                    autoRerouteCount.intValue = 0
 
                     Log.d(
                         TAG,

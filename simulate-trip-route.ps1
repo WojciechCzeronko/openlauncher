@@ -94,6 +94,40 @@ function Get-BearingDegrees {
     return ($Bearing + 360.0) % 360.0
 }
 
+function Move-Coordinate {
+    param(
+        [double]$Latitude,
+        [double]$Longitude,
+        [double]$DistanceMeters,
+        [double]$BearingDegrees
+    )
+
+    $BearingRadians =
+        $BearingDegrees * [Math]::PI / 180.0
+
+    $MetersPerDegreeLatitude =
+        111320.0
+
+    $MetersPerDegreeLongitude =
+        111320.0 *
+        [Math]::Cos(
+            $Latitude * [Math]::PI / 180.0
+        )
+
+    $LatDelta =
+        ($DistanceMeters * [Math]::Cos($BearingRadians)) /
+        $MetersPerDegreeLatitude
+
+    $LonDelta =
+        ($DistanceMeters * [Math]::Sin($BearingRadians)) /
+        $MetersPerDegreeLongitude
+
+    return @{
+        Lat = $Latitude + $LatDelta
+        Lon = $Longitude + $LonDelta
+    }
+}
+
 function Send-MockLocation {
     param(
         [double]$Latitude,
@@ -253,6 +287,61 @@ for (
                 1000
             )
     }
+        # Simulate leaving the calculated route near Gdanska 44.
+        if ($SegmentIndex -eq 5) {
+            Write-Host ""
+            Write-Host "=== OFF-ROUTE TEST START ==="
+            Write-Host "Moving approximately 45 m away from the route."
+            Write-Host ""
+
+            $DetourStart =
+                $Route[$SegmentIndex + 1]
+
+            $RouteBearing =
+                Get-BearingDegrees `
+                    $Route[$SegmentIndex].Lat `
+                    $Route[$SegmentIndex].Lon `
+                    $Route[$SegmentIndex + 1].Lat `
+                    $Route[$SegmentIndex + 1].Lon
+
+            # Move perpendicular to the current route.
+            $DetourBearing =
+                ($RouteBearing + 90.0) % 360.0
+
+            for ($DetourStep = 1; $DetourStep -le 6; $DetourStep++) {
+
+                # Increase lateral distance slightly on every GPS update.
+                $LateralDistance =
+                    35.0 + ($DetourStep * 2.0)
+
+                $DetourPoint =
+                    Move-Coordinate `
+                        -Latitude $DetourStart.Lat `
+                        -Longitude $DetourStart.Lon `
+                        -DistanceMeters $LateralDistance `
+                        -BearingDegrees $DetourBearing
+
+                # Also move slightly forward so every fix has different coordinates.
+                $ForwardPoint =
+                    Move-Coordinate `
+                        -Latitude $DetourPoint.Lat `
+                        -Longitude $DetourPoint.Lon `
+                        -DistanceMeters ($DetourStep * 4.0) `
+                        -BearingDegrees $RouteBearing
+
+                Send-MockLocation `
+                    -Latitude $ForwardPoint.Lat `
+                    -Longitude $ForwardPoint.Lon `
+                    -Bearing $RouteBearing
+
+                Start-Sleep -Seconds 1
+            }
+
+            Write-Host ""
+            Write-Host "=== OFF-ROUTE TEST END ==="
+            Write-Host "Returning to the planned road."
+            Write-Host ""
+        }
 }
 
 $FinalPoint =
