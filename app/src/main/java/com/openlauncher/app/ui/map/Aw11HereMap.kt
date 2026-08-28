@@ -288,6 +288,8 @@ fun Aw11HereMap(
             )
             if (
                 settings.autoReroute &&
+                autoRerouteCount.intValue <
+                MAX_AUTO_REROUTES_PER_GUIDANCE &&
                 routeProgress != null &&
                 state.destination != null
             ) {
@@ -565,7 +567,41 @@ fun Aw11HereMap(
             return@LaunchedEffect
         }
 
+        val autoRerouteLimitReached =
+            autoRerouteCount.intValue >=
+                    MAX_AUTO_REROUTES_PER_GUIDANCE
+
+        val isCurrentlyOffRoute =
+            state.routeProgress
+                ?.distanceFromRouteMeters
+                ?.let { distance ->
+                    distance >
+                            settings.offRouteThresholdMeters
+                }
+                ?: false
+
+        if (
+            autoRerouteLimitReached &&
+            isCurrentlyOffRoute
+        ) {
+            // Delay the next traffic refresh check to avoid evaluating it on every GPS update.
+            lastRouteRefreshMs.longValue = now
+
+            Log.d(
+                TAG,
+                "Route refresh skipped: " +
+                        "auto reroute limit reached and vehicle is off route."
+            )
+
+            return@LaunchedEffect
+        }
+
+        if (isRouteRequestInProgress.value) {
+            return@LaunchedEffect
+        }
+
         lastRouteRefreshMs.longValue = now
+        isRouteRequestInProgress.value = true
 
         val start = GeoCoordinates(
             currentLocation.latitude,
@@ -578,6 +614,7 @@ fun Aw11HereMap(
             startHeadingDegrees =
                 currentLocation.bearingDegrees,
             onSuccess = { route ->
+                isRouteRequestInProgress.value = false
                 state.activeRoute = route
 
                 routeProgressTracker.setRoute(
@@ -602,6 +639,7 @@ fun Aw11HereMap(
                 )
             },
             onError = { error ->
+                isRouteRequestInProgress.value = false
                 Log.e(
                     TAG,
                     "Route refresh failed: ${error.name}"
