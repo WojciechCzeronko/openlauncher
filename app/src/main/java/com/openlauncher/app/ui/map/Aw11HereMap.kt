@@ -553,9 +553,8 @@ fun Aw11HereMap(
         val destination =
             state.destination ?: return@LaunchedEffect
 
-        if (state.activeRoute == null) {
-            return@LaunchedEffect
-        }
+        val currentRoute =
+            state.activeRoute ?: return@LaunchedEffect
 
         val now =
             SystemClock.elapsedRealtime()
@@ -567,9 +566,6 @@ fun Aw11HereMap(
             return@LaunchedEffect
         }
 
-        val autoRerouteLimitReached =
-            autoRerouteCount.intValue >=
-                    MAX_AUTO_REROUTES_PER_GUIDANCE
 
         val isCurrentlyOffRoute =
             state.routeProgress
@@ -580,17 +576,13 @@ fun Aw11HereMap(
                 }
                 ?: false
 
-        if (
-            autoRerouteLimitReached &&
-            isCurrentlyOffRoute
-        ) {
-            // Delay the next traffic refresh check to avoid evaluating it on every GPS update.
+        if (isCurrentlyOffRoute) {
+            // Traffic refresh must not act as an implicit reroute.
             lastRouteRefreshMs.longValue = now
 
             Log.d(
                 TAG,
-                "Route refresh skipped: " +
-                        "auto reroute limit reached and vehicle is off route."
+                "Route refresh skipped: vehicle is off route."
             )
 
             return@LaunchedEffect
@@ -599,6 +591,11 @@ fun Aw11HereMap(
         if (isRouteRequestInProgress.value) {
             return@LaunchedEffect
         }
+
+        val currentRemainingDurationSeconds =
+            state.routeProgress
+                ?.remainingDurationSeconds
+                ?: currentRoute.duration.seconds
 
         lastRouteRefreshMs.longValue = now
         isRouteRequestInProgress.value = true
@@ -613,30 +610,58 @@ fun Aw11HereMap(
             destination = destination,
             startHeadingDegrees =
                 currentLocation.bearingDegrees,
-            onSuccess = { route ->
-                isRouteRequestInProgress.value = false
-                state.activeRoute = route
+            onSuccess = { candidateRoute ->
+                val candidateDurationSeconds =
+                    candidateRoute.duration.seconds
 
-                routeProgressTracker.setRoute(
-                    route
-                )
+                val routeGainSeconds =
+                    currentRemainingDurationSeconds -
+                            candidateDurationSeconds
 
-                state.routeProgress =
-                    routeProgressTracker.update(
-                        start
+                val minimumGainSeconds =
+                    settings.minimumRouteGainSeconds.toLong()
+
+                if (
+                    routeGainSeconds >=
+                    minimumGainSeconds
+                ) {
+                    state.activeRoute =
+                        candidateRoute
+
+                    routeProgressTracker.setRoute(
+                        candidateRoute
                     )
 
-                routeRenderer.showRoute(
-                    route = route,
-                    destination = destination
-                )
+                    state.routeProgress =
+                        routeProgressTracker.update(
+                            start
+                        )
 
-                Log.d(
-                    TAG,
-                    "Route refreshed: " +
-                            "${route.lengthInMeters} m, " +
-                            "${route.duration.seconds} s"
-                )
+                    routeRenderer.showRoute(
+                        route = candidateRoute,
+                        destination = destination
+                    )
+
+                    Log.d(
+                        TAG,
+                        "Traffic route accepted: " +
+                                "currentEta=$currentRemainingDurationSeconds s, " +
+                                "candidateEta=$candidateDurationSeconds s, " +
+                                "gain=$routeGainSeconds s"
+                    )
+                } else {
+                    Log.d(
+                        TAG,
+                        "Traffic route ignored: " +
+                                "currentEta=$currentRemainingDurationSeconds s, " +
+                                "candidateEta=$candidateDurationSeconds s, " +
+                                "gain=$routeGainSeconds s, " +
+                                "required=$minimumGainSeconds s"
+                    )
+                }
+
+                isRouteRequestInProgress.value =
+                    false
             },
             onError = { error ->
                 isRouteRequestInProgress.value = false
