@@ -34,6 +34,7 @@ import com.here.sdk.mapview.MapView
 import com.openlauncher.app.R
 import com.openlauncher.app.data.AppSettings
 import com.openlauncher.app.ui.map.components.Aw11DemoControls
+import com.openlauncher.app.ui.map.components.Aw11ManeuverInfo
 import com.openlauncher.app.ui.map.components.Aw11RecenterButton
 import com.openlauncher.app.ui.map.components.Aw11RouteInfo
 import com.openlauncher.app.ui.map.components.Aw11SearchPanel
@@ -988,123 +989,124 @@ fun Aw11HereMap(
                 }
         )
 
-        Aw11SearchPanel(
-            isOpen = state.isSearchOpen,
-            query = state.searchQuery,
-            results = state.searchResults,
-            isSearching = state.isSearching,
-            error = state.searchError,
-            onOpen = {
-                state.openSearch()
-            },
-            onQueryChange = { query ->
-                state.searchQuery = query
-            },
-            onSearch = {
-                state.startSearch()
+        if (state.activeRoute == null) {
+            Aw11SearchPanel(
+                isOpen = state.isSearchOpen,
+                query = state.searchQuery,
+                results = state.searchResults,
+                isSearching = state.isSearching,
+                error = state.searchError,
+                onOpen = {
+                    state.openSearch()
+                },
+                onQueryChange = { query ->
+                    state.searchQuery = query
+                },
+                onSearch = {
+                    state.startSearch()
 
-                val center = GeoCoordinates(
-                    animationState.latitude,
-                    animationState.longitude
-                )
+                    val center = GeoCoordinates(
+                        animationState.latitude,
+                        animationState.longitude
+                    )
 
-                searchController.search(
-                    queryText = state.searchQuery,
-                    center = center,
-                    onSuccess = { results ->
-                        state.completeSearch(
-                            results.take(5)
-                        )
-                    },
-                    onError = { error ->
-                        state.failSearch(
-                            error.name
-                        )
-                    }
-                )
-            },
-            onClear = {
-                state.clearSearch()
-            },
-            onClose = {
-                state.closeSearch()
-            },
-            onResultSelected = { result ->
-                val start = GeoCoordinates(
-                    animationState.latitude,
-                    animationState.longitude
-                )
-
-                val destination =
-                    result.coordinates
-                state.destination = destination
-                state.destinationTitle =
-                    result.title
-
-                offRouteSinceMs.longValue = 0L
-                lastAutoRerouteRequestMs.longValue = 0L
-                autoRerouteCount.intValue = 0
-
-                lastRouteRefreshMs.longValue =
-                    SystemClock.elapsedRealtime()
-
-                Log.d(
-                    TAG,
-                    "Calculating route to: " +
-                            "${result.title}, " +
-                            "${destination.latitude}, " +
-                            "${destination.longitude}"
-                )
-
-                state.closeSearch()
-
-                routingController.calculateRoute(
-                    start = start,
-                    destination = destination,
-                    startHeadingDegrees =
-                        navigationLocation?.bearingDegrees,
-                    onSuccess = { route ->
-                        state.activeRoute = route
-
-                        routeProgressTracker.setRoute(
-                            route
-                        )
-                        maneuverProgressTracker.setRoute(
-                            route
-                        )
-
-                        state.routeProgress =
-                            routeProgressTracker.update(
-                                start
+                    searchController.search(
+                        queryText = state.searchQuery,
+                        center = center,
+                        onSuccess = { results ->
+                            state.completeSearch(
+                                results.take(5)
                             )
-                        maneuverGuidance.value =
-                            maneuverProgressTracker.update(
-                                state.routeProgress
+                        },
+                        onError = { error ->
+                            state.failSearch(
+                                error.name
                             )
-                        routeRenderer.showRoute(
-                            route = route,
-                            destination = destination
-                        )
+                        }
+                    )
+                },
+                onClear = {
+                    state.clearSearch()
+                },
+                onClose = {
+                    state.closeSearch()
+                },
+                onResultSelected = { result ->
+                    val start = GeoCoordinates(
+                        animationState.latitude,
+                        animationState.longitude
+                    )
 
-                        Log.d(
-                            TAG,
-                            "Route: ${route.lengthInMeters} m, " +
-                                    "${route.duration.seconds} s"
-                        )
-                    },
-                    onError = { error ->
-                        Log.e(
-                            TAG,
-                            "Route calculation failed: ${error.name}"
-                        )
-                    }
-                )
-            },
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(10.dp)
-        )
+                    val destination =
+                        result.coordinates
+                    state.destination = destination
+                    state.destinationTitle =
+                        result.title
 
+                    offRouteSinceMs.longValue = 0L
+                    lastAutoRerouteRequestMs.longValue = 0L
+                    autoRerouteCount.intValue = 0
+
+                    lastRouteRefreshMs.longValue =
+                        SystemClock.elapsedRealtime()
+
+                    Log.d(
+                        TAG,
+                        "Calculating route to: " +
+                                "${result.title}, " +
+                                "${destination.latitude}, " +
+                                "${destination.longitude}"
+                    )
+
+                    state.closeSearch()
+
+                    routingController.calculateRoute(
+                        start = start,
+                        destination = destination,
+                        startHeadingDegrees =
+                            navigationLocation?.bearingDegrees,
+                        onSuccess = { route ->
+                            state.activeRoute = route
+
+                            routeProgressTracker.setRoute(
+                                route
+                            )
+                            maneuverProgressTracker.setRoute(
+                                route
+                            )
+
+                            state.routeProgress =
+                                routeProgressTracker.update(
+                                    start
+                                )
+                            maneuverGuidance.value =
+                                maneuverProgressTracker.update(
+                                    state.routeProgress
+                                )
+                            routeRenderer.showRoute(
+                                route = route,
+                                destination = destination
+                            )
+
+                            Log.d(
+                                TAG,
+                                "Route: ${route.lengthInMeters} m, " +
+                                        "${route.duration.seconds} s"
+                            )
+                        },
+                        onError = { error ->
+                            Log.e(
+                                TAG,
+                                "Route calculation failed: ${error.name}"
+                            )
+                        }
+                    )
+                },
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(10.dp)
+            )
+        }
         state.activeRoute?.let { route ->
             Aw11DemoControls(
                 isDemoMode =
@@ -1204,6 +1206,23 @@ fun Aw11HereMap(
             )
         }
 
+        maneuverGuidance.value
+            ?.takeIf {
+                !state.isSearchOpen
+            }
+            ?.let { guidance ->
+                Aw11ManeuverInfo(
+                    guidance = guidance,
+                    modifier = Modifier
+                        .align(
+                            Alignment.TopStart
+                        )
+                        .padding(
+                            start = 10.dp,
+                            top = 10.dp
+                        )
+                )
+            }
 
         //Eta widget
         state.activeRoute?.let { route ->

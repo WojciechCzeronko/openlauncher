@@ -9,6 +9,7 @@ private const val MANEUVER_PASS_TOLERANCE_METERS = 8.0
 data class ManeuverGuidance(
     val actionName: String,
     val distanceMeters: Int,
+    val roadName: String,
     val instruction: String
 )
 
@@ -134,6 +135,10 @@ class ManeuverProgressTracker {
                 nextManeuver.actionName,
             distanceMeters =
                 remainingDistanceMeters,
+            roadName =
+                extractRoadName(
+                    nextManeuver.instruction
+                ),
             instruction =
                 nextManeuver.instruction
         )
@@ -158,6 +163,43 @@ class ManeuverProgressTracker {
                 )
             }
             ?: 0
+    }
+    private fun extractRoadName(
+        instruction: String
+    ): String {
+        val withoutDistance =
+            instruction
+                .substringBefore(
+                    ". Go for",
+                    instruction
+                )
+                .trim()
+
+        val separators =
+            listOf(
+                " onto ",
+                " toward ",
+                " into ",
+                " on "
+            )
+
+        for (separator in separators) {
+            val index =
+                withoutDistance.indexOf(
+                    separator,
+                    ignoreCase = true
+                )
+
+            if (index >= 0) {
+                return withoutDistance
+                    .substring(
+                        index + separator.length
+                    )
+                    .trim()
+            }
+        }
+
+        return withoutDistance
     }
 
     private data class RouteManeuverPoint(
