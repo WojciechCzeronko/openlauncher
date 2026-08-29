@@ -25,19 +25,9 @@ fun Aw11ManeuverInfo(
     modifier: Modifier = Modifier
 ) {
     val distanceText =
-        when {
-            guidance.distanceMeters <= 8 ->
-                "NOW"
-
-            guidance.distanceMeters < 1000 ->
-                "${guidance.distanceMeters} M"
-
-            else ->
-                String.format(
-                    "%.1f KM",
-                    guidance.distanceMeters / 1000.0
-                )
-        }
+        formatManeuverDistance(
+            guidance.distanceMeters
+        )
 
     val actionLabel =
         maneuverActionLabel(
@@ -132,48 +122,104 @@ private fun maneuverActionLabel(
     actionName: String
 ): String {
     return when {
-        actionName.contains("U_TURN") ->
-            "U-TURN"
+        actionName == "ARRIVE" ->
+            "ARRIVE"
 
-        actionName.contains("SLIGHT_LEFT") ->
-            "SLIGHT LEFT"
+        actionName == "CONTINUE_ON" ->
+            "CONTINUE"
 
-        actionName.contains("SLIGHT_RIGHT") ->
-            "SLIGHT RIGHT"
+        actionName ==
+                "ENTER_HIGHWAY_FROM_LEFT" ||
+                actionName ==
+                "ENTER_HIGHWAY_FROM_RIGHT" ->
+            "ENTER HIGHWAY"
 
-        actionName.contains("SHARP_LEFT") ->
-            "SHARP LEFT"
+        actionName == "LEFT_EXIT" ->
+            "LEFT EXIT"
 
-        actionName.contains("SHARP_RIGHT") ->
-            "SHARP RIGHT"
+        actionName == "RIGHT_EXIT" ->
+            "RIGHT EXIT"
 
-        actionName.contains("LEFT_TURN") ->
-            "TURN LEFT"
-
-        actionName.contains("RIGHT_TURN") ->
-            "TURN RIGHT"
-
-        actionName.contains("KEEP_LEFT") ->
+        actionName == "LEFT_FORK" ->
             "KEEP LEFT"
 
-        actionName.contains("KEEP_RIGHT") ->
+        actionName == "RIGHT_FORK" ->
             "KEEP RIGHT"
 
-        actionName.contains("ROUNDABOUT") ->
-            "ROUNDABOUT"
+        actionName == "MIDDLE_FORK" ->
+            "KEEP CENTER"
 
-        actionName.contains("STRAIGHT") ->
-            "STRAIGHT"
+        actionName == "LEFT_RAMP" ->
+            "LEFT RAMP"
 
-        actionName.contains("ARRIVE") ->
-            "ARRIVE"
+        actionName == "RIGHT_RAMP" ->
+            "RIGHT RAMP"
+
+        actionName == "LEFT_U_TURN" ||
+                actionName == "RIGHT_U_TURN" ->
+            "U-TURN"
+
+        actionName == "SHARP_LEFT_TURN" ->
+            "SHARP LEFT"
+
+        actionName == "SHARP_RIGHT_TURN" ->
+            "SHARP RIGHT"
+
+        actionName == "SLIGHT_LEFT_TURN" ->
+            "SLIGHT LEFT"
+
+        actionName == "SLIGHT_RIGHT_TURN" ->
+            "SLIGHT RIGHT"
+
+        actionName == "LEFT_TURN" ->
+            "TURN LEFT"
+
+        actionName == "RIGHT_TURN" ->
+            "TURN RIGHT"
+
+        actionName.endsWith(
+            "_ROUNDABOUT_ENTER"
+        ) ->
+            "ENTER ROUNDABOUT"
+
+        actionName.endsWith(
+            "_ROUNDABOUT_PASS"
+        ) ->
+            "PASS ROUNDABOUT"
+
+        actionName.contains(
+            "_ROUNDABOUT_EXIT"
+        ) ->
+            roundaboutExitLabel(
+                actionName
+            )
 
         else ->
             actionName
-                .replace("_", " ")
+                .replace(
+                    "_",
+                    " "
+                )
     }
 }
 
+private fun roundaboutExitLabel(
+    actionName: String
+): String {
+    val exitNumber =
+        actionName
+            .substringAfter(
+                "_ROUNDABOUT_EXIT",
+                ""
+            )
+            .toIntOrNull()
+
+    return if (exitNumber != null) {
+        "ROUNDABOUT EXIT $exitNumber"
+    } else {
+        "ROUNDABOUT EXIT"
+    }
+}
 private fun maneuverActionSymbol(
     actionName: String
 ): String {
@@ -199,4 +245,62 @@ private fun maneuverActionSymbol(
         else ->
             "^"
     }
+}
+
+private fun formatManeuverDistance(
+    distanceMeters: Int
+): String {
+    val distance =
+        distanceMeters.coerceAtLeast(0)
+
+    if (distance <= 8) {
+        return "NOW"
+    }
+
+    if (distance >= 1000) {
+        return String.format(
+            "%.1f KM",
+            distance / 1000.0
+        )
+    }
+
+    val roundedDistance =
+        when {
+            distance >= 500 ->
+                roundToNearestStep(
+                    distance,
+                    50
+                )
+
+            distance >= 100 ->
+                roundToNearestStep(
+                    distance,
+                    10
+                )
+
+            distance >= 50 ->
+                roundToNearestStep(
+                    distance,
+                    5
+                )
+
+            else ->
+                distance
+        }
+
+    if (roundedDistance >= 1000) {
+        return "1.0 KM"
+    }
+
+    return "$roundedDistance M"
+}
+
+private fun roundToNearestStep(
+    value: Int,
+    step: Int
+): Int {
+    return (
+            (value + step / 2) /
+                    step
+            ) * step
 }
