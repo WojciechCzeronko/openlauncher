@@ -41,6 +41,7 @@ import com.openlauncher.app.ui.map.here.HereRouteRenderer
 import com.openlauncher.app.ui.map.navigation.RouteProgressTracker
 import com.openlauncher.app.util.LocationData
 import com.openlauncher.app.ui.map.navigation.DemoNavigationController
+import com.openlauncher.app.ui.map.navigation.DemoTripData
 import kotlinx.coroutines.delay
 
 private const val TAG = "Aw11HereMap"
@@ -77,6 +78,10 @@ private class MapAnimationState {
 fun Aw11HereMap(
     location: LocationData?,
     settings: AppSettings,
+    onDemoDataChanged: (
+        LocationData?,
+        DemoTripData?
+    ) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -224,10 +229,18 @@ fun Aw11HereMap(
 
             lastUpdateMs = now
 
-            demoLocation.value =
+            val updatedLocation =
                 demoNavigationController.update(
                     deltaSeconds
                 )
+
+            demoLocation.value =
+                updatedLocation
+
+            onDemoDataChanged(
+                updatedLocation,
+                demoNavigationController.tripData
+            )
         }
 
         if (
@@ -1058,6 +1071,10 @@ fun Aw11HereMap(
 
                         isDemoRunning.value = true
                         isDemoPaused.value = false
+                        onDemoDataChanged(
+                            initialLocation,
+                            demoNavigationController.tripData
+                        )
                         Log.d(
                             TAG,
                             "Demo started: 1X"
@@ -1076,7 +1093,10 @@ fun Aw11HereMap(
                 onPause = {
                     demoLocation.value =
                         demoNavigationController.pause()
-
+                    onDemoDataChanged(
+                        demoLocation.value,
+                        demoNavigationController.tripData
+                    )
                     isDemoPaused.value =
                         true
 
@@ -1088,7 +1108,10 @@ fun Aw11HereMap(
                 onResume = {
                     demoLocation.value =
                         demoNavigationController.resume()
-
+                    onDemoDataChanged(
+                        demoLocation.value,
+                        demoNavigationController.tripData
+                    )
                     isDemoPaused.value =
                         false
 
@@ -1105,7 +1128,10 @@ fun Aw11HereMap(
                     isDemoMode.value = false
 
                     demoLocation.value = null
-
+                    onDemoDataChanged(
+                        null,
+                        null
+                    )
                     Log.d(
                         TAG,
                         "Demo stopped."
@@ -1136,7 +1162,10 @@ fun Aw11HereMap(
                     isDemoRunning.value = false
                     isDemoMode.value = false
                     demoLocation.value = null
-
+                    onDemoDataChanged(
+                        null,
+                        null
+                    )
                     routeRenderer.clearRoute()
                     routeProgressTracker.clear()
 

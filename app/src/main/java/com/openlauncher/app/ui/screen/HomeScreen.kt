@@ -135,6 +135,7 @@ import kotlinx.coroutines.delay
 import java.util.Calendar
 import kotlin.math.roundToInt
 import com.openlauncher.app.ui.map.Aw11HereMap
+import com.openlauncher.app.ui.map.navigation.DemoTripData
 
 private val WIDGET_RADIUS = RoundedCornerShape(0.dp)
 
@@ -206,7 +207,16 @@ private fun Aw11HomeLayout(
     var startupPhase by remember {
         mutableStateOf(StartupPhase.SEGMENT_TEST)
     }
+    var demoDisplayLocation by remember {
+        mutableStateOf<LocationData?>(null)
+    }
 
+    var demoDisplayTripData by remember {
+        mutableStateOf<DemoTripData?>(null)
+    }
+
+    val displayLocation =
+        demoDisplayLocation ?: location
     val selfTestProgress = remember {
         Animatable(0f)
     }
@@ -244,25 +254,44 @@ private fun Aw11HomeLayout(
     val showTestValues = startupPhase != StartupPhase.LIVE
     val isLive = startupPhase == StartupPhase.LIVE
     val speedDisplay =
-        ((location?.speedMps ?: 0f) * if (isMetric) 3.6f else 2.237f)
+        ((displayLocation?.speedMps ?: 0f) *
+                if (isMetric) 3.6f else 2.237f)
             .coerceAtLeast(0f)
 
     val speedBarMax = if (isMetric) 150f else 93f
     val speedProgress = (speedDisplay / speedBarMax).coerceIn(0f, 1f)
+    val displayedTripDistanceMeters =
+        demoDisplayTripData?.distanceMeters
+            ?: tripData.distanceMeters
+
+    val displayedTripDriveTimeMs =
+        demoDisplayTripData?.driveTimeMs
+            ?: tripData.driveTimeMs
+
+    val displayedTripAverageSpeedMps =
+        demoDisplayTripData?.averageSpeedMps
+            ?: tripData.averageSpeedMps
+
+    val displayedTripMaxSpeedMps =
+        demoDisplayTripData?.maxSpeedMps
+            ?: tripData.maxSpeedMps
     val distanceDisplay =
         if (isMetric) {
-            "%.1f KM".format(tripData.distanceMeters / 1000.0)
+            "%.1f KM".format(displayedTripDistanceMeters/ 1000.0)
         } else {
-            "%.1f MI".format(tripData.distanceMeters / 1609.344)
+            "%.1f MI".format(displayedTripDistanceMeters / 1609.344)
         }
 
     val avgSpeed =
-        tripData.averageSpeedMps * if (isMetric) 3.6f else 2.237f
+        displayedTripAverageSpeedMps *
+                if (isMetric) 3.6f else 2.237f
 
     val maxSpeed =
-        tripData.maxSpeedMps * if (isMetric) 3.6f else 2.237f
+        displayedTripMaxSpeedMps *
+                if (isMetric) 3.6f else 2.237f
 
-    val totalMinutes = tripData.driveTimeMs / 60_000L
+    val totalMinutes =
+        displayedTripDriveTimeMs / 60_000L
     val driveTimeDisplay =
         "%02d:%02d".format(
             totalMinutes / 60,
@@ -329,6 +358,16 @@ private fun Aw11HomeLayout(
             Aw11HereMap(
                 location = location,
                 settings = settings,
+                onDemoDataChanged = {
+                        demoLocation,
+                        demoTripData ->
+
+                    demoDisplayLocation =
+                        demoLocation
+
+                    demoDisplayTripData =
+                        demoTripData
+                },
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(1.dp)
