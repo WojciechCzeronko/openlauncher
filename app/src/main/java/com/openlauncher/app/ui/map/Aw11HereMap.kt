@@ -43,6 +43,8 @@ import com.openlauncher.app.ui.map.navigation.RouteProgressTracker
 import com.openlauncher.app.util.LocationData
 import com.openlauncher.app.ui.map.navigation.DemoNavigationController
 import com.openlauncher.app.ui.map.navigation.DemoTripData
+import com.openlauncher.app.ui.map.navigation.ManeuverGuidance
+import com.openlauncher.app.ui.map.navigation.ManeuverProgressTracker
 import kotlinx.coroutines.delay
 
 private const val TAG = "Aw11HereMap"
@@ -122,6 +124,13 @@ fun Aw11HereMap(
         RouteProgressTracker()
     }
 
+    val maneuverProgressTracker = remember {
+        ManeuverProgressTracker()
+    }
+
+    val maneuverGuidance = remember {
+        mutableStateOf<ManeuverGuidance?>(null)
+    }
     val demoNavigationController = remember {
         DemoNavigationController()
     }
@@ -504,7 +513,9 @@ fun Aw11HereMap(
                                     routeProgressTracker.setRoute(
                                         newRoute
                                     )
-
+                                    maneuverProgressTracker.setRoute(
+                                        newRoute
+                                    )
                                     val newProgress =
                                         routeProgressTracker.update(
                                             rawCoordinates
@@ -516,6 +527,26 @@ fun Aw11HereMap(
                                     state.routeProgress =
                                         newProgress
 
+                                    maneuverGuidance.value =
+                                        maneuverProgressTracker.update(
+                                            state.routeProgress
+                                        )
+                                    maneuverGuidance.value =
+                                        maneuverProgressTracker.update(
+                                            routeProgress
+                                        )
+
+                                    maneuverGuidance.value?.let {
+                                            guidance ->
+
+                                        Log.d(
+                                            TAG,
+                                            "Next maneuver: " +
+                                                    "${guidance.actionName}, " +
+                                                    "${guidance.distanceMeters} m, " +
+                                                    guidance.instruction
+                                        )
+                                    }
                                     routeRenderer.showRoute(
                                         route = newRoute,
                                         destination = destination
@@ -861,12 +892,17 @@ fun Aw11HereMap(
                     routeProgressTracker.setRoute(
                         candidateRoute
                     )
-
+                    maneuverProgressTracker.setRoute(
+                        candidateRoute
+                    )
                     state.routeProgress =
                         routeProgressTracker.update(
                             start
                         )
-
+                    maneuverGuidance.value =
+                        maneuverProgressTracker.update(
+                            state.routeProgress
+                        )
                     routeRenderer.showRoute(
                         route = candidateRoute,
                         destination = destination
@@ -1033,12 +1069,18 @@ fun Aw11HereMap(
                         routeProgressTracker.setRoute(
                             route
                         )
+                        maneuverProgressTracker.setRoute(
+                            route
+                        )
 
                         state.routeProgress =
                             routeProgressTracker.update(
                                 start
                             )
-
+                        maneuverGuidance.value =
+                            maneuverProgressTracker.update(
+                                state.routeProgress
+                            )
                         routeRenderer.showRoute(
                             route = route,
                             destination = destination
@@ -1189,6 +1231,8 @@ fun Aw11HereMap(
                     )
                     routeRenderer.clearRoute()
                     routeProgressTracker.clear()
+                    maneuverProgressTracker.clear()
+                    maneuverGuidance.value = null
 
                     state.activeRoute = null
                     state.routeProgress = null
