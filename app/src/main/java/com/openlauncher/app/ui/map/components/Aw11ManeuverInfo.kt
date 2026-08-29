@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
@@ -31,11 +32,6 @@ fun Aw11ManeuverInfo(
 
     val actionLabel =
         maneuverActionLabel(
-            guidance.actionName
-        )
-
-    val actionSymbol =
-        maneuverActionSymbol(
             guidance.actionName
         )
 
@@ -72,14 +68,14 @@ fun Aw11ManeuverInfo(
             verticalAlignment =
                 Alignment.CenterVertically
         ) {
-            Text(
-                text = actionSymbol,
-                color = Aw11Primary,
-                fontSize = 26.sp,
+
+            Aw11ManeuverIcon(
+                actionName =
+                    guidance.actionName,
                 modifier = Modifier
                     .width(54.dp)
+                    .height(54.dp)
             )
-
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -218,32 +214,6 @@ private fun roundaboutExitLabel(
         "ROUNDABOUT EXIT $exitNumber"
     } else {
         "ROUNDABOUT EXIT"
-    }
-}
-private fun maneuverActionSymbol(
-    actionName: String
-): String {
-    return when {
-        actionName.contains("U_TURN_LEFT") ->
-            "<U"
-
-        actionName.contains("U_TURN_RIGHT") ->
-            "U>"
-
-        actionName.contains("LEFT") ->
-            "<-"
-
-        actionName.contains("RIGHT") ->
-            "->"
-
-        actionName.contains("ROUNDABOUT") ->
-            "(O)"
-
-        actionName.contains("ARRIVE") ->
-            "X"
-
-        else ->
-            "^"
     }
 }
 
