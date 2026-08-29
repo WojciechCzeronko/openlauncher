@@ -11,6 +11,22 @@ import kotlin.math.sin
 private const val DEFAULT_DEMO_SPEED_MPS = 13.89
 private const val DEMO_ACCURACY_METERS = 3f
 
+data class DemoTripData(
+    val distanceMeters: Double = 0.0,
+    val driveTimeMs: Long = 0L,
+    val maxSpeedMps: Float = 0f
+) {
+    val averageSpeedMps: Float
+        get() =
+            if (driveTimeMs > 0L) {
+                (
+                        distanceMeters /
+                                (driveTimeMs / 1000.0)
+                        ).toFloat()
+            } else {
+                0f
+            }
+}
 class DemoNavigationController {
 
     private var segments: List<DemoSegment> =
@@ -29,6 +45,9 @@ class DemoNavigationController {
         private set
 
     var currentLocation: LocationData? = null
+        private set
+    var tripData: DemoTripData =
+        DemoTripData()
         private set
 
     fun start(
@@ -51,6 +70,7 @@ class DemoNavigationController {
 
         currentSegmentIndex = 0
         distanceOnSegmentMeters = 0.0
+        tripData = DemoTripData()
         isRunning = true
         isPaused = false
         currentLocation =
@@ -133,6 +153,10 @@ class DemoNavigationController {
         var remainingTimeSeconds =
             deltaSeconds.coerceAtLeast(0.0)
 
+        var distanceAdvancedMeters = 0.0
+        var driveTimeSeconds = 0.0
+        var maxSpeedThisUpdateMps = 0.0
+
         while (
             remainingTimeSeconds > 0.0 &&
             isRunning
@@ -143,6 +167,12 @@ class DemoNavigationController {
             val speedMps =
                 segment.averageSpeedMps *
                         speedMultiplier
+
+            maxSpeedThisUpdateMps =
+                maxOf(
+                    maxSpeedThisUpdateMps,
+                    speedMps
+                )
 
             if (speedMps <= 0.0) {
                 advanceToNextSegment()
@@ -164,14 +194,29 @@ class DemoNavigationController {
                 remainingTimeSeconds <
                 timeToSegmentEndSeconds
             ) {
-                distanceOnSegmentMeters +=
+                val travelledDistanceMeters =
                     speedMps *
                             remainingTimeSeconds
+
+                distanceOnSegmentMeters +=
+                    travelledDistanceMeters
+
+                distanceAdvancedMeters +=
+                    travelledDistanceMeters
+
+                driveTimeSeconds +=
+                    remainingTimeSeconds
 
                 remainingTimeSeconds = 0.0
             } else {
                 distanceOnSegmentMeters =
                     segment.lengthMeters
+
+                distanceAdvancedMeters +=
+                    remainingDistanceMeters
+
+                driveTimeSeconds +=
+                    timeToSegmentEndSeconds
 
                 remainingTimeSeconds -=
                     timeToSegmentEndSeconds
@@ -188,6 +233,24 @@ class DemoNavigationController {
                 }
             }
         }
+
+        tripData =
+            tripData.copy(
+                distanceMeters =
+                    tripData.distanceMeters +
+                            distanceAdvancedMeters,
+                driveTimeMs =
+                    tripData.driveTimeMs +
+                            (
+                                    driveTimeSeconds *
+                                            1000.0
+                                    ).toLong(),
+                maxSpeedMps =
+                    maxOf(
+                        tripData.maxSpeedMps,
+                        maxSpeedThisUpdateMps.toFloat()
+                    )
+            )
 
         currentLocation =
             createCurrentLocation()
