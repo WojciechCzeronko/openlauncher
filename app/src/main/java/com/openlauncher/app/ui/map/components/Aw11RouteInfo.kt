@@ -14,6 +14,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.openlauncher.app.ui.theme.Aw11Background
@@ -25,6 +27,7 @@ import java.time.format.DateTimeFormatter
 
 @Composable
 fun Aw11RouteInfo(
+    destinationTitle: String?,
     distanceMeters: Int,
     durationSeconds: Long,
     onEndGuidance: () -> Unit,
@@ -117,6 +120,37 @@ fun Aw11RouteInfo(
             }
         }
 
+        destinationTitle
+            ?.takeIf { it.isNotBlank() }
+            ?.let { title ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 6.dp),
+                    verticalAlignment =
+                        Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "TO",
+                        color = Aw11Secondary,
+                        fontSize = 11.sp,
+                        letterSpacing = 0.25.sp
+                    )
+
+                    Text(
+                        text = title.uppercase(),
+                        color = Aw11Primary,
+                        fontSize = 11.sp,
+                        letterSpacing = 0.25.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.End,
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(start = 8.dp)
+                    )
+                }
+            }
         RouteDataRow(
             label = "DIST",
             value = distanceText

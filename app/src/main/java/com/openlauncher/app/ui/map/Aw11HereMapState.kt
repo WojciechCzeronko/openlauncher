@@ -30,6 +30,7 @@ class Aw11HereMapState {
     var routeProgress by mutableStateOf<RouteProgress?>(null)
 
     var destination by mutableStateOf<GeoCoordinates?>(null)
+    var destinationTitle by mutableStateOf<String?>(null)
     var isFollowing by mutableStateOf(true)
 
     var isRecentering by mutableStateOf(false)

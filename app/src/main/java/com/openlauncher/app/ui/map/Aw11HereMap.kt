@@ -985,6 +985,8 @@ fun Aw11HereMap(
                 val destination =
                     result.coordinates
                 state.destination = destination
+                state.destinationTitle =
+                    result.title
 
                 offRouteSinceMs.longValue = 0L
                 lastAutoRerouteRequestMs.longValue = 0L
@@ -1150,6 +1152,8 @@ fun Aw11HereMap(
                 state.routeProgress
 
             Aw11RouteInfo(
+                destinationTitle =
+                    state.destinationTitle,
                 distanceMeters =
                     progress?.remainingDistanceMeters
                         ?: route.lengthInMeters,
@@ -1172,6 +1176,7 @@ fun Aw11HereMap(
                     state.activeRoute = null
                     state.routeProgress = null
                     state.destination = null
+                    state.destinationTitle = null
 
                     animationState.isSnappedToRoute = false
 
