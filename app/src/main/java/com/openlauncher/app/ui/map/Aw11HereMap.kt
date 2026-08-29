@@ -50,8 +50,8 @@ import kotlinx.coroutines.delay
 
 private const val TAG = "Aw11HereMap"
 
-private const val DEFAULT_LATITUDE = 53.1381
-private const val DEFAULT_LONGITUDE = 18.0220
+private const val DEFAULT_LATITUDE = 53.14209513566131
+private const val DEFAULT_LONGITUDE = 18.030773831645174
 private const val MAX_REROUTE_GPS_ACCURACY_METERS = 50f
 private const val ROUTE_SNAP_ENTER_METERS = 15.0
 private const val ROUTE_SNAP_EXIT_METERS = 20.0

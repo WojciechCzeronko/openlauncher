@@ -1,0 +1,40 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+
+    <!-- Selected ramp -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="8"
+        android:strokeLineCap="square"
+        android:strokeLineJoin="bevel"
+        android:pathData="
+            M36,56
+            L36,38
+            C36,31 31,26 24,22
+            L18,18" />
+
+    <!-- Main road -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeAlpha="0.30"
+        android:strokeWidth="5"
+        android:strokeLineCap="square"
+        android:pathData="
+            M36,38
+            L36,14" />
+
+    <!-- Arrow head -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="
+            M8,11
+            L15,29
+            L28,11
+            Z" />
+
+</vector>

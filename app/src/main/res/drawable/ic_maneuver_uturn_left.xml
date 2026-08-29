@@ -1,0 +1,30 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+
+    <!-- U-turn path -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="8"
+        android:strokeLineCap="square"
+        android:strokeLineJoin="bevel"
+        android:pathData="
+            M40,56
+            L40,28
+            C40,19 35,14 28,14
+            C21,14 16,19 16,28
+            L16,38" />
+
+    <!-- Arrow head -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="
+            M16,52
+            L7,38
+            L25,38
+            Z" />
+
+</vector>

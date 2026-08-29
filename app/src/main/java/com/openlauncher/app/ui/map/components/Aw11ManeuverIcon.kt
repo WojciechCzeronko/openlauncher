@@ -39,7 +39,51 @@ private fun maneuverIconResource(
         actionName.contains(
             "ROUNDABOUT"
         ) ->
-            R.drawable.ic_maneuver_roundabout_right
+            roundaboutIconResource(
+                actionName
+            )
+
+        actionName == "SLIGHT_LEFT_TURN" ->
+            R.drawable.ic_maneuver_slight_left
+
+        actionName == "SLIGHT_RIGHT_TURN" ->
+            R.drawable.ic_maneuver_slight_right
+
+        actionName == "SHARP_LEFT_TURN" ->
+            R.drawable.ic_maneuver_sharp_left
+
+        actionName == "SHARP_RIGHT_TURN" ->
+            R.drawable.ic_maneuver_sharp_right
+
+        actionName == "LEFT_FORK" ->
+            R.drawable.ic_maneuver_keep_left
+
+        actionName == "RIGHT_FORK" ->
+            R.drawable.ic_maneuver_keep_right
+
+        actionName == "LEFT_U_TURN" ->
+            R.drawable.ic_maneuver_uturn_left
+
+        actionName == "RIGHT_U_TURN" ->
+            R.drawable.ic_maneuver_uturn_right
+
+        actionName == "LEFT_RAMP" ->
+            R.drawable.ic_maneuver_ramp_left
+
+        actionName == "RIGHT_RAMP" ->
+            R.drawable.ic_maneuver_ramp_right
+
+        actionName == "LEFT_EXIT" ->
+            R.drawable.ic_maneuver_exit_left
+
+        actionName == "RIGHT_EXIT" ->
+            R.drawable.ic_maneuver_exit_right
+
+        actionName == "ENTER_HIGHWAY_FROM_LEFT" ->
+            R.drawable.ic_maneuver_ramp_left
+
+        actionName == "ENTER_HIGHWAY_FROM_RIGHT" ->
+            R.drawable.ic_maneuver_ramp_right
 
         actionName == "LEFT_TURN" ->
             R.drawable.ic_maneuver_left
@@ -58,5 +102,32 @@ private fun maneuverIconResource(
 
         else ->
             R.drawable.ic_maneuver_straight
+    }
+}
+
+@DrawableRes
+private fun roundaboutIconResource(
+    actionName: String
+): Int {
+    val exitNumber =
+        actionName
+            .substringAfter(
+                "_ROUNDABOUT_EXIT",
+                ""
+            )
+            .toIntOrNull()
+
+    return when (exitNumber) {
+        1 ->
+            R.drawable.ic_maneuver_roundabout_right
+
+        2 ->
+            R.drawable.ic_maneuver_roundabout_straight
+
+        null ->
+            R.drawable.ic_maneuver_roundabout_straight
+
+        else ->
+            R.drawable.ic_maneuver_roundabout_left
     }
 }

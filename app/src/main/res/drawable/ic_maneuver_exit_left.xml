@@ -1,0 +1,39 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+
+    <!-- Selected exit -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="8"
+        android:strokeLineCap="square"
+        android:strokeLineJoin="bevel"
+        android:pathData="
+            M36,56
+            L36,34
+            L18,22" />
+
+    <!-- Continuing road -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeAlpha="0.30"
+        android:strokeWidth="5"
+        android:strokeLineCap="square"
+        android:pathData="
+            M36,34
+            L36,12" />
+
+    <!-- Arrow head -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="
+            M6,14
+            L14,32
+            L26,14
+            Z" />
+
+</vector>
