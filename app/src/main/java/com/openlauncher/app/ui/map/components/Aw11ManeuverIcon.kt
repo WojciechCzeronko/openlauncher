@@ -33,6 +33,9 @@ private fun maneuverIconResource(
     actionName: String
 ): Int {
     return when {
+        actionName.contains("ROUNDABOUT") ->
+            R.drawable.ic_maneuver_roundabout
+
         actionName == "ARRIVE" ->
             R.drawable.ic_destination_checkered_128
 
