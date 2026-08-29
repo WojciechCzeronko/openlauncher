@@ -32,6 +32,7 @@ import com.here.sdk.mapview.MapScheme
 import com.here.sdk.mapview.MapView
 import com.openlauncher.app.R
 import com.openlauncher.app.data.AppSettings
+import com.openlauncher.app.ui.map.components.Aw11DemoControls
 import com.openlauncher.app.ui.map.components.Aw11RecenterButton
 import com.openlauncher.app.ui.map.components.Aw11RouteInfo
 import com.openlauncher.app.ui.map.components.Aw11SearchPanel
@@ -39,6 +40,8 @@ import com.openlauncher.app.ui.map.here.HereCameraController
 import com.openlauncher.app.ui.map.here.HereRouteRenderer
 import com.openlauncher.app.ui.map.navigation.RouteProgressTracker
 import com.openlauncher.app.util.LocationData
+import com.openlauncher.app.ui.map.navigation.DemoNavigationController
+import kotlinx.coroutines.delay
 
 private const val TAG = "Aw11HereMap"
 
@@ -56,6 +59,7 @@ private const val LOOK_AHEAD_MIN_SPEED_MPS = 1.0f
 
 private const val DEFAULT_CAMERA_DISTANCE_METERS = 500.0
 private const val ZOOM_RESPONSE_FACTOR = 0.25
+private const val DEMO_UPDATE_INTERVAL_MS = 250L
 
 private class MapAnimationState {
     var latitude = DEFAULT_LATITUDE
@@ -110,6 +114,35 @@ fun Aw11HereMap(
         RouteProgressTracker()
     }
 
+    val demoNavigationController = remember {
+        DemoNavigationController()
+    }
+
+    val demoLocation = remember {
+        mutableStateOf<LocationData?>(null)
+    }
+
+    val isDemoMode = remember {
+        mutableStateOf(false)
+    }
+
+    val isDemoRunning = remember {
+        mutableStateOf(false)
+    }
+    val isDemoPaused = remember {
+        mutableStateOf(false)
+    }
+    val demoSpeedMultiplier = remember {
+        mutableStateOf(1.0)
+    }
+
+    val navigationLocation =
+        if (isDemoMode.value) {
+            demoLocation.value
+        } else {
+            location
+        }
+
     val carMarker = remember {
         mutableStateOf<MapMarker?>(null)
     }
@@ -136,6 +169,78 @@ fun Aw11HereMap(
 
     val routeRefreshIntervalMs =
         settings.routeRefreshIntervalSeconds * 1000L
+
+    LaunchedEffect(
+        isDemoRunning.value,
+        state.activeRoute,
+        demoSpeedMultiplier.value
+    ) {
+        if (!isDemoRunning.value) {
+            return@LaunchedEffect
+        }
+
+        val route =
+            state.activeRoute ?: run {
+                isDemoRunning.value = false
+                return@LaunchedEffect
+            }
+
+        if (!demoNavigationController.isRunning) {
+            demoLocation.value =
+                demoNavigationController.start(
+                    route = route,
+                    speedMultiplier =
+                        demoSpeedMultiplier.value
+                )
+        } else {
+            demoNavigationController.setSpeedMultiplier(
+                demoSpeedMultiplier.value
+            )
+
+            demoLocation.value =
+                demoNavigationController.currentLocation
+        }
+
+        isDemoMode.value = true
+
+        var lastUpdateMs =
+            SystemClock.elapsedRealtime()
+
+        while (
+            isDemoRunning.value &&
+            demoNavigationController.isRunning
+        ) {
+            delay(
+                DEMO_UPDATE_INTERVAL_MS
+            )
+
+            val now =
+                SystemClock.elapsedRealtime()
+
+            val deltaSeconds =
+                (
+                        now - lastUpdateMs
+                        ) / 1000.0
+
+            lastUpdateMs = now
+
+            demoLocation.value =
+                demoNavigationController.update(
+                    deltaSeconds
+                )
+        }
+
+        if (
+            isDemoRunning.value &&
+            !demoNavigationController.isRunning
+        ) {
+            // Keep the final demo position at the destination.
+            demoLocation.value =
+                demoNavigationController.currentLocation
+
+            isDemoRunning.value = false
+        }
+    }
 
     DisposableEffect(mapView, lifecycleOwner) {
         mapView.onCreate(null)
@@ -242,9 +347,10 @@ fun Aw11HereMap(
 
     // Car movement
     LaunchedEffect(
-        location?.latitude,
-        location?.longitude,
-        location?.bearingDegrees,
+        navigationLocation?.latitude,
+        navigationLocation?.longitude,
+        navigationLocation?.bearingDegrees,
+        navigationLocation?.speedMps,
         carMarker.value,
         state.activeRoute,
         state.destination,
@@ -253,7 +359,7 @@ fun Aw11HereMap(
         settings.rerouteDelaySeconds
     ) {
         val currentLocation =
-            location ?: return@LaunchedEffect
+            navigationLocation ?: return@LaunchedEffect
 
         val marker =
             carMarker.value ?: return@LaunchedEffect
@@ -300,6 +406,7 @@ fun Aw11HereMap(
                         "progress=${"%.3f".format(progress.progressFraction)}"
             )
             if (
+                !isDemoMode.value &&
                 settings.autoReroute &&
                 autoRerouteCount.intValue <
                 MAX_AUTO_REROUTES_PER_GUIDANCE &&
@@ -643,14 +750,19 @@ fun Aw11HereMap(
     }
 
 
-    // ETA update
+    // Periodic route refresh ETA
     LaunchedEffect(
-        location?.latitude,
-        location?.longitude,
-        state.destination
+        navigationLocation?.latitude,
+        navigationLocation?.longitude,
+        state.destination,
+        isDemoMode.value
     ) {
+        if (isDemoMode.value) {
+            return@LaunchedEffect
+        }
+
         val currentLocation =
-            location ?: return@LaunchedEffect
+            navigationLocation ?: return@LaunchedEffect
 
         val destination =
             state.destination ?: return@LaunchedEffect
@@ -882,7 +994,7 @@ fun Aw11HereMap(
                     start = start,
                     destination = destination,
                     startHeadingDegrees =
-                        location?.bearingDegrees,
+                        navigationLocation?.bearingDegrees,
                     onSuccess = { route ->
                         state.activeRoute = route
 
@@ -919,6 +1031,93 @@ fun Aw11HereMap(
                 .padding(10.dp)
         )
 
+        state.activeRoute?.let { route ->
+            Aw11DemoControls(
+                isDemoMode =
+                    isDemoMode.value,
+                speedMultiplier =
+                    demoSpeedMultiplier.value,
+                isPaused =
+                    isDemoPaused.value,
+                onStart = {
+                    demoSpeedMultiplier.value =
+                        1.0
+
+                    val initialLocation =
+                        demoNavigationController.start(
+                            route = route,
+                            speedMultiplier =
+                                demoSpeedMultiplier.value
+                        )
+
+                    if (initialLocation != null) {
+                        demoLocation.value =
+                            initialLocation
+
+                        isDemoMode.value = true
+
+                        isDemoRunning.value = true
+                        isDemoPaused.value = false
+                        Log.d(
+                            TAG,
+                            "Demo started: 1X"
+                        )
+                    }
+                },
+                onMultiplierChange = { multiplier ->
+                    demoSpeedMultiplier.value =
+                        multiplier
+
+                    Log.d(
+                        TAG,
+                        "Demo speed: ${multiplier}X"
+                    )
+                },
+                onPause = {
+                    demoLocation.value =
+                        demoNavigationController.pause()
+
+                    isDemoPaused.value =
+                        true
+
+                    Log.d(
+                        TAG,
+                        "Demo paused."
+                    )
+                },
+                onResume = {
+                    demoLocation.value =
+                        demoNavigationController.resume()
+
+                    isDemoPaused.value =
+                        false
+
+                    Log.d(
+                        TAG,
+                        "Demo resumed."
+                    )
+                },
+                onStop = {
+                    demoNavigationController.stop()
+
+                    isDemoRunning.value = false
+                    isDemoPaused.value = false
+                    isDemoMode.value = false
+
+                    demoLocation.value = null
+
+                    Log.d(
+                        TAG,
+                        "Demo stopped."
+                    )
+                },
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(10.dp)
+            )
+        }
+
+
         //Eta widget
         state.activeRoute?.let { route ->
             val progress =
@@ -932,6 +1131,12 @@ fun Aw11HereMap(
                     progress?.remainingDurationSeconds
                         ?: route.duration.seconds,
                 onEndGuidance = {
+                    demoNavigationController.stop()
+
+                    isDemoRunning.value = false
+                    isDemoMode.value = false
+                    demoLocation.value = null
+
                     routeRenderer.clearRoute()
                     routeProgressTracker.clear()
 
