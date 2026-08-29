@@ -1,18 +1,19 @@
 package com.openlauncher.app.ui.map.here
 
 import android.util.Log
-import com.here.sdk.core.GeoCircle
+import com.here.sdk.core.Anchor2D
 import com.here.sdk.core.GeoCoordinates
-import com.here.sdk.core.GeoPolygon
+import com.here.sdk.core.GeoPolyline
 import com.here.sdk.mapview.LineCap
+import com.here.sdk.mapview.MapImageFactory
+import com.here.sdk.mapview.MapMarker
 import com.here.sdk.mapview.MapMeasureDependentRenderSize
-import com.here.sdk.mapview.MapPolygon
 import com.here.sdk.mapview.MapPolyline
 import com.here.sdk.mapview.MapView
 import com.here.sdk.mapview.RenderSize
 import com.here.sdk.routing.Route
+import com.openlauncher.app.R
 import com.here.sdk.core.Color as HereColor
-import com.here.sdk.core.GeoPolyline
 
 private const val TAG = "HereRouteRenderer"
 
@@ -20,7 +21,7 @@ class HereRouteRenderer(
     private val mapView: MapView
 ) {
     private var routePolyline: MapPolyline? = null
-    private var destinationMarker: MapPolygon? = null
+    private var destinationMarker: MapMarker? = null
 
     fun showRoute(
         route: Route,
@@ -38,7 +39,7 @@ class HereRouteRenderer(
         val marker =
             createDestinationMarker(destination)
 
-        mapView.mapScene.addMapPolygon(marker)
+        mapView.mapScene.addMapMarker(marker)
         destinationMarker = marker
     }
 
@@ -48,7 +49,7 @@ class HereRouteRenderer(
         }
 
         destinationMarker?.let { marker ->
-            mapView.mapScene.removeMapPolygon(marker)
+            mapView.mapScene.removeMapMarker(marker)
         }
 
         routePolyline = null
@@ -96,26 +97,23 @@ class HereRouteRenderer(
 
     private fun createDestinationMarker(
         coordinates: GeoCoordinates
-    ): MapPolygon {
-        val circle = GeoCircle(
+    ): MapMarker {
+        val markerImage =
+            MapImageFactory.fromResource(
+                mapView.context.resources,
+                R.drawable.ic_destination_checkered_48
+            )
+
+        val anchor =
+            Anchor2D(
+                0.5,
+                1.0
+            )
+
+        return MapMarker(
             coordinates,
-            10.0
-        )
-
-        val polygon = GeoPolygon(
-            circle
-        )
-
-        val color = HereColor(
-            0.84f,
-            0.91f,
-            0.0f,
-            1.0f
-        )
-
-        return MapPolygon(
-            polygon,
-            color
+            markerImage,
+            anchor
         )
     }
 
