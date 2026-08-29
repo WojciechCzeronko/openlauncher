@@ -413,6 +413,21 @@ fun Aw11HereMap(
             state.routeProgress =
                 routeProgress
 
+            maneuverGuidance.value =
+                maneuverProgressTracker.update(
+                    routeProgress
+                )
+
+            maneuverGuidance.value?.let { guidance ->
+                Log.d(
+                    TAG,
+                    "Next maneuver: " +
+                            "${guidance.actionName}, " +
+                            "${guidance.distanceMeters} m, " +
+                            guidance.instruction
+                )
+            }
+
             routeRenderer.updateRouteProgress(
                 route = activeRoute,
                 matchedSegmentIndex =
@@ -531,22 +546,7 @@ fun Aw11HereMap(
                                         maneuverProgressTracker.update(
                                             state.routeProgress
                                         )
-                                    maneuverGuidance.value =
-                                        maneuverProgressTracker.update(
-                                            routeProgress
-                                        )
 
-                                    maneuverGuidance.value?.let {
-                                            guidance ->
-
-                                        Log.d(
-                                            TAG,
-                                            "Next maneuver: " +
-                                                    "${guidance.actionName}, " +
-                                                    "${guidance.distanceMeters} m, " +
-                                                    guidance.instruction
-                                        )
-                                    }
                                     routeRenderer.showRoute(
                                         route = newRoute,
                                         destination = destination
