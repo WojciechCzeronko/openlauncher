@@ -49,15 +49,42 @@ class HereCameraController(
 
     fun setNavigationPrincipalPoint(
         width: Int,
-        height: Int
+        height: Int,
+        reservedLeftPx: Double = 0.0,
+        reservedRightPx: Double = 0.0
     ) {
         if (width <= 0 || height <= 0) {
             return
         }
 
+        val safeLeft =
+            reservedLeftPx.coerceIn(
+                0.0,
+                width.toDouble()
+            )
+
+        val safeRight =
+            reservedRightPx.coerceIn(
+                0.0,
+                width.toDouble()
+            )
+
+        val usableWidth =
+            (
+                    width -
+                            safeLeft -
+                            safeRight
+                    )
+                .coerceAtLeast(1.0)
+
+        val principalPointX =
+            safeLeft +
+                    usableWidth / 2.0
+
         val principalPoint = Point2D(
-            width / 2.0,
-            height * PRINCIPAL_POINT_VERTICAL_RATIO
+            principalPointX,
+            height *
+                    PRINCIPAL_POINT_VERTICAL_RATIO
         )
 
         mapView.camera.setPrincipalPoint(

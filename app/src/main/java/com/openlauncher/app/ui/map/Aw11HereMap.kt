@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
@@ -61,6 +62,7 @@ private const val LOOK_AHEAD_MIN_SPEED_MPS = 1.0f
 private const val DEFAULT_CAMERA_DISTANCE_METERS = 500.0
 private const val ZOOM_RESPONSE_FACTOR = 0.25
 private const val DEMO_UPDATE_INTERVAL_MS = 250L
+private const val GUIDANCE_RESERVED_LEFT_DP = 216
 
 private class MapAnimationState {
     var latitude = DEFAULT_LATITUDE
@@ -84,6 +86,7 @@ fun Aw11HereMap(
     ) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
+    val density = LocalDensity.current
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val state = rememberAw11HereMapState()
@@ -900,14 +903,28 @@ fun Aw11HereMap(
         )
     }
 
+    val guidanceReservedLeftPx =
+        if (state.activeRoute != null) {
+            with(density) {
+                GUIDANCE_RESERVED_LEFT_DP
+                    .dp
+                    .toPx()
+                    .toDouble()
+            }
+        } else {
+            0.0
+        }
     // Set principal point
     LaunchedEffect(
         state.mapSize.width,
-        state.mapSize.height
+        state.mapSize.height,
+        guidanceReservedLeftPx
     ) {
         cameraController.setNavigationPrincipalPoint(
             width = state.mapSize.width,
-            height = state.mapSize.height
+            height = state.mapSize.height,
+            reservedLeftPx =
+                guidanceReservedLeftPx
         )
     }
 
