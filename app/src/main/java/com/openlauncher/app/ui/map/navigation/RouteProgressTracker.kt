@@ -2,6 +2,7 @@ package com.openlauncher.app.ui.map.navigation
 
 import com.here.sdk.core.GeoCoordinates
 import com.here.sdk.routing.Route
+import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.roundToInt
@@ -14,6 +15,11 @@ private const val MATCH_SEARCH_FORWARD_METERS = 300.0
 private const val GLOBAL_REACQUIRE_DISTANCE_METERS = 120.0
 private const val GLOBAL_REACQUIRE_ADVANTAGE_METERS = 40.0
 private const val GLOBAL_REACQUIRE_MAX_FORWARD_JUMP_METERS = 500.0
+
+private const val GLOBAL_REACQUIRE_CONFIRMATION_COUNT = 3
+private const val GLOBAL_REACQUIRE_STRONG_MATCH_METERS = 35.0
+private const val GLOBAL_REACQUIRE_CANDIDATE_TOLERANCE_METERS = 100.0
+
 data class RouteProgress(
     val remainingDistanceMeters: Int,
     val remainingDurationSeconds: Long,
@@ -27,6 +33,9 @@ class RouteProgressTracker {
 
     private var route: Route? = null
     private var lastAcceptedMatch: SegmentMatch? = null
+    private var pendingReacquireDistanceMeters: Double? = null
+
+    private var pendingReacquireCount = 0
 
     private var vertices: List<GeoCoordinates> =
         emptyList()
@@ -43,9 +52,11 @@ class RouteProgressTracker {
 
     private var totalTimedGeometryLengthMeters =
         0.0
+
     fun setRoute(route: Route) {
         this.route = route
         lastAcceptedMatch = null
+        resetPendingReacquire()
         vertices =
             route.geometry.vertices
 
@@ -91,7 +102,7 @@ class RouteProgressTracker {
         route = null
         vertices = emptyList()
         lastAcceptedMatch = null
-
+        resetPendingReacquire()
         clearGeometry()
     }
 
@@ -206,6 +217,7 @@ class RouteProgressTracker {
                 acceptedMatch.coordinates
         )
     }
+
     fun getLookAheadCoordinates(
         progress: RouteProgress,
         distanceMeters: Double
@@ -333,6 +345,7 @@ class RouteProgressTracker {
             localMatch.distanceFromRouteMeters <
             GLOBAL_REACQUIRE_DISTANCE_METERS
         ) {
+            resetPendingReacquire()
             return localMatch
         }
 
@@ -365,14 +378,40 @@ class RouteProgressTracker {
                     forwardJump <=
                     GLOBAL_REACQUIRE_MAX_FORWARD_JUMP_METERS
 
-        return if (
+        if (
             clearlyBetter &&
             plausibleProgress
         ) {
-            globalMatch
-        } else {
-            localMatch
+            resetPendingReacquire()
+            return globalMatch
         }
+
+        val isStrongGlobalMatch =
+            globalMatch.distanceFromRouteMeters <=
+                    GLOBAL_REACQUIRE_STRONG_MATCH_METERS
+
+        val isLargeForwardJump =
+            forwardJump >
+                    GLOBAL_REACQUIRE_MAX_FORWARD_JUMP_METERS
+
+        if (
+            isStrongGlobalMatch &&
+            isLargeForwardJump
+        ) {
+            val confirmed =
+                confirmGlobalReacquire(
+                    globalMatch
+                )
+
+            if (confirmed) {
+                resetPendingReacquire()
+                return globalMatch
+            }
+        } else {
+            resetPendingReacquire()
+        }
+
+        return localMatch
     }
 
     private fun findBestMatch(
@@ -616,6 +655,7 @@ class RouteProgressTracker {
                     clampedFraction
         )
     }
+
     private fun buildTimingProfile(
         route: Route
     ) {
@@ -664,7 +704,6 @@ class RouteProgressTracker {
         totalTimedGeometryLengthMeters =
             cumulativeDistance
     }
-
 
 
     private fun calculateRemainingDurationSeconds(
@@ -761,6 +800,46 @@ class RouteProgressTracker {
         }
 
         return totalDistance
+    }
+
+    private fun confirmGlobalReacquire(
+        match: SegmentMatch
+    ): Boolean {
+        val candidateDistance =
+            distanceAlongGeometry(
+                match
+            )
+
+        val previousCandidate =
+            pendingReacquireDistanceMeters
+
+        val isSameCandidateArea =
+            previousCandidate != null &&
+                    abs(
+                        candidateDistance -
+                                previousCandidate
+                    ) <=
+                    GLOBAL_REACQUIRE_CANDIDATE_TOLERANCE_METERS
+
+        if (isSameCandidateArea) {
+            pendingReacquireCount++
+        } else {
+            pendingReacquireDistanceMeters =
+                candidateDistance
+
+            pendingReacquireCount = 1
+        }
+
+        pendingReacquireDistanceMeters =
+            candidateDistance
+
+        return pendingReacquireCount >=
+                GLOBAL_REACQUIRE_CONFIRMATION_COUNT
+    }
+
+    private fun resetPendingReacquire() {
+        pendingReacquireDistanceMeters = null
+        pendingReacquireCount = 0
     }
 
     private data class SegmentMatch(
