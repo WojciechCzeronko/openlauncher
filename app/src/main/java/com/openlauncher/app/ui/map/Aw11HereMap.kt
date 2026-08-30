@@ -74,6 +74,11 @@ private const val CAMERA_BEARING_SMOOTHING_TIME_MS = 450.0
 private const val BEARING_LOCK_SPEED_MPS = 1.5f
 private const val BEARING_UNLOCK_SPEED_MPS = 2.5f
 
+private const val ARRIVAL_REMAINING_ROUTE_METERS = 20
+private const val ARRIVAL_DESTINATION_RADIUS_METERS = 30.0
+private const val ARRIVAL_CONFIRMATION_COUNT = 3
+private const val ARRIVAL_AUTO_CLOSE_DELAY_MS = 20_000L
+
 
 private class MapAnimationState {
     var latitude = DEFAULT_LATITUDE
@@ -202,6 +207,84 @@ fun Aw11HereMap(
 
     val routeRefreshIntervalMs =
         settings.routeRefreshIntervalSeconds * 1000L
+
+    val arrivalConfirmationCount = remember {
+        mutableIntStateOf(0)
+    }
+
+    val endGuidance: () -> Unit = {
+        demoNavigationController.stop()
+
+        isDemoRunning.value = false
+        isDemoPaused.value = false
+        isDemoMode.value = false
+
+        demoLocation.value = null
+
+        onDemoDataChanged(
+            null,
+            null
+        )
+
+        routeRenderer.clearRoute()
+        routeProgressTracker.clear()
+        maneuverProgressTracker.clear()
+
+        maneuverGuidance.value = null
+
+        state.activeRoute = null
+        state.routeProgress = null
+        state.destination = null
+        state.destinationTitle = null
+        state.isArrived = false
+
+        arrivalConfirmationCount.intValue = 0
+
+        animationState.isSnappedToRoute = false
+
+        lastRouteRefreshMs.longValue = 0L
+        offRouteSinceMs.longValue = 0L
+        lastAutoRerouteRequestMs.longValue = 0L
+        autoRerouteCount.intValue = 0
+
+        Log.d(
+            TAG,
+            "Guidance session ended."
+        )
+    }
+
+    LaunchedEffect(
+        state.isArrived,
+        state.activeRoute
+    ) {
+        if (
+            !state.isArrived ||
+            state.activeRoute == null
+        ) {
+            return@LaunchedEffect
+        }
+
+        Log.d(
+            TAG,
+            "Arrival confirmed. Guidance will end automatically in 20 seconds."
+        )
+
+        delay(
+            ARRIVAL_AUTO_CLOSE_DELAY_MS
+        )
+
+        if (
+            state.isArrived &&
+            state.activeRoute != null
+        ) {
+            Log.d(
+                TAG,
+                "Arrival timeout reached. Ending guidance automatically."
+            )
+
+            endGuidance()
+        }
+    }
 
     LaunchedEffect(
         isDemoRunning.value,
@@ -442,6 +525,51 @@ fun Aw11HereMap(
             state.routeProgress =
                 routeProgress
 
+            val destination =
+                state.destination
+
+            if (
+                !state.isArrived &&
+                destination != null
+            ) {
+                val destinationDistanceMeters =
+                    distanceMeters(
+                        rawCoordinates,
+                        destination
+                    )
+
+                val isInsideArrivalZone =
+                    routeProgress.remainingDistanceMeters <=
+                            ARRIVAL_REMAINING_ROUTE_METERS &&
+                            destinationDistanceMeters <=
+                            ARRIVAL_DESTINATION_RADIUS_METERS
+
+                if (isInsideArrivalZone) {
+                    if (isDemoMode.value) {
+                        arrivalConfirmationCount.intValue =
+                            ARRIVAL_CONFIRMATION_COUNT
+                    } else {
+                        arrivalConfirmationCount.intValue++
+                    }
+
+                    if (
+                        arrivalConfirmationCount.intValue >=
+                        ARRIVAL_CONFIRMATION_COUNT
+                    ) {
+                        state.isArrived = true
+
+                        Log.d(
+                            TAG,
+                            "Destination reached: " +
+                                    "routeRemaining=${routeProgress.remainingDistanceMeters} m, " +
+                                    "destinationDistance=${destinationDistanceMeters.toInt()} m"
+                        )
+                    }
+                } else {
+                    arrivalConfirmationCount.intValue = 0
+                }
+            }
+
             maneuverGuidance.value =
                 maneuverProgressTracker.update(
                     routeProgress
@@ -475,6 +603,7 @@ fun Aw11HereMap(
                         "progress=${"%.3f".format(progress.progressFraction)}"
             )
             if (
+                !state.isArrived &&
                 !isDemoMode.value &&
                 settings.autoReroute &&
                 autoRerouteCount.intValue <
@@ -921,9 +1050,13 @@ fun Aw11HereMap(
         navigationLocation?.latitude,
         navigationLocation?.longitude,
         state.destination,
-        isDemoMode.value
+        isDemoMode.value,
+        state.isArrived
     ) {
-        if (isDemoMode.value) {
+        if (
+            isDemoMode.value ||
+            state.isArrived
+        ) {
             return@LaunchedEffect
         }
 
@@ -1158,6 +1291,8 @@ fun Aw11HereMap(
                     val destination =
                         result.coordinates
                     state.destination = destination
+                    state.isArrived = false
+                    arrivalConfirmationCount.intValue = 0
                     state.destinationTitle =
                         result.title
 
@@ -1326,7 +1461,8 @@ fun Aw11HereMap(
 
         maneuverGuidance.value
             ?.takeIf {
-                !state.isSearchOpen
+                !state.isSearchOpen &&
+                        !state.isArrived
             }
             ?.let { guidance ->
                 Aw11ManeuverInfo(
@@ -1356,39 +1492,9 @@ fun Aw11HereMap(
                 durationSeconds =
                     progress?.remainingDurationSeconds
                         ?: route.duration.seconds,
-                onEndGuidance = {
-                    demoNavigationController.stop()
-
-                    isDemoRunning.value = false
-                    isDemoMode.value = false
-                    demoLocation.value = null
-                    onDemoDataChanged(
-                        null,
-                        null
-                    )
-                    routeRenderer.clearRoute()
-                    routeProgressTracker.clear()
-                    maneuverProgressTracker.clear()
-                    maneuverGuidance.value = null
-
-                    state.activeRoute = null
-                    state.routeProgress = null
-                    state.destination = null
-                    state.destinationTitle = null
-
-                    animationState.isSnappedToRoute = false
-
-                    lastRouteRefreshMs.longValue = 0L
-
-                    offRouteSinceMs.longValue = 0L
-                    lastAutoRerouteRequestMs.longValue = 0L
-                    autoRerouteCount.intValue = 0
-
-                    Log.d(
-                        TAG,
-                        "Guidance session ended."
-                    )
-                },
+                isArrived =
+                    state.isArrived,
+                onEndGuidance = endGuidance,
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .padding(
@@ -1608,5 +1714,46 @@ private fun smoothCameraBearing(
     return normalizeBearing(
         current +
                 delta * alpha
+    )
+}
+
+private fun distanceMeters(
+    first: GeoCoordinates,
+    second: GeoCoordinates
+): Double {
+    val latitudeRadians =
+        Math.toRadians(
+            (
+                    first.latitude +
+                            second.latitude
+                    ) / 2.0
+        )
+
+    val metersPerDegreeLatitude =
+        111_320.0
+
+    val metersPerDegreeLongitude =
+        111_320.0 *
+                kotlin.math.cos(
+                    latitudeRadians
+                )
+
+    val x =
+        (
+                second.longitude -
+                        first.longitude
+                ) *
+                metersPerDegreeLongitude
+
+    val y =
+        (
+                second.latitude -
+                        first.latitude
+                ) *
+                metersPerDegreeLatitude
+
+    return kotlin.math.hypot(
+        x,
+        y
     )
 }

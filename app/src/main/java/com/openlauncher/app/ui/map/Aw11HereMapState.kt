@@ -26,9 +26,8 @@ class Aw11HereMapState {
     var searchError by mutableStateOf<String?>(null)
 
     var activeRoute by mutableStateOf<Route?>(null)
-
     var routeProgress by mutableStateOf<RouteProgress?>(null)
-
+    var isArrived by mutableStateOf(false)
     var destination by mutableStateOf<GeoCoordinates?>(null)
     var destinationTitle by mutableStateOf<String?>(null)
     var isFollowing by mutableStateOf(true)

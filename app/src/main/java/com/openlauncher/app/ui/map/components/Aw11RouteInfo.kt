@@ -30,6 +30,7 @@ fun Aw11RouteInfo(
     destinationTitle: String?,
     distanceMeters: Int,
     durationSeconds: Long,
+    isArrived: Boolean,
     onEndGuidance: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -92,11 +93,30 @@ fun Aw11RouteInfo(
                 Alignment.CenterVertically
         ) {
             Text(
-                text = "ROUTE DATA",
+                text =
+                    if (isArrived) {
+                        "NAVIGATION"
+                    } else {
+                        "ROUTE DATA"
+                    },
                 color = Aw11Primary,
                 fontSize = 12.sp,
                 letterSpacing = 0.5.sp
             )
+            if (isArrived) {
+                Text(
+                    text = "ARRIVED",
+                    color = Aw11Primary,
+                    fontSize = 20.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            top = 10.dp,
+                            bottom = 4.dp
+                        )
+                )
+            }
 
             Box(
                 modifier = Modifier
@@ -151,20 +171,22 @@ fun Aw11RouteInfo(
                     )
                 }
             }
-        RouteDataRow(
-            label = "DIST",
-            value = distanceText
-        )
+        if (!isArrived) {
+            RouteDataRow(
+                label = "DIST",
+                value = distanceText
+            )
 
-        RouteDataRow(
-            label = "TIME",
-            value = durationText
-        )
+            RouteDataRow(
+                label = "TIME",
+                value = durationText
+            )
 
-        RouteDataRow(
-            label = "ARRIVAL",
-            value = arrivalTime
-        )
+            RouteDataRow(
+                label = "ARRIVAL",
+                value = arrivalTime
+            )
+        }
     }
 }
 
