@@ -71,6 +71,10 @@ private const val GUIDANCE_RESERVED_LEFT_DP = 216
 private const val LOOK_AHEAD_SMOOTHING_TIME_MS = 300.0
 private const val CAMERA_BEARING_SMOOTHING_TIME_MS = 450.0
 
+private const val BEARING_LOCK_SPEED_MPS = 1.5f
+private const val BEARING_UNLOCK_SPEED_MPS = 2.5f
+
+
 private class MapAnimationState {
     var latitude = DEFAULT_LATITUDE
     var longitude = DEFAULT_LONGITUDE
@@ -86,6 +90,8 @@ private class MapAnimationState {
     var hasLookAheadTarget = false
     var cameraBearing = 0f
     var hasCameraBearing = false
+    var hasVehicleBearing = false
+    var isVehicleBearingUnlocked = false
 }
 
 @Composable
@@ -306,6 +312,8 @@ fun Aw11HereMap(
 
                 location?.bearingDegrees?.let {
                     animationState.bearing = it
+                    animationState.hasVehicleBearing = true
+
                     animationState.cameraBearing = it
                     animationState.hasCameraBearing = true
                 }
@@ -710,9 +718,40 @@ fun Aw11HereMap(
         val startVehicleBearing =
             animationState.bearing
 
-        val targetVehicleBearing =
+        when {
+            currentLocation.speedMps >=
+                    BEARING_UNLOCK_SPEED_MPS -> {
+                animationState.isVehicleBearingUnlocked =
+                    true
+            }
+
+            currentLocation.speedMps <=
+                    BEARING_LOCK_SPEED_MPS -> {
+                animationState.isVehicleBearingUnlocked =
+                    false
+            }
+        }
+
+        val gpsBearing =
             currentLocation.bearingDegrees
-                ?: startVehicleBearing
+
+        val shouldAcceptGpsBearing =
+            gpsBearing != null &&
+                    (
+                            !animationState.hasVehicleBearing ||
+                                    animationState.isVehicleBearingUnlocked
+                            )
+
+        val targetVehicleBearing =
+            if (shouldAcceptGpsBearing) {
+                gpsBearing!!
+            } else {
+                startVehicleBearing
+            }
+
+        if (shouldAcceptGpsBearing) {
+            animationState.hasVehicleBearing = true
+        }
 
         val vehicleBearingDelta =
             shortestBearingDelta(
