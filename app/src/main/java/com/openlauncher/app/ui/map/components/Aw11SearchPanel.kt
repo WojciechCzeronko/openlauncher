@@ -30,6 +30,11 @@ import com.openlauncher.app.ui.theme.Aw11Background
 import com.openlauncher.app.ui.theme.Aw11Primary
 import com.openlauncher.app.ui.theme.Aw11Secondary
 import java.util.Locale
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 
 @Composable
 fun Aw11SearchPanel(
@@ -94,7 +99,7 @@ fun Aw11SearchPanel(
 
     Column(
         modifier = modifier
-            .width(220.dp)
+            .width(240.dp)
             .background(
                 Aw11Background.copy(alpha = 0.96f)
             )
@@ -128,58 +133,107 @@ fun Aw11SearchPanel(
                             letterSpacing = 0.sp,
                             modifier = Modifier
                                 .clickable(onClick = onClear)
-                                .padding(8.dp)
+                                .padding(6.dp)
                         )
                     }
                 },
                 placeholder = {
                     Text(
                         text = "DESTINATION...",
-                        fontSize = 12.sp
+                        fontSize = 10.sp
                     )
                 },
                 modifier = Modifier.weight(1f)
             )
 
             Spacer(
-                Modifier.width(8.dp)
-            )
-
-            Text(
-                text = "SEARCH",
-                color = Aw11Primary,
-                fontSize = 11.sp,
-                modifier = Modifier
-                    .border(
-                        width = 1.dp,
-                        color = Aw11Primary.copy(alpha = 0.85f)
-                    )
-                    .clickable {
-                        triggerSearch()
-                    }
-                    .padding(
-                        horizontal = 12.dp,
-                        vertical = 10.dp
-                    )
-            )
-
-            Spacer(
                 Modifier.width(6.dp)
             )
 
-            Text(
-                text = "X",
-                color = Aw11Secondary,
-                fontSize = 12.sp,
+            Box(
                 modifier = Modifier
+                    .size(28.dp)
+                    .border(
+                        width = 1.dp,
+                        color = Aw11Primary.copy(
+                            alpha = 0.85f
+                        )
+                    )
                     .clickable {
-                        focusManager.clearFocus()
-                        keyboardController?.hide()
+                        triggerSearch()
+                    },
+                contentAlignment =
+                    Alignment.Center
+            ) {
+                Canvas(
+                    modifier = Modifier
+                        .size(20.dp)
+                ) {
+                    val strokeWidth =
+                        2.dp.toPx()
 
-                        onClose()
-                    }
-                    .padding(8.dp)
+                    drawCircle(
+                        color = Aw11Primary,
+                        radius =
+                            size.minDimension * 0.28f,
+                        center = Offset(
+                            x = size.width * 0.42f,
+                            y = size.height * 0.42f
+                        ),
+                        style = Stroke(
+                            width = strokeWidth
+                        )
+                    )
+
+                    drawLine(
+                        color = Aw11Primary,
+                        start = Offset(
+                            x = size.width * 0.62f,
+                            y = size.height * 0.62f
+                        ),
+                        end = Offset(
+                            x = size.width * 0.84f,
+                            y = size.height * 0.84f
+                        ),
+                        strokeWidth = strokeWidth,
+                        cap = StrokeCap.Square
+                    )
+                }
+            }
+
+            Spacer(
+                Modifier.width(4.dp)
             )
+
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .border(
+                        width = 1.dp,
+                        color = Aw11Primary.copy(
+                            alpha = 0.85f
+                        )
+                    )
+                    .clickable {
+                        triggerSearch()
+                    },
+                contentAlignment =
+                    Alignment.Center
+            ) {
+                Text(
+                    text = "X",
+                    color = Aw11Secondary,
+                    fontSize = 18.sp,
+                    modifier = Modifier
+                        .clickable {
+                            focusManager.clearFocus()
+                            keyboardController?.hide()
+
+                            onClose()
+                        }
+                        .padding(8.dp)
+                )
+            }
         }
 
         if (isSearching) {

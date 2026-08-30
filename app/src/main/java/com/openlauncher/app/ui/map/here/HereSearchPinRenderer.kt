@@ -13,9 +13,9 @@ import com.here.sdk.mapview.MapView
 import com.openlauncher.app.ui.map.HereSearchResult
 import kotlin.math.roundToInt
 
-private const val PIN_SIZE_DP = 34
-private const val PIN_BORDER_DP = 2
-private const val PIN_TEXT_SIZE_SP = 15f
+private const val PIN_SIZE_DP = 42
+//private const val PIN_BORDER_DP = 2
+private const val PIN_TEXT_SIZE_SP = 11f
 
 class HereSearchPinRenderer(
     private val mapView: MapView
@@ -76,10 +76,10 @@ class HereSearchPinRenderer(
                 PIN_SIZE_DP
             )
 
-        val borderWidthPx =
-            dpToPx(
-                PIN_BORDER_DP
-            )
+//        val borderWidthPx =
+//            dpToPx(
+//                PIN_BORDER_DP
+//            )
 
         val backgroundDrawable =
             GradientDrawable().apply {
@@ -87,16 +87,6 @@ class HereSearchPinRenderer(
                     GradientDrawable.RECTANGLE
 
                 setColor(
-                    Color.argb(
-                        235,
-                        5,
-                        6,
-                        0
-                    )
-                )
-
-                setStroke(
-                    borderWidthPx,
                     Color.rgb(
                         215,
                         232,
@@ -113,8 +103,8 @@ class HereSearchPinRenderer(
 
             setTextColor(
                 Color.rgb(
-                    215,
-                    232,
+                    5,
+                    6,
                     0
                 )
             )
@@ -128,7 +118,10 @@ class HereSearchPinRenderer(
                 Gravity.CENTER
 
             typeface =
-                Typeface.MONOSPACE
+                Typeface.create(
+                    Typeface.MONOSPACE,
+                    Typeface.BOLD
+                )
 
             includeFontPadding =
                 false
