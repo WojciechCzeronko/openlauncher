@@ -69,6 +69,7 @@ private const val ZOOM_RESPONSE_FACTOR = 0.25
 private const val DEMO_UPDATE_INTERVAL_MS = 250L
 private const val GUIDANCE_RESERVED_LEFT_DP = 216
 private const val LOOK_AHEAD_SMOOTHING_TIME_MS = 500.0
+private const val CAMERA_BEARING_SMOOTHING_TIME_MS = 350.0
 
 private class MapAnimationState {
     var latitude = DEFAULT_LATITUDE
@@ -83,6 +84,8 @@ private class MapAnimationState {
     var lookAheadLatitude = DEFAULT_LATITUDE
     var lookAheadLongitude = DEFAULT_LONGITUDE
     var hasLookAheadTarget = false
+    var cameraBearing = 0f
+    var hasCameraBearing = false
 }
 
 @Composable
@@ -303,6 +306,8 @@ fun Aw11HereMap(
 
                 location?.bearingDegrees?.let {
                     animationState.bearing = it
+                    animationState.cameraBearing = it
+                    animationState.hasCameraBearing = true
                 }
 
                 cameraController.showInitialPosition(
@@ -312,7 +317,7 @@ fun Aw11HereMap(
                 val markerImage =
                     MapImageFactory.fromResource(
                         context.resources,
-                        R.drawable.triangle_yellow_bla2
+                        R.drawable.ic_car_marker_triangle
                     )
 
                 val marker = MapMarker3D(
@@ -688,7 +693,7 @@ fun Aw11HereMap(
 
         val startLatitude = animationState.latitude
         val startLongitude = animationState.longitude
-        val startBearing = animationState.bearing
+
 
         val startCameraLatitude =
             animationState.cameraLatitude
@@ -702,15 +707,44 @@ fun Aw11HereMap(
         val targetCameraLongitude =
             cameraTargetCoordinates.longitude
 
-        val targetBearing =
-            currentLocation.bearingDegrees
-                ?: startBearing
+        val startVehicleBearing =
+            animationState.bearing
 
-        val bearingDelta =
+        val targetVehicleBearing =
+            currentLocation.bearingDegrees
+                ?: startVehicleBearing
+
+        val vehicleBearingDelta =
             shortestBearingDelta(
-                startBearing,
-                targetBearing
+                startVehicleBearing,
+                targetVehicleBearing
             )
+
+        val startCameraBearing =
+            if (animationState.hasCameraBearing) {
+                animationState.cameraBearing
+            } else {
+                targetVehicleBearing
+            }
+
+        val targetCameraBearing =
+            if (animationState.hasCameraBearing) {
+                smoothCameraBearing(
+                    current = startCameraBearing,
+                    target = targetVehicleBearing,
+                    updateIntervalMs = updateIntervalMs
+                )
+            } else {
+                targetVehicleBearing
+            }
+
+        val cameraBearingDelta =
+            shortestBearingDelta(
+                startCameraBearing,
+                targetCameraBearing
+            )
+
+        animationState.hasCameraBearing = true
 
 
 
@@ -759,11 +793,18 @@ fun Aw11HereMap(
                 startLongitude +
                         (targetLongitude - startLongitude) * progress
 
-            val bearing =
+            val vehicleBearing =
                 normalizeBearing(
-                    startBearing +
-                            bearingDelta * progress
+                    startVehicleBearing +
+                            vehicleBearingDelta * progress
                 )
+
+            val cameraBearing =
+                normalizeBearing(
+                    startCameraBearing +
+                            cameraBearingDelta * progress
+                )
+
 
             val cameraDistanceMeters =
                 startCameraDistanceMeters +
@@ -812,7 +853,7 @@ fun Aw11HereMap(
             ) {
                 cameraController.follow(
                     coordinates = cameraCoordinates,
-                    bearingDegrees = bearing,
+                    bearingDegrees = cameraBearing,
                     zoomDistanceMeters =
                         cameraDistanceMeters
                 )
@@ -820,7 +861,11 @@ fun Aw11HereMap(
 
             animationState.latitude = latitude
             animationState.longitude = longitude
-            animationState.bearing = bearing
+            animationState.bearing =
+                vehicleBearing
+
+            animationState.cameraBearing =
+                cameraBearing
             animationState.cameraLatitude =
                 cameraLatitude
 
@@ -1497,5 +1542,32 @@ private fun smoothLookAheadTarget(
     return GeoCoordinates(
         animationState.lookAheadLatitude,
         animationState.lookAheadLongitude
+    )
+}
+
+private fun smoothCameraBearing(
+    current: Float,
+    target: Float,
+    updateIntervalMs: Long
+): Float {
+    val alpha =
+        (
+                1.0 -
+                        exp(
+                            -updateIntervalMs.toDouble() /
+                                    CAMERA_BEARING_SMOOTHING_TIME_MS
+                        )
+                )
+            .toFloat()
+
+    val delta =
+        shortestBearingDelta(
+            current,
+            target
+        )
+
+    return normalizeBearing(
+        current +
+                delta * alpha
     )
 }
