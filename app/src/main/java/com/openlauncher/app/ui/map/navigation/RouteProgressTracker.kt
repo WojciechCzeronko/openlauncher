@@ -7,6 +7,13 @@ import kotlin.math.hypot
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 
+
+private const val MATCH_SEARCH_BACKWARD_METERS = 30.0
+private const val MATCH_SEARCH_FORWARD_METERS = 300.0
+
+private const val GLOBAL_REACQUIRE_DISTANCE_METERS = 120.0
+private const val GLOBAL_REACQUIRE_ADVANTAGE_METERS = 40.0
+private const val GLOBAL_REACQUIRE_MAX_FORWARD_JUMP_METERS = 500.0
 data class RouteProgress(
     val remainingDistanceMeters: Int,
     val remainingDurationSeconds: Long,
@@ -19,6 +26,7 @@ data class RouteProgress(
 class RouteProgressTracker {
 
     private var route: Route? = null
+    private var lastAcceptedMatch: SegmentMatch? = null
 
     private var vertices: List<GeoCoordinates> =
         emptyList()
@@ -37,7 +45,7 @@ class RouteProgressTracker {
         0.0
     fun setRoute(route: Route) {
         this.route = route
-
+        lastAcceptedMatch = null
         vertices =
             route.geometry.vertices
 
@@ -82,6 +90,7 @@ class RouteProgressTracker {
     fun clear() {
         route = null
         vertices = emptyList()
+        lastAcceptedMatch = null
 
         clearGeometry()
     }
@@ -99,36 +108,59 @@ class RouteProgressTracker {
             return null
         }
 
-        var bestMatch: SegmentMatch? = null
+        val previousMatch =
+            lastAcceptedMatch
 
-        for (index in 0 until vertices.lastIndex) {
-            val match =
-                projectOntoSegment(
+        val candidateMatch =
+            if (previousMatch == null) {
+                findBestMatch(
                     position = position,
-                    start = vertices[index],
-                    end = vertices[index + 1],
-                    segmentIndex = index
+                    minimumDistanceMeters = 0.0,
+                    maximumDistanceMeters =
+                        totalGeometryLengthMeters
                 )
-
-            if (
-                bestMatch == null ||
-                match.distanceFromRouteMeters <
-                bestMatch.distanceFromRouteMeters
-            ) {
-                bestMatch = match
+            } else {
+                findConstrainedMatch(
+                    position = position,
+                    previousMatch = previousMatch
+                )
             }
-        }
+                ?: return null
 
-        val match =
-            bestMatch ?: return null
+        val previousDistanceAlongGeometry =
+            previousMatch?.let {
+                distanceAlongGeometry(it)
+            }
+
+        val candidateDistanceAlongGeometry =
+            distanceAlongGeometry(
+                candidateMatch
+            )
+
+        val acceptedMatch =
+            if (
+                previousMatch != null &&
+                previousDistanceAlongGeometry != null &&
+                candidateDistanceAlongGeometry <
+                previousDistanceAlongGeometry
+            ) {
+                // Keep route progress monotonic while still updating
+                // the current distance from the GPS position to the route.
+                previousMatch.copy(
+                    distanceFromRouteMeters =
+                        candidateMatch.distanceFromRouteMeters
+                )
+            } else {
+                candidateMatch
+            }
+
+        lastAcceptedMatch =
+            acceptedMatch
 
         val distanceAlongGeometry =
-            cumulativeDistancesMeters[
-                match.segmentIndex
-            ] +
-                    segmentLengthsMeters[
-                        match.segmentIndex
-                    ] * match.segmentFraction
+            distanceAlongGeometry(
+                acceptedMatch
+            )
 
         val progressFraction =
             (
@@ -165,16 +197,15 @@ class RouteProgressTracker {
             remainingDurationSeconds =
                 remainingDurationSeconds,
             distanceFromRouteMeters =
-                match.distanceFromRouteMeters,
+                acceptedMatch.distanceFromRouteMeters,
             progressFraction =
                 progressFraction,
             matchedSegmentIndex =
-                match.segmentIndex,
+                acceptedMatch.segmentIndex,
             matchedCoordinates =
-                match.coordinates
+                acceptedMatch.coordinates
         )
     }
-
     fun getLookAheadCoordinates(
         progress: RouteProgress,
         distanceMeters: Double
@@ -261,6 +292,147 @@ class RouteProgressTracker {
 
         totalTimedGeometryLengthMeters =
             0.0
+    }
+
+    private fun findConstrainedMatch(
+        position: GeoCoordinates,
+        previousMatch: SegmentMatch
+    ): SegmentMatch? {
+        val previousDistance =
+            distanceAlongGeometry(
+                previousMatch
+            )
+
+        val minimumDistance =
+            (
+                    previousDistance -
+                            MATCH_SEARCH_BACKWARD_METERS
+                    )
+                .coerceAtLeast(0.0)
+
+        val maximumDistance =
+            (
+                    previousDistance +
+                            MATCH_SEARCH_FORWARD_METERS
+                    )
+                .coerceAtMost(
+                    totalGeometryLengthMeters
+                )
+
+        val localMatch =
+            findBestMatch(
+                position = position,
+                minimumDistanceMeters =
+                    minimumDistance,
+                maximumDistanceMeters =
+                    maximumDistance
+            )
+                ?: return previousMatch
+
+        if (
+            localMatch.distanceFromRouteMeters <
+            GLOBAL_REACQUIRE_DISTANCE_METERS
+        ) {
+            return localMatch
+        }
+
+        val globalMatch =
+            findBestMatch(
+                position = position,
+                minimumDistanceMeters = 0.0,
+                maximumDistanceMeters =
+                    totalGeometryLengthMeters
+            )
+                ?: return localMatch
+
+        val globalDistance =
+            distanceAlongGeometry(
+                globalMatch
+            )
+
+        val forwardJump =
+            globalDistance -
+                    previousDistance
+
+        val clearlyBetter =
+            globalMatch.distanceFromRouteMeters +
+                    GLOBAL_REACQUIRE_ADVANTAGE_METERS <
+                    localMatch.distanceFromRouteMeters
+
+        val plausibleProgress =
+            forwardJump >=
+                    -MATCH_SEARCH_BACKWARD_METERS &&
+                    forwardJump <=
+                    GLOBAL_REACQUIRE_MAX_FORWARD_JUMP_METERS
+
+        return if (
+            clearlyBetter &&
+            plausibleProgress
+        ) {
+            globalMatch
+        } else {
+            localMatch
+        }
+    }
+
+    private fun findBestMatch(
+        position: GeoCoordinates,
+        minimumDistanceMeters: Double,
+        maximumDistanceMeters: Double
+    ): SegmentMatch? {
+        var bestMatch: SegmentMatch? =
+            null
+
+        for (index in 0 until vertices.lastIndex) {
+            val segmentStartDistance =
+                cumulativeDistancesMeters[
+                    index
+                ]
+
+            val segmentEndDistance =
+                cumulativeDistancesMeters[
+                    index + 1
+                ]
+
+            if (
+                segmentEndDistance <
+                minimumDistanceMeters ||
+                segmentStartDistance >
+                maximumDistanceMeters
+            ) {
+                continue
+            }
+
+            val match =
+                projectOntoSegment(
+                    position = position,
+                    start = vertices[index],
+                    end = vertices[index + 1],
+                    segmentIndex = index
+                )
+
+            if (
+                bestMatch == null ||
+                match.distanceFromRouteMeters <
+                bestMatch.distanceFromRouteMeters
+            ) {
+                bestMatch = match
+            }
+        }
+
+        return bestMatch
+    }
+
+    private fun distanceAlongGeometry(
+        match: SegmentMatch
+    ): Double {
+        return cumulativeDistancesMeters[
+            match.segmentIndex
+        ] +
+                segmentLengthsMeters[
+                    match.segmentIndex
+                ] *
+                match.segmentFraction
     }
 
     private fun projectOntoSegment(
