@@ -175,22 +175,27 @@ class HereRouteRenderer(
     private fun replaceRoutePolyline(
         geometry: GeoPolyline
     ) {
-        routePolyline?.let { polyline ->
+        val newPolyline =
+            createRoutePolyline(
+                geometry
+            ) ?: return
+
+        // Add the new route before removing the previous one.
+        // This prevents a frame where no route is rendered.
+        mapView.mapScene.addMapPolyline(
+            newPolyline
+        )
+
+        val oldPolyline =
+            routePolyline
+
+        routePolyline =
+            newPolyline
+
+        oldPolyline?.let { polyline ->
             mapView.mapScene.removeMapPolyline(
                 polyline
             )
-        }
-
-        routePolyline = null
-
-        createRoutePolyline(
-            geometry
-        )?.let { polyline ->
-            mapView.mapScene.addMapPolyline(
-                polyline
-            )
-
-            routePolyline = polyline
         }
     }
 }

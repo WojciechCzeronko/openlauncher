@@ -68,8 +68,8 @@ private const val DEFAULT_CAMERA_DISTANCE_METERS = 500.0
 private const val ZOOM_RESPONSE_FACTOR = 0.25
 private const val DEMO_UPDATE_INTERVAL_MS = 250L
 private const val GUIDANCE_RESERVED_LEFT_DP = 216
-private const val LOOK_AHEAD_SMOOTHING_TIME_MS = 500.0
-private const val CAMERA_BEARING_SMOOTHING_TIME_MS = 350.0
+private const val LOOK_AHEAD_SMOOTHING_TIME_MS = 300.0
+private const val CAMERA_BEARING_SMOOTHING_TIME_MS = 450.0
 
 private class MapAnimationState {
     var latitude = DEFAULT_LATITUDE
@@ -839,7 +839,7 @@ fun Aw11HereMap(
                 coordinates
 
             marker.bearing =
-                bearing.toDouble()
+                vehicleBearing.toDouble()
 
             val cameraCoordinates =
                 GeoCoordinates(
