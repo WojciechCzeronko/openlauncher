@@ -41,6 +41,7 @@ import com.openlauncher.app.ui.map.components.Aw11RouteInfo
 import com.openlauncher.app.ui.map.components.Aw11SearchPanel
 import com.openlauncher.app.ui.map.here.HereCameraController
 import com.openlauncher.app.ui.map.here.HereRouteRenderer
+import com.openlauncher.app.ui.map.here.HereSearchPinRenderer
 import com.openlauncher.app.ui.map.navigation.RouteProgressTracker
 import com.openlauncher.app.util.LocationData
 import com.openlauncher.app.ui.map.navigation.DemoNavigationController
@@ -58,7 +59,9 @@ private const val MAX_REROUTE_GPS_ACCURACY_METERS = 50f
 private const val ROUTE_SNAP_ENTER_METERS = 15.0
 private const val ROUTE_SNAP_EXIT_METERS = 20.0
 private const val AUTO_REROUTE_COOLDOWN_MS = 30_000L
-private const val MAX_AUTO_REROUTES_PER_GUIDANCE = 5
+private const val MAX_NUMBER_OF_SEARCH_RESULTS = 5
+
+private const val MAX_AUTO_REROUTES_PER_GUIDANCE = MAX_NUMBER_OF_SEARCH_RESULTS
 private const val LOOK_AHEAD_SECONDS = 1.5
 private const val LOOK_AHEAD_MIN_METERS = 10.0
 private const val LOOK_AHEAD_MAX_METERS = 30.0
@@ -120,7 +123,9 @@ fun Aw11HereMap(
     val routeRenderer = remember(mapView) {
         HereRouteRenderer(mapView)
     }
-
+    val searchPinRenderer = remember(mapView) {
+        HereSearchPinRenderer(mapView)
+    }
     val cameraController = remember(mapView) {
         HereCameraController(mapView)
     }
@@ -471,7 +476,7 @@ fun Aw11HereMap(
                     marker
                 )
             }
-
+            searchPinRenderer.clear()
             carMarker.value = null
 
             routeRenderer.clearRoute()
@@ -1286,6 +1291,7 @@ fun Aw11HereMap(
                     state.searchQuery = query
                 },
                 onSearch = {
+                    searchPinRenderer.clear()
                     state.startSearch()
 
                     val center = GeoCoordinates(
@@ -1297,8 +1303,15 @@ fun Aw11HereMap(
                         queryText = state.searchQuery,
                         center = center,
                         onSuccess = { results ->
+                            val visibleResults =
+                                results.take(MAX_NUMBER_OF_SEARCH_RESULTS)
+
                             state.completeSearch(
-                                results.take(5)
+                                visibleResults
+                            )
+
+                            searchPinRenderer.showResults(
+                                visibleResults
                             )
                         },
                         onError = { error ->
@@ -1309,12 +1322,15 @@ fun Aw11HereMap(
                     )
                 },
                 onClear = {
+                    searchPinRenderer.clear()
                     state.clearSearch()
                 },
                 onClose = {
+                    searchPinRenderer.clear()
                     state.closeSearch()
                 },
                 onResultSelected = { result ->
+                    searchPinRenderer.clear()
                     val start = GeoCoordinates(
                         animationState.latitude,
                         animationState.longitude

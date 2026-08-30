@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.openlauncher.app.ui.map.HereSearchResult
@@ -93,7 +94,7 @@ fun Aw11SearchPanel(
 
     Column(
         modifier = modifier
-            .width(420.dp)
+            .width(220.dp)
             .background(
                 Aw11Background.copy(alpha = 0.96f)
             )
@@ -200,11 +201,11 @@ fun Aw11SearchPanel(
             )
         }
 
-        results.forEach { result ->
+        results.forEachIndexed { index, result ->
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 6.dp)
+                    .padding(top = 4.dp)
                     .border(
                         width = 1.dp,
                         color = Aw11Primary.copy(alpha = 0.35f)
@@ -213,38 +214,72 @@ fun Aw11SearchPanel(
                         onResultSelected(result)
                     }
                     .padding(
-                        horizontal = 10.dp,
-                        vertical = 12.dp
+                        horizontal = 6.dp,
+                        vertical = 6.dp
                     )
             ) {
-                Column {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
+                Row(
+                    verticalAlignment =
+                        Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(24.dp)
+                            .border(
+                                width = 1.dp,
+                                color = Aw11Primary
+                            )
+                            .padding(vertical = 3.dp),
+                        contentAlignment =
+                            Alignment.Center
                     ) {
                         Text(
-                            text = result.title.uppercase(),
+                            text = (index + 1).toString(),
                             color = Aw11Primary,
-                            fontSize = 12.sp,
-                            letterSpacing = 0.25.sp,
-                            modifier = Modifier.weight(1f)
-                        )
-
-                        Text(
-                            text = formatDistance(
-                                result.distanceMeters
-                            ),
-                            color = Aw11Secondary,
-                            fontSize = 11.sp,
-                            letterSpacing = 0.sp
+                            fontSize = 11.sp
                         )
                     }
 
-                    Text(
-                        text = result.address.uppercase(),
-                        color = Aw11Secondary,
-                        fontSize = 10.sp,
-                        letterSpacing = 0.sp
+                    Spacer(
+                        Modifier.width(6.dp)
                     )
+
+                    Column(
+                        modifier =
+                            Modifier.weight(1f)
+                    ) {
+                        Row {
+                            Text(
+                                text =
+                                    result.title.uppercase(),
+                                color = Aw11Primary,
+                                fontSize = 10.sp,
+                                maxLines = 1,
+                                overflow =
+                                    TextOverflow.Ellipsis,
+                                modifier =
+                                    Modifier.weight(1f)
+                            )
+
+                            Text(
+                                text = formatDistance(
+                                    result.distanceMeters
+                                ),
+                                color = Aw11Secondary,
+                                fontSize = 9.sp
+                            )
+                        }
+
+                        Text(
+                            text =
+                                result.address.uppercase(),
+                            color = Aw11Secondary,
+                            fontSize = 8.sp,
+                            maxLines = 1,
+                            overflow =
+                                TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
         }
