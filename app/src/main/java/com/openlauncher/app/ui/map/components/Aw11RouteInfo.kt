@@ -103,20 +103,6 @@ fun Aw11RouteInfo(
                 fontSize = 12.sp,
                 letterSpacing = 0.5.sp
             )
-            if (isArrived) {
-                Text(
-                    text = "ARRIVED",
-                    color = Aw11Primary,
-                    fontSize = 20.sp,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(
-                            top = 10.dp,
-                            bottom = 4.dp
-                        )
-                )
-            }
 
             Box(
                 modifier = Modifier
@@ -138,6 +124,21 @@ fun Aw11RouteInfo(
                     fontSize = 12.sp
                 )
             }
+        }
+
+        if (isArrived) {
+            Text(
+                text = "ARRIVED",
+                color = Aw11Primary,
+                fontSize = 20.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        top = 10.dp,
+                        bottom = 4.dp
+                    )
+            )
         }
 
         destinationTitle
