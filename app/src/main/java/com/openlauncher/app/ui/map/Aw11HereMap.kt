@@ -28,8 +28,9 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.here.sdk.core.GeoCoordinates
 import com.here.sdk.mapview.MapImageFactory
-import com.here.sdk.mapview.MapMarker
 import com.here.sdk.mapview.MapScheme
+import com.here.sdk.mapview.MapMarker3D
+import com.here.sdk.mapview.RenderSize
 import com.here.sdk.mapview.MapView
 import com.openlauncher.app.R
 import com.openlauncher.app.data.AppSettings
@@ -162,7 +163,7 @@ fun Aw11HereMap(
         }
 
     val carMarker = remember {
-        mutableStateOf<MapMarker?>(null)
+        mutableStateOf<MapMarker3D?>(null)
     }
 
     val lastRouteRefreshMs = remember {
@@ -309,12 +310,19 @@ fun Aw11HereMap(
                         R.drawable.small
                     )
 
-                val marker = MapMarker(
+                val marker = MapMarker3D(
                     initialCoordinates,
-                    markerImage
+                    markerImage,
+                    1.0,
+                    RenderSize.Unit.PIXELS
                 )
 
-                mapView.mapScene.addMapMarker(marker)
+                marker.bearing =
+                    animationState.bearing.toDouble()
+
+                mapView.mapScene.addMapMarker3d(
+                    marker
+                )
 
                 carMarker.value = marker
             } else {
@@ -358,7 +366,9 @@ fun Aw11HereMap(
             )
 
             carMarker.value?.let { marker ->
-                mapView.mapScene.removeMapMarker(marker)
+                mapView.mapScene.removeMapMarker3d(
+                    marker
+                )
             }
 
             carMarker.value = null
@@ -762,9 +772,11 @@ fun Aw11HereMap(
                 longitude
             )
 
-            marker.setCoordinates(
+            marker.coordinates =
                 coordinates
-            )
+
+            marker.bearing =
+                bearing.toDouble()
 
             val cameraCoordinates =
                 GeoCoordinates(
