@@ -48,6 +48,7 @@ import com.openlauncher.app.ui.map.navigation.DemoTripData
 import com.openlauncher.app.ui.map.navigation.ManeuverGuidance
 import com.openlauncher.app.ui.map.navigation.ManeuverProgressTracker
 import kotlinx.coroutines.delay
+import kotlin.math.exp
 
 private const val TAG = "Aw11HereMap"
 
@@ -67,6 +68,7 @@ private const val DEFAULT_CAMERA_DISTANCE_METERS = 500.0
 private const val ZOOM_RESPONSE_FACTOR = 0.25
 private const val DEMO_UPDATE_INTERVAL_MS = 250L
 private const val GUIDANCE_RESERVED_LEFT_DP = 216
+private const val LOOK_AHEAD_SMOOTHING_TIME_MS = 500.0
 
 private class MapAnimationState {
     var latitude = DEFAULT_LATITUDE
@@ -78,6 +80,9 @@ private class MapAnimationState {
     var bearing = 0f
     var lastLocationUpdateMs = 0L
     var isSnappedToRoute = false
+    var lookAheadLatitude = DEFAULT_LATITUDE
+    var lookAheadLongitude = DEFAULT_LONGITUDE
+    var hasLookAheadTarget = false
 }
 
 @Composable
@@ -307,7 +312,7 @@ fun Aw11HereMap(
                 val markerImage =
                     MapImageFactory.fromResource(
                         context.resources,
-                        R.drawable.small
+                        R.drawable.triangle_yellow_bla2
                     )
 
                 val marker = MapMarker3D(
@@ -635,7 +640,16 @@ fun Aw11HereMap(
                 currentLocation.speedMps
             )
 
-        val cameraTargetCoordinates =
+        val now = SystemClock.elapsedRealtime()
+
+        val updateIntervalMs =
+            if (animationState.lastLocationUpdateMs > 0L) {
+                now - animationState.lastLocationUpdateMs
+            } else {
+                500L
+            }
+
+        val rawCameraTargetCoordinates =
             if (
                 shouldSnapToRoute &&
                 routeProgress != null &&
@@ -649,6 +663,21 @@ fun Aw11HereMap(
                     )
                     ?: displayCoordinates
             } else {
+                displayCoordinates
+            }
+
+        val cameraTargetCoordinates =
+            if (
+                shouldSnapToRoute &&
+                lookAheadDistanceMeters > 0.0
+            ) {
+                smoothLookAheadTarget(
+                    target = rawCameraTargetCoordinates,
+                    animationState = animationState,
+                    updateIntervalMs = updateIntervalMs
+                )
+            } else {
+                animationState.hasLookAheadTarget = false
                 displayCoordinates
             }
         val targetLatitude =
@@ -683,14 +712,7 @@ fun Aw11HereMap(
                 targetBearing
             )
 
-        val now = SystemClock.elapsedRealtime()
 
-        val updateIntervalMs =
-            if (animationState.lastLocationUpdateMs > 0L) {
-                now - animationState.lastLocationUpdateMs
-            } else {
-                500L
-            }
 
         animationState.lastLocationUpdateMs = now
 
@@ -1433,4 +1455,47 @@ private fun interpolateZoom(
     return startZoom +
             (endZoom - startZoom) *
             fraction
+}
+
+private fun smoothLookAheadTarget(
+    target: GeoCoordinates,
+    animationState: MapAnimationState,
+    updateIntervalMs: Long
+): GeoCoordinates {
+    if (!animationState.hasLookAheadTarget) {
+        animationState.lookAheadLatitude =
+            target.latitude
+
+        animationState.lookAheadLongitude =
+            target.longitude
+
+        animationState.hasLookAheadTarget =
+            true
+
+        return target
+    }
+
+    val alpha =
+        1.0 -
+                exp(
+                    -updateIntervalMs.toDouble() /
+                            LOOK_AHEAD_SMOOTHING_TIME_MS
+                )
+
+    animationState.lookAheadLatitude +=
+        (
+                target.latitude -
+                        animationState.lookAheadLatitude
+                ) * alpha
+
+    animationState.lookAheadLongitude +=
+        (
+                target.longitude -
+                        animationState.lookAheadLongitude
+                ) * alpha
+
+    return GeoCoordinates(
+        animationState.lookAheadLatitude,
+        animationState.lookAheadLongitude
+    )
 }

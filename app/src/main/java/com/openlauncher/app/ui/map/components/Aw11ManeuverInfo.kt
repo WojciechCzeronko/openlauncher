@@ -83,14 +83,14 @@ fun Aw11ManeuverInfo(
                 Text(
                     text = actionLabel,
                     color = Aw11Secondary,
-                    fontSize = 10.sp,
+                    fontSize = 12.sp,
                     letterSpacing = 0.25.sp
                 )
 
                 Text(
                     text = distanceText,
                     color = Aw11Primary,
-                    fontSize = 18.sp
+                    fontSize = 22.sp
                 )
             }
         }
