@@ -1216,6 +1216,38 @@ fun Aw11HereMap(
         )
     }
 
+    // Automatically return to follow mode when guidance starts.
+    LaunchedEffect(
+        state.activeRoute != null
+    ) {
+        if (state.activeRoute == null) {
+            return@LaunchedEffect
+        }
+
+        if (state.isRecentering) {
+            return@LaunchedEffect
+        }
+
+        state.isRecentering = true
+
+        val targetCoordinates =
+            GeoCoordinates(
+                animationState.latitude,
+                animationState.longitude
+            )
+
+        cameraController.recenter(
+            coordinates = targetCoordinates,
+            bearingDegrees = animationState.bearing,
+            zoomDistanceMeters =
+                animationState.cameraDistanceMeters,
+            onFinished = {
+                state.isRecentering = false
+                state.isFollowing = true
+            }
+        )
+    }
+
     Box(
         modifier = modifier
     ) {
