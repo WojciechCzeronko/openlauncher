@@ -1,5 +1,6 @@
 package com.openlauncher.app.ui.map.components
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -10,15 +11,20 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
@@ -30,11 +36,6 @@ import com.openlauncher.app.ui.theme.Aw11Background
 import com.openlauncher.app.ui.theme.Aw11Primary
 import com.openlauncher.app.ui.theme.Aw11Secondary
 import java.util.Locale
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.layout.size
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 
 @Composable
 fun Aw11SearchPanel(
@@ -121,6 +122,10 @@ fun Aw11SearchPanel(
                         triggerSearch()
                     }
                 ),
+                textStyle =
+                    MaterialTheme.typography.bodyLarge.copy(
+                        fontSize = 15.sp
+                    ),
                 value = query,
                 onValueChange = onQueryChange,
                 singleLine = true,
@@ -215,24 +220,49 @@ fun Aw11SearchPanel(
                         )
                     )
                     .clickable {
-                        triggerSearch()
+                        focusManager.clearFocus()
+                        keyboardController?.hide()
+
+                        onClose()
                     },
                 contentAlignment =
                     Alignment.Center
             ) {
-                Text(
-                    text = "X",
-                    color = Aw11Secondary,
-                    fontSize = 18.sp,
+                Canvas(
                     modifier = Modifier
-                        .clickable {
-                            focusManager.clearFocus()
-                            keyboardController?.hide()
+                        .size(18.dp)
+                ) {
+                    val strokeWidth =
+                        2.dp.toPx()
 
-                            onClose()
-                        }
-                        .padding(8.dp)
-                )
+                    drawLine(
+                        color = Aw11Secondary,
+                        start = Offset(
+                            x = size.width * 0.2f,
+                            y = size.height * 0.2f
+                        ),
+                        end = Offset(
+                            x = size.width * 0.8f,
+                            y = size.height * 0.8f
+                        ),
+                        strokeWidth = strokeWidth,
+                        cap = StrokeCap.Square
+                    )
+
+                    drawLine(
+                        color = Aw11Secondary,
+                        start = Offset(
+                            x = size.width * 0.8f,
+                            y = size.height * 0.2f
+                        ),
+                        end = Offset(
+                            x = size.width * 0.2f,
+                            y = size.height * 0.8f
+                        ),
+                        strokeWidth = strokeWidth,
+                        cap = StrokeCap.Square
+                    )
+                }
             }
         }
 
