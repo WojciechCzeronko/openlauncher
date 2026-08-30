@@ -61,6 +61,9 @@ private fun maneuverIconResource(
         actionName == "RIGHT_FORK" ->
             R.drawable.ic_maneuver_keep_right
 
+        actionName == "MIDDLE_FORK" ->
+            R.drawable.ic_maneuver_straight
+
         actionName == "LEFT_U_TURN" ->
             R.drawable.ic_maneuver_uturn_left
 
@@ -80,10 +83,10 @@ private fun maneuverIconResource(
             R.drawable.ic_maneuver_exit_right
 
         actionName == "ENTER_HIGHWAY_FROM_LEFT" ->
-            R.drawable.ic_maneuver_ramp_left
+            R.drawable.ic_maneuver_ramp_right
 
         actionName == "ENTER_HIGHWAY_FROM_RIGHT" ->
-            R.drawable.ic_maneuver_ramp_right
+            R.drawable.ic_maneuver_ramp_left
 
         actionName == "LEFT_TURN" ->
             R.drawable.ic_maneuver_left
