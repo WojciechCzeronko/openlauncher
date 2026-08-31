@@ -46,6 +46,7 @@ fun Aw11SearchPanel(
     results: List<HereSearchResult>,
     isSearching: Boolean,
     error: String?,
+    showOpenButton: Boolean = true,
     onOpen: () -> Unit,
     onQueryChange: (String) -> Unit,
     onSearch: () -> Unit,
@@ -71,6 +72,9 @@ fun Aw11SearchPanel(
         onSearch()
     }
     if (!isOpen) {
+        if (!showOpenButton) {
+            return
+        }
         Box(
             modifier = modifier
                 .widthIn(min = 112.dp)

@@ -113,6 +113,7 @@ import com.openlauncher.app.data.computeWidgetMove
 import com.openlauncher.app.model.NowPlayingState
 import com.openlauncher.app.model.WeatherState
 import com.openlauncher.app.service.MediaListenerService
+import com.openlauncher.app.ui.components.Aw11ControlPanel
 import com.openlauncher.app.ui.theme.Aw11Border
 import com.openlauncher.app.ui.theme.Aw11Dim
 import com.openlauncher.app.ui.theme.Aw11Primary
@@ -202,8 +203,13 @@ private fun Aw11HomeLayout(
     onPrev: () -> Unit,
     onPlayPause: () -> Unit,
     onNext: () -> Unit,
+    onOpenApps: () -> Unit,
+    onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var searchOpenRequestId by remember {
+        mutableIntStateOf(0)
+    }
     var startupPhase by remember {
         mutableStateOf(StartupPhase.SEGMENT_TEST)
     }
@@ -343,8 +349,22 @@ private fun Aw11HomeLayout(
             modifier = Modifier
                 .weight(0.13f)
                 .fillMaxHeight()
-                .border(1.dp, Aw11Border.copy(alpha = 0.45f))
-        )
+                .border(
+                    1.dp,
+                    Aw11Border.copy(
+                        alpha = 0.45f
+                    )
+                )
+        ) {
+            Aw11ControlPanel(
+                hasGps = location != null,
+                onNav = {
+                    searchOpenRequestId++
+                },
+                onApps = onOpenApps,
+                onSettings = onOpenSettings
+            )
+        }
 
         Spacer(Modifier.width(3.dp))
 
@@ -358,6 +378,8 @@ private fun Aw11HomeLayout(
             Aw11HereMap(
                 location = location,
                 settings = settings,
+                openSearchRequestId =
+                    searchOpenRequestId,
                 onDemoDataChanged = {
                         demoLocation,
                         demoTripData ->
@@ -1076,6 +1098,8 @@ fun HomeScreen(
     isWifi: Boolean,
     isData: Boolean,
     isDayMode: Boolean = false,
+    onOpenApps: () -> Unit,
+    onOpenSettings: () -> Unit,
     onPlayPause: () -> Unit,
     onNext: () -> Unit,
     onPrev: () -> Unit,
@@ -1145,6 +1169,8 @@ fun HomeScreen(
         onPrev = onPrev,
         onPlayPause = onPlayPause,
         onNext = onNext,
+        onOpenApps = onOpenApps,
+        onOpenSettings = onOpenSettings,
         modifier = modifier
     )
     return

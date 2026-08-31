@@ -130,7 +130,9 @@ class MainActivity : ComponentActivity() {
                 )
             ) {
                 if (!settingsLoaded) {
-                    Box(modifier = Modifier.fillMaxSize().background(Color.Black))
+                    Box(modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black))
                 } else OpenLauncherTheme(
                     accent     = accent,
                     background = bg,
@@ -162,7 +164,8 @@ class MainActivity : ComponentActivity() {
                                 contentScale       = androidx.compose.ui.layout.ContentScale.Crop,
                                 modifier           = Modifier.fillMaxSize()
                             )
-                            Box(modifier = Modifier.fillMaxSize()
+                            Box(modifier = Modifier
+                                .fillMaxSize()
                                 .background(Color.Black.copy(alpha = settings.wallpaperDim)))
                         }
 
@@ -224,6 +227,16 @@ class MainActivity : ComponentActivity() {
                                         isWifi              = isWifi,
                                         isData              = isData,
                                         isDayMode           = isDayMode,
+                                        onOpenApps = {
+                                            vm.navigate(
+                                                NavDestination.APP_LIBRARY
+                                            )
+                                        },
+                                        onOpenSettings = {
+                                            vm.navigate(
+                                                NavDestination.SETTINGS
+                                            )
+                                        },
                                         onResetTrip         = vm::resetTrip,
                                         onPlayPause         = vm::playPause,
                                         onNext              = vm::skipNext,
@@ -288,26 +301,62 @@ class MainActivity : ComponentActivity() {
                             }
                         }
 
-                        if (isBottomBar) {
-                            Column(modifier = Modifier.fillMaxSize()) {
-                                mainPane(Modifier.weight(1f).fillMaxWidth())
-                                androidx.compose.material3.HorizontalDivider(color = layoutDivColor)
+                        if (
+                            nav == NavDestination.HOME
+                        ) {
+                            mainPane(
+                                Modifier.fillMaxSize()
+                            )
+                        } else if (isBottomBar) {
+                            Column(
+                                modifier =
+                                    Modifier.fillMaxSize()
+                            ) {
+                                mainPane(
+                                    Modifier
+                                        .weight(1f)
+                                        .fillMaxWidth()
+                                )
+
+                                androidx.compose.material3.HorizontalDivider(
+                                    color = layoutDivColor
+                                )
+
                                 sidebarContent()
                             }
                         } else {
-                            Row(modifier = Modifier.fillMaxSize()) {
-                                val vDivider: @Composable () -> Unit = {
+                            Row(
+                                modifier =
+                                    Modifier.fillMaxSize()
+                            ) {
+                                val vDivider:
+                                        @Composable () -> Unit = {
                                     androidx.compose.material3.VerticalDivider(
-                                        modifier = Modifier.fillMaxHeight(),
-                                        color    = layoutDivColor
+                                        modifier =
+                                            Modifier.fillMaxHeight(),
+                                        color =
+                                            layoutDivColor
                                     )
                                 }
-                                if (settings.sidebarPosition == SidebarPosition.LEFT) {
+
+                                if (
+                                    settings.sidebarPosition ==
+                                    SidebarPosition.LEFT
+                                ) {
                                     sidebarContent()
                                     vDivider()
                                 }
-                                mainPane(Modifier.weight(1f).fillMaxHeight())
-                                if (settings.sidebarPosition == SidebarPosition.RIGHT) {
+
+                                mainPane(
+                                    Modifier
+                                        .weight(1f)
+                                        .fillMaxHeight()
+                                )
+
+                                if (
+                                    settings.sidebarPosition ==
+                                    SidebarPosition.RIGHT
+                                ) {
                                     vDivider()
                                     sidebarContent()
                                 }

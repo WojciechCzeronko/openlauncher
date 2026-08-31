@@ -114,6 +114,7 @@ private class MapAnimationState {
 fun Aw11HereMap(
     location: LocationData?,
     settings: AppSettings,
+    openSearchRequestId: Int = 0,
     onDemoDataChanged: (
         LocationData?,
         DemoTripData?
@@ -244,6 +245,26 @@ fun Aw11HereMap(
         remember {
             mutableIntStateOf(0)
         }
+
+    LaunchedEffect(
+        openSearchRequestId
+    ) {
+        if (
+            openSearchRequestId <= 0 ||
+            state.activeRoute != null
+        ) {
+            return@LaunchedEffect
+        }
+
+        mapSelectionRequestId.intValue++
+
+        selectedLocationRenderer.clear()
+        searchPinRenderer.clear()
+
+        state.selectedLocation = null
+
+        state.openSearch()
+    }
 
     val endGuidance: () -> Unit = {
         demoNavigationController.stop()
@@ -1567,6 +1588,7 @@ fun Aw11HereMap(
                 results = state.searchResults,
                 isSearching = state.isSearching,
                 error = state.searchError,
+                showOpenButton = false,
                 onOpen = {
                     state.openSearch()
                 },
