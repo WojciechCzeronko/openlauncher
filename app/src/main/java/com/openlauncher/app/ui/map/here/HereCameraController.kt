@@ -1,10 +1,13 @@
 package com.openlauncher.app.ui.map.here
 
 import com.here.sdk.animation.AnimationState
+import com.here.sdk.core.GeoBox
 import com.here.sdk.core.GeoCoordinates
 import com.here.sdk.core.GeoCoordinatesUpdate
 import com.here.sdk.core.GeoOrientationUpdate
 import com.here.sdk.core.Point2D
+import com.here.sdk.core.Rectangle2D
+import com.here.sdk.core.Size2D
 import com.here.sdk.mapview.MapCameraAnimationFactory
 import com.here.sdk.mapview.MapMeasure
 import com.here.sdk.mapview.MapView
@@ -135,6 +138,78 @@ class HereCameraController(
         return MapMeasure(
             MapMeasure.Kind.DISTANCE_IN_METERS,
             distanceMeters
+        )
+    }
+
+    fun showSearchResults(
+        coordinates: List<GeoCoordinates>,
+        width: Int,
+        height: Int,
+        reservedLeftPx: Double,
+        paddingPx: Double
+    ) {
+        if (
+            coordinates.isEmpty() ||
+            width <= 0 ||
+            height <= 0
+        ) {
+            return
+        }
+
+        val geoBox =
+            GeoBox.containing(
+                coordinates
+            ) ?: return
+
+        val left =
+            (
+                    reservedLeftPx +
+                            paddingPx
+                    )
+                .coerceAtMost(
+                    width.toDouble() - 1.0
+                )
+
+        val top =
+            paddingPx.coerceAtMost(
+                height.toDouble() - 1.0
+            )
+
+        val viewportWidth =
+            (
+                    width -
+                            left -
+                            paddingPx
+                    )
+                .coerceAtLeast(1.0)
+
+        val viewportHeight =
+            (
+                    height -
+                            top -
+                            paddingPx
+                    )
+                .coerceAtLeast(1.0)
+
+        val viewRectangle =
+            Rectangle2D(
+                Point2D(
+                    left,
+                    top
+                ),
+                Size2D(
+                    viewportWidth,
+                    viewportHeight
+                )
+            )
+
+        mapView.camera.lookAt(
+            geoBox,
+            GeoOrientationUpdate(
+                null,
+                null
+            ),
+            viewRectangle
         )
     }
 }

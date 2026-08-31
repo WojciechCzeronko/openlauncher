@@ -28,10 +28,10 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.here.sdk.core.GeoCoordinates
 import com.here.sdk.mapview.MapImageFactory
-import com.here.sdk.mapview.MapScheme
 import com.here.sdk.mapview.MapMarker3D
-import com.here.sdk.mapview.RenderSize
+import com.here.sdk.mapview.MapScheme
 import com.here.sdk.mapview.MapView
+import com.here.sdk.mapview.RenderSize
 import com.openlauncher.app.R
 import com.openlauncher.app.data.AppSettings
 import com.openlauncher.app.ui.map.components.Aw11DemoControls
@@ -42,12 +42,12 @@ import com.openlauncher.app.ui.map.components.Aw11SearchPanel
 import com.openlauncher.app.ui.map.here.HereCameraController
 import com.openlauncher.app.ui.map.here.HereRouteRenderer
 import com.openlauncher.app.ui.map.here.HereSearchPinRenderer
-import com.openlauncher.app.ui.map.navigation.RouteProgressTracker
-import com.openlauncher.app.util.LocationData
 import com.openlauncher.app.ui.map.navigation.DemoNavigationController
 import com.openlauncher.app.ui.map.navigation.DemoTripData
 import com.openlauncher.app.ui.map.navigation.ManeuverGuidance
 import com.openlauncher.app.ui.map.navigation.ManeuverProgressTracker
+import com.openlauncher.app.ui.map.navigation.RouteProgressTracker
+import com.openlauncher.app.util.LocationData
 import kotlinx.coroutines.delay
 import kotlin.math.exp
 
@@ -71,6 +71,8 @@ private const val DEFAULT_CAMERA_DISTANCE_METERS = 500.0
 private const val ZOOM_RESPONSE_FACTOR = 0.25
 private const val DEMO_UPDATE_INTERVAL_MS = 250L
 private const val GUIDANCE_RESERVED_LEFT_DP = 216
+private const val SEARCH_RESULTS_RESERVED_LEFT_DP = 260
+private const val SEARCH_RESULTS_PADDING_DP = 12
 private const val LOOK_AHEAD_SMOOTHING_TIME_MS = 300.0
 private const val CAMERA_BEARING_SMOOTHING_TIME_MS = 450.0
 
@@ -1304,7 +1306,9 @@ fun Aw11HereMap(
                         center = center,
                         onSuccess = { results ->
                             val visibleResults =
-                                results.take(MAX_NUMBER_OF_SEARCH_RESULTS)
+                                results.take(
+                                    MAX_NUMBER_OF_SEARCH_RESULTS
+                                )
 
                             state.completeSearch(
                                 visibleResults
@@ -1313,6 +1317,55 @@ fun Aw11HereMap(
                             searchPinRenderer.showResults(
                                 visibleResults
                             )
+
+                            if (visibleResults.isNotEmpty()) {
+                                state.isFollowing = false
+
+                                val searchCoordinates =
+                                    buildList {
+                                        add(
+                                            GeoCoordinates(
+                                                animationState.latitude,
+                                                animationState.longitude
+                                            )
+                                        )
+
+                                        visibleResults.forEach { result ->
+                                            add(
+                                                result.coordinates
+                                            )
+                                        }
+                                    }
+
+                                val reservedLeftPx =
+                                    with(density) {
+                                        SEARCH_RESULTS_RESERVED_LEFT_DP
+                                            .dp
+                                            .toPx()
+                                            .toDouble()
+                                    }
+
+                                val paddingPx =
+                                    with(density) {
+                                        SEARCH_RESULTS_PADDING_DP
+                                            .dp
+                                            .toPx()
+                                            .toDouble()
+                                    }
+
+                                cameraController.showSearchResults(
+                                    coordinates =
+                                        searchCoordinates,
+                                    width =
+                                        state.mapSize.width,
+                                    height =
+                                        state.mapSize.height,
+                                    reservedLeftPx =
+                                        reservedLeftPx,
+                                    paddingPx =
+                                        paddingPx
+                                )
+                            }
                         },
                         onError = { error ->
                             state.failSearch(
