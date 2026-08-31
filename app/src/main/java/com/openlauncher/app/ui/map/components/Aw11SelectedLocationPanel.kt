@@ -29,6 +29,7 @@ import com.openlauncher.app.ui.theme.Aw11Secondary
 @Composable
 fun Aw11SelectedLocationPanel(
     location: HereSelectedLocation,
+    onGoThere: () -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -174,5 +175,30 @@ fun Aw11SelectedLocationPanel(
             modifier =
                 Modifier.padding(top = 6.dp)
         )
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 10.dp)
+                .border(
+                    width = 1.dp,
+                    color = Aw11Primary
+                )
+                .clickable(
+                    onClick = onGoThere
+                )
+                .padding(
+                    vertical = 8.dp
+                ),
+            contentAlignment =
+                Alignment.Center
+        ) {
+            Text(
+                text = "GO THERE",
+                color = Aw11Primary,
+                fontSize = 11.sp,
+                letterSpacing = 0.5.sp
+            )
+        }
     }
 }

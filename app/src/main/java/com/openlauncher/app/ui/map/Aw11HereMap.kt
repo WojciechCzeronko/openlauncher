@@ -44,6 +44,7 @@ import com.openlauncher.app.ui.map.components.Aw11SelectedLocationPanel
 import com.openlauncher.app.ui.map.here.HereCameraController
 import com.openlauncher.app.ui.map.here.HereRouteRenderer
 import com.openlauncher.app.ui.map.here.HereSearchPinRenderer
+import com.openlauncher.app.ui.map.here.HereSelectedLocationRenderer
 import com.openlauncher.app.ui.map.navigation.DemoNavigationController
 import com.openlauncher.app.ui.map.navigation.DemoTripData
 import com.openlauncher.app.ui.map.navigation.ManeuverGuidance
@@ -130,6 +131,14 @@ fun Aw11HereMap(
     val searchPinRenderer = remember(mapView) {
         HereSearchPinRenderer(mapView)
     }
+
+    val selectedLocationRenderer =
+        remember(mapView) {
+            HereSelectedLocationRenderer(
+                mapView
+            )
+        }
+
     val cameraController = remember(mapView) {
         HereCameraController(mapView)
     }
@@ -267,6 +276,98 @@ fun Aw11HereMap(
         )
     }
 
+    fun startGuidanceTo(
+        destination: GeoCoordinates,
+        destinationTitle: String
+    ) {
+        searchPinRenderer.clear()
+        selectedLocationRenderer.clear()
+
+        mapSelectionRequestId.intValue++
+
+        state.selectedLocation = null
+
+        val start =
+            GeoCoordinates(
+                animationState.latitude,
+                animationState.longitude
+            )
+
+        state.destination =
+            destination
+
+        state.destinationTitle =
+            destinationTitle
+
+        state.isArrived = false
+
+        arrivalConfirmationCount.intValue = 0
+
+        offRouteSinceMs.longValue = 0L
+        lastAutoRerouteRequestMs.longValue = 0L
+        autoRerouteCount.intValue = 0
+
+        lastRouteRefreshMs.longValue =
+            SystemClock.elapsedRealtime()
+
+        state.closeSearch()
+
+        Log.d(
+            TAG,
+            "Calculating route to: " +
+                    "$destinationTitle, " +
+                    "${destination.latitude}, " +
+                    "${destination.longitude}"
+        )
+
+        routingController.calculateRoute(
+            start = start,
+            destination = destination,
+            startHeadingDegrees =
+                navigationLocation
+                    ?.bearingDegrees,
+            onSuccess = { route ->
+                state.activeRoute =
+                    route
+
+                routeProgressTracker.setRoute(
+                    route
+                )
+
+                maneuverProgressTracker.setRoute(
+                    route
+                )
+
+                state.routeProgress =
+                    routeProgressTracker.update(
+                        start
+                    )
+
+                maneuverGuidance.value =
+                    maneuverProgressTracker.update(
+                        state.routeProgress
+                    )
+
+                routeRenderer.showRoute(
+                    route = route,
+                    destination = destination
+                )
+
+                Log.d(
+                    TAG,
+                    "Route: ${route.lengthInMeters} m, " +
+                            "${route.duration.seconds} s"
+                )
+            },
+            onError = { error ->
+                Log.e(
+                    TAG,
+                    "Route calculation failed: ${error.name}"
+                )
+            }
+        )
+    }
+
     LaunchedEffect(
         state.isArrived,
         state.activeRoute
@@ -394,6 +495,9 @@ fun Aw11HereMap(
                         touchPoint
                     ) ?: return@TapListener
 
+                selectedLocationRenderer.show(
+                    coordinates
+                )
                 state.isFollowing = false
 
                 searchPinRenderer.clear()
@@ -555,6 +659,7 @@ fun Aw11HereMap(
             carMarker.value = null
 
             routeRenderer.clearRoute()
+            selectedLocationRenderer.clear()
             mapView.gestures.tapListener = null
             mapView.onPause()
             routingController.dispose()
@@ -1459,77 +1564,11 @@ fun Aw11HereMap(
                     state.closeSearch()
                 },
                 onResultSelected = { result ->
-                    searchPinRenderer.clear()
-                    val start = GeoCoordinates(
-                        animationState.latitude,
-                        animationState.longitude
-                    )
-
-                    val destination =
-                        result.coordinates
-                    state.destination = destination
-                    state.isArrived = false
-                    arrivalConfirmationCount.intValue = 0
-                    state.destinationTitle =
-                        result.title
-
-                    offRouteSinceMs.longValue = 0L
-                    lastAutoRerouteRequestMs.longValue = 0L
-                    autoRerouteCount.intValue = 0
-
-                    lastRouteRefreshMs.longValue =
-                        SystemClock.elapsedRealtime()
-
-                    Log.d(
-                        TAG,
-                        "Calculating route to: " +
-                                "${result.title}, " +
-                                "${destination.latitude}, " +
-                                "${destination.longitude}"
-                    )
-
-                    state.closeSearch()
-
-                    routingController.calculateRoute(
-                        start = start,
-                        destination = destination,
-                        startHeadingDegrees =
-                            navigationLocation?.bearingDegrees,
-                        onSuccess = { route ->
-                            state.activeRoute = route
-
-                            routeProgressTracker.setRoute(
-                                route
-                            )
-                            maneuverProgressTracker.setRoute(
-                                route
-                            )
-
-                            state.routeProgress =
-                                routeProgressTracker.update(
-                                    start
-                                )
-                            maneuverGuidance.value =
-                                maneuverProgressTracker.update(
-                                    state.routeProgress
-                                )
-                            routeRenderer.showRoute(
-                                route = route,
-                                destination = destination
-                            )
-
-                            Log.d(
-                                TAG,
-                                "Route: ${route.lengthInMeters} m, " +
-                                        "${route.duration.seconds} s"
-                            )
-                        },
-                        onError = { error ->
-                            Log.e(
-                                TAG,
-                                "Route calculation failed: ${error.name}"
-                            )
-                        }
+                    startGuidanceTo(
+                        destination =
+                            result.coordinates,
+                        destinationTitle =
+                            result.title
                     )
                 },
                 modifier = Modifier
@@ -1545,11 +1584,31 @@ fun Aw11HereMap(
             ?.let { location ->
                 Aw11SelectedLocationPanel(
                     location = location,
+                    onGoThere = {
+                        val title =
+                            location.title
+                                ?.takeIf {
+                                    it.isNotBlank()
+                                }
+                                ?: location.address
+                                    ?.takeIf {
+                                        it.isNotBlank()
+                                    }
+                                ?: "SELECTED LOCATION"
+
+                        startGuidanceTo(
+                            destination =
+                                location.coordinates,
+                            destinationTitle =
+                                title
+                        )
+                    },
                     onClose = {
                         mapSelectionRequestId.intValue++
 
-                        state.selectedLocation =
-                            null
+                        selectedLocationRenderer.clear()
+
+                        state.selectedLocation = null
                     },
                     modifier = Modifier
                         .align(
