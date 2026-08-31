@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -36,6 +35,9 @@ import com.openlauncher.app.ui.theme.Aw11Background
 import com.openlauncher.app.ui.theme.Aw11Primary
 import com.openlauncher.app.ui.theme.Aw11Secondary
 import java.util.Locale
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.ui.graphics.SolidColor
 
 @Composable
 fun Aw11SearchPanel(
@@ -113,7 +115,10 @@ fun Aw11SearchPanel(
         Row(
             verticalAlignment = Alignment.CenterVertically
         ) {
-            OutlinedTextField(
+            BasicTextField(
+                value = query,
+                onValueChange = onQueryChange,
+                singleLine = true,
                 keyboardOptions = KeyboardOptions(
                     imeAction = ImeAction.Search
                 ),
@@ -124,31 +129,67 @@ fun Aw11SearchPanel(
                 ),
                 textStyle =
                     MaterialTheme.typography.bodyLarge.copy(
+                        color = Aw11Primary,
                         fontSize = 15.sp
                     ),
-                value = query,
-                onValueChange = onQueryChange,
-                singleLine = true,
-                trailingIcon = {
-                    if (query.isNotEmpty()) {
-                        Text(
-                            text = "CLR",
-                            color = Aw11Secondary,
-                            fontSize = 10.sp,
-                            letterSpacing = 0.sp,
+                cursorBrush =
+                    SolidColor(Aw11Primary),
+                modifier = Modifier
+                    .weight(1f)
+                    .height(40.dp),
+                decorationBox = { innerTextField ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(40.dp)
+                            .border(
+                                width = 1.dp,
+                                color = Aw11Primary.copy(
+                                    alpha = 0.35f
+                                )
+                            )
+                            .padding(
+                                start = 10.dp,
+                                end = 6.dp
+                            ),
+                        verticalAlignment =
+                            Alignment.CenterVertically
+                    ) {
+                        Box(
                             modifier = Modifier
-                                .clickable(onClick = onClear)
-                                .padding(6.dp)
-                        )
+                                .weight(1f),
+                            contentAlignment =
+                                Alignment.CenterStart
+                        ) {
+                            if (query.isEmpty()) {
+                                Text(
+                                    text = "DESTINATION...",
+                                    color = Aw11Secondary,
+                                    fontSize = 10.sp
+                                )
+                            }
+
+                            innerTextField()
+                        }
+
+                        if (query.isNotEmpty()) {
+                            Text(
+                                text = "CLR",
+                                color = Aw11Secondary,
+                                fontSize = 10.sp,
+                                letterSpacing = 0.sp,
+                                modifier = Modifier
+                                    .clickable(
+                                        onClick = onClear
+                                    )
+                                    .padding(
+                                        horizontal = 4.dp,
+                                        vertical = 6.dp
+                                    )
+                            )
+                        }
                     }
-                },
-                placeholder = {
-                    Text(
-                        text = "DESTINATION...",
-                        fontSize = 10.sp
-                    )
-                },
-                modifier = Modifier.weight(1f)
+                }
             )
 
             Spacer(
@@ -157,7 +198,7 @@ fun Aw11SearchPanel(
 
             Box(
                 modifier = Modifier
-                    .size(28.dp)
+                    .size(40.dp)
                     .border(
                         width = 1.dp,
                         color = Aw11Primary.copy(
@@ -212,7 +253,7 @@ fun Aw11SearchPanel(
 
             Box(
                 modifier = Modifier
-                    .size(28.dp)
+                    .size(40.dp)
                     .border(
                         width = 1.dp,
                         color = Aw11Primary.copy(
