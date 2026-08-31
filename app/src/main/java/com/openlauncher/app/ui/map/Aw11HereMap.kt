@@ -42,6 +42,7 @@ import com.openlauncher.app.ui.map.components.Aw11RouteInfo
 import com.openlauncher.app.ui.map.components.Aw11SearchPanel
 import com.openlauncher.app.ui.map.components.Aw11SelectedLocationPanel
 import com.openlauncher.app.ui.map.here.HereCameraController
+import com.openlauncher.app.ui.map.here.HereMapPoiPicker
 import com.openlauncher.app.ui.map.here.HereRouteRenderer
 import com.openlauncher.app.ui.map.here.HereSearchPinRenderer
 import com.openlauncher.app.ui.map.here.HereSelectedLocationRenderer
@@ -86,6 +87,8 @@ private const val ARRIVAL_REMAINING_ROUTE_METERS = 20
 private const val ARRIVAL_DESTINATION_RADIUS_METERS = 30.0
 private const val ARRIVAL_CONFIRMATION_COUNT = 3
 private const val ARRIVAL_AUTO_CLOSE_DELAY_MS = 20_000L
+
+private const val POI_PICK_AREA_DP = 40
 
 
 private class MapAnimationState {
@@ -135,6 +138,13 @@ fun Aw11HereMap(
     val selectedLocationRenderer =
         remember(mapView) {
             HereSelectedLocationRenderer(
+                mapView
+            )
+        }
+
+    val mapPoiPicker =
+        remember(mapView) {
+            HereMapPoiPicker(
                 mapView
             )
         }
@@ -368,6 +378,75 @@ fun Aw11HereMap(
         )
     }
 
+    fun resolveSelectedMapLocation(
+        coordinates: GeoCoordinates,
+        preferredTitle: String?,
+        requestId: Int
+    ) {
+        if (
+            mapSelectionRequestId.intValue !=
+            requestId
+        ) {
+            return
+        }
+
+        selectedLocationRenderer.show(
+            coordinates
+        )
+
+        state.selectedLocation =
+            HereSelectedLocation(
+                coordinates = coordinates,
+                title = preferredTitle,
+                address = null
+            )
+
+        searchController.reverseGeocode(
+            coordinates = coordinates,
+            onSuccess = { resolvedLocation ->
+                if (
+                    mapSelectionRequestId.intValue ==
+                    requestId
+                ) {
+                    state.selectedLocation =
+                        resolvedLocation.copy(
+                            title =
+                                preferredTitle
+                                    ?.takeIf {
+                                        it.isNotBlank()
+                                    }
+                                    ?: resolvedLocation.title
+                        )
+                }
+            },
+            onError = { error ->
+                if (
+                    mapSelectionRequestId.intValue ==
+                    requestId
+                ) {
+                    Log.e(
+                        TAG,
+                        "Reverse geocoding failed: ${error.name}"
+                    )
+
+                    state.selectedLocation =
+                        HereSelectedLocation(
+                            coordinates =
+                                coordinates,
+                            title =
+                                preferredTitle
+                                    ?.takeIf {
+                                        it.isNotBlank()
+                                    }
+                                    ?: "SELECTED POINT",
+                            address =
+                                "ADDRESS UNAVAILABLE"
+                        )
+                }
+            }
+        )
+    }
+
     LaunchedEffect(
         state.isArrived,
         state.activeRoute
@@ -490,14 +569,11 @@ fun Aw11HereMap(
                     return@TapListener
                 }
 
-                val coordinates =
+                val tappedCoordinates =
                     mapView.viewToGeoCoordinates(
                         touchPoint
                     ) ?: return@TapListener
 
-                selectedLocationRenderer.show(
-                    coordinates
-                )
                 state.isFollowing = false
 
                 searchPinRenderer.clear()
@@ -509,45 +585,69 @@ fun Aw11HereMap(
                 mapSelectionRequestId.intValue =
                     requestId
 
-                // Show the tapped coordinates immediately while
-                // reverse geocoding is still in progress.
+                // Show immediate feedback at the tapped location.
+                selectedLocationRenderer.show(
+                    tappedCoordinates
+                )
+
                 state.selectedLocation =
                     HereSelectedLocation(
-                        coordinates = coordinates,
+                        coordinates =
+                            tappedCoordinates,
                         title = null,
                         address = null
                     )
 
-                searchController.reverseGeocode(
-                    coordinates = coordinates,
-                    onSuccess = { location ->
+                val pickAreaSizePx =
+                    with(density) {
+                        POI_PICK_AREA_DP
+                            .dp
+                            .toPx()
+                            .toDouble()
+                    }
+
+                mapPoiPicker.pick(
+                    touchPoint = touchPoint,
+                    pickAreaSizePx =
+                        pickAreaSizePx,
+                    onResult = { pickedPoi ->
                         if (
-                            mapSelectionRequestId.intValue ==
+                            mapSelectionRequestId.intValue !=
                             requestId
                         ) {
-                            state.selectedLocation =
-                                location
+                            return@pick
                         }
-                    },
-                    onError = { error ->
-                        if (
-                            mapSelectionRequestId.intValue ==
-                            requestId
-                        ) {
-                            Log.e(
+
+                        if (pickedPoi != null) {
+                            Log.d(
                                 TAG,
-                                "Reverse geocoding failed: ${error.name}"
+                                "POI picked: " +
+                                        "${pickedPoi.name}, " +
+                                        "${pickedPoi.coordinates.latitude}, " +
+                                        "${pickedPoi.coordinates.longitude}"
                             )
 
-                            state.selectedLocation =
-                                HereSelectedLocation(
-                                    coordinates =
-                                        coordinates,
-                                    title =
-                                        "SELECTED POINT",
-                                    address =
-                                        "ADDRESS UNAVAILABLE"
-                                )
+                            resolveSelectedMapLocation(
+                                coordinates =
+                                    pickedPoi.coordinates,
+                                preferredTitle =
+                                    pickedPoi.name,
+                                requestId =
+                                    requestId
+                            )
+                        } else {
+                            Log.d(
+                                TAG,
+                                "No POI picked. Falling back to reverse geocoding."
+                            )
+
+                            resolveSelectedMapLocation(
+                                coordinates =
+                                    tappedCoordinates,
+                                preferredTitle = null,
+                                requestId =
+                                    requestId
+                            )
                         }
                     }
                 )
