@@ -7,8 +7,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.unit.IntSize
-import com.here.sdk.routing.Route
 import com.here.sdk.core.GeoCoordinates
+import com.here.sdk.routing.Route
 import com.openlauncher.app.ui.map.navigation.RouteProgress
 
 @Stable
@@ -29,6 +29,12 @@ class Aw11HereMapState {
     var routeProgress by mutableStateOf<RouteProgress?>(null)
     var isArrived by mutableStateOf(false)
     var destination by mutableStateOf<GeoCoordinates?>(null)
+
+    var selectedLocation by
+    mutableStateOf<HereSelectedLocation?>(
+        null
+    )
+
     var destinationTitle by mutableStateOf<String?>(null)
     var isFollowing by mutableStateOf(true)
 

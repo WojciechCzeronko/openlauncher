@@ -27,6 +27,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.here.sdk.core.GeoCoordinates
+import com.here.sdk.gestures.TapListener
 import com.here.sdk.mapview.MapImageFactory
 import com.here.sdk.mapview.MapMarker3D
 import com.here.sdk.mapview.MapScheme
@@ -39,6 +40,7 @@ import com.openlauncher.app.ui.map.components.Aw11ManeuverInfo
 import com.openlauncher.app.ui.map.components.Aw11RecenterButton
 import com.openlauncher.app.ui.map.components.Aw11RouteInfo
 import com.openlauncher.app.ui.map.components.Aw11SearchPanel
+import com.openlauncher.app.ui.map.components.Aw11SelectedLocationPanel
 import com.openlauncher.app.ui.map.here.HereCameraController
 import com.openlauncher.app.ui.map.here.HereRouteRenderer
 import com.openlauncher.app.ui.map.here.HereSearchPinRenderer
@@ -219,6 +221,11 @@ fun Aw11HereMap(
         mutableIntStateOf(0)
     }
 
+    val mapSelectionRequestId =
+        remember {
+            mutableIntStateOf(0)
+        }
+
     val endGuidance: () -> Unit = {
         demoNavigationController.stop()
 
@@ -376,6 +383,72 @@ fun Aw11HereMap(
     DisposableEffect(mapView, lifecycleOwner) {
         mapView.onCreate(null)
 
+        mapView.gestures.tapListener =
+            TapListener { touchPoint ->
+                if (state.activeRoute != null) {
+                    return@TapListener
+                }
+
+                val coordinates =
+                    mapView.viewToGeoCoordinates(
+                        touchPoint
+                    ) ?: return@TapListener
+
+                state.isFollowing = false
+
+                searchPinRenderer.clear()
+                state.closeSearch()
+
+                val requestId =
+                    mapSelectionRequestId.intValue + 1
+
+                mapSelectionRequestId.intValue =
+                    requestId
+
+                // Show the tapped coordinates immediately while
+                // reverse geocoding is still in progress.
+                state.selectedLocation =
+                    HereSelectedLocation(
+                        coordinates = coordinates,
+                        title = null,
+                        address = null
+                    )
+
+                searchController.reverseGeocode(
+                    coordinates = coordinates,
+                    onSuccess = { location ->
+                        if (
+                            mapSelectionRequestId.intValue ==
+                            requestId
+                        ) {
+                            state.selectedLocation =
+                                location
+                        }
+                    },
+                    onError = { error ->
+                        if (
+                            mapSelectionRequestId.intValue ==
+                            requestId
+                        ) {
+                            Log.e(
+                                TAG,
+                                "Reverse geocoding failed: ${error.name}"
+                            )
+
+                            state.selectedLocation =
+                                HereSelectedLocation(
+                                    coordinates =
+                                        coordinates,
+                                    title =
+                                        "SELECTED POINT",
+                                    address =
+                                        "ADDRESS UNAVAILABLE"
+                                )
+                        }
+                    }
+                )
+            }
+
         mapView.mapScene.loadScene(
             MapScheme.LITE_NIGHT
         ) { mapError ->
@@ -482,7 +555,7 @@ fun Aw11HereMap(
             carMarker.value = null
 
             routeRenderer.clearRoute()
-
+            mapView.gestures.tapListener = null
             mapView.onPause()
             routingController.dispose()
             mapView.onDestroy()
@@ -1279,7 +1352,10 @@ fun Aw11HereMap(
                 }
         )
 
-        if (state.activeRoute == null) {
+        if (
+            state.activeRoute == null &&
+            state.selectedLocation == null
+        ) {
             Aw11SearchPanel(
                 isOpen = state.isSearchOpen,
                 query = state.searchQuery,
@@ -1461,6 +1537,28 @@ fun Aw11HereMap(
                     .padding(10.dp)
             )
         }
+
+        state.selectedLocation
+            ?.takeIf {
+                state.activeRoute == null
+            }
+            ?.let { location ->
+                Aw11SelectedLocationPanel(
+                    location = location,
+                    onClose = {
+                        mapSelectionRequestId.intValue++
+
+                        state.selectedLocation =
+                            null
+                    },
+                    modifier = Modifier
+                        .align(
+                            Alignment.TopStart
+                        )
+                        .padding(10.dp)
+                )
+            }
+
         state.activeRoute?.let { route ->
             Aw11DemoControls(
                 isDemoMode =

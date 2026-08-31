@@ -16,6 +16,12 @@ data class HereSearchResult(
     val distanceMeters: Double
 )
 
+data class HereSelectedLocation(
+    val coordinates: GeoCoordinates,
+    val title: String?,
+    val address: String?
+)
+
 class HereSearchController {
 
     private val searchEngine: SearchEngine =
@@ -69,6 +75,45 @@ class HereSearchController {
                         }
 
                 onSuccess(results)
+            }
+        )
+    }
+
+    fun reverseGeocode(
+        coordinates: GeoCoordinates,
+        onSuccess: (HereSelectedLocation) -> Unit,
+        onError: (SearchError) -> Unit
+    ) {
+        val options =
+            SearchOptions().apply {
+                languageCode =
+                    LanguageCode.EN_GB
+
+                maxItems = 1
+            }
+
+        searchEngine.searchByCoordinates(
+            coordinates,
+            options,
+            SearchCallback { searchError, places ->
+                if (searchError != null) {
+                    onError(searchError)
+                    return@SearchCallback
+                }
+
+                val place =
+                    places.orEmpty()
+                        .firstOrNull()
+
+                onSuccess(
+                    HereSelectedLocation(
+                        coordinates = coordinates,
+                        title =
+                            place?.title,
+                        address =
+                            place?.address?.addressText
+                    )
+                )
             }
         )
     }
