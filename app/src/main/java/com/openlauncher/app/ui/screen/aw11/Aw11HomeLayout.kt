@@ -285,132 +285,16 @@ internal fun Aw11HomeLayout(
                 .fillMaxHeight()
         ) {
             // SPEED
-            Box(
+            Aw11SpeedPanel(
+                speedDisplay = speedDisplay,
+                speedProgress = speedProgress,
+                isMetric = isMetric,
+                showTestValues = showTestValues,
+                selfTestProgress =
+                    selfTestProgress.value,
                 modifier = Modifier
                     .weight(0.26f)
-                    .fillMaxWidth()
-                    .border(1.dp, Aw11Border.copy(alpha = 0.45f))
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(12.dp)
-                ) {
-                    Text(
-                        text = "SPEED",
-                        color = Aw11Primary,
-                        fontSize = 12.sp,
-                        letterSpacing = 0.5.sp
-                    )
-
-                    Spacer(Modifier.weight(1f))
-
-                    Row(
-                        modifier = Modifier.height(IntrinsicSize.Min),
-                        verticalAlignment = Alignment.Top
-                    ) {
-                        Text(
-                            text = if (showTestValues) {
-                                "888"
-                            } else {
-                                "%03.0f".format(speedDisplay)
-                            },
-                            color = Aw11Primary,
-                            fontFamily = DSEG14Classic,
-                            fontSize = 44.sp
-                        )
-
-                        Spacer(Modifier.width(10.dp))
-
-                        Box(
-                            modifier = Modifier
-                                .fillMaxHeight()
-                                .width(42.dp)
-                        ) {
-                            Text(
-                                text = "MPH",
-                                color = if (!isMetric) {
-                                    Aw11Primary
-                                } else {
-                                    Aw11Dim.copy(alpha = 0.45f)
-                                },
-                                fontSize = 11.sp,
-                                letterSpacing = 0.5.sp,
-                                modifier = Modifier
-                                    .align(Alignment.TopStart)
-                                    .offset(y = (-2).dp)
-                            )
-
-                            Text(
-                                text = "KM/H",
-                                color = if (isMetric) {
-                                    Aw11Primary
-                                } else {
-                                    Aw11Dim.copy(alpha = 0.45f)
-                                },
-                                fontSize = 11.sp,
-                                letterSpacing = 0.5.sp,
-                                modifier = Modifier
-                                    .align(Alignment.BottomStart)
-                                    .offset(y = 2.dp)
-                            )
-                        }
-                    }
-
-                    Spacer(Modifier.height(8.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        repeat(6) {
-                            Box(
-                                modifier = Modifier
-                                    .width(1.dp)
-                                    .height(4.dp)
-                                    .background(Aw11Secondary.copy(alpha = 0.55f))
-                            )
-                        }
-                    }
-
-                    Spacer(Modifier.height(3.dp))
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(2.dp)
-                    ) {
-                        repeat(20) { index ->
-                            val activeSegments =
-                                if (showTestValues) {
-                                    (selfTestProgress.value * 20f)
-                                        .roundToInt()
-                                        .coerceIn(0, 20)
-                                } else {
-                                    (speedProgress * 20f)
-                                        .roundToInt()
-                                        .coerceIn(0, 20)
-                                }
-
-                            val active = index < activeSegments
-
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxHeight()
-                                    .background(
-                                        if (active) {
-                                            Aw11Primary
-                                        } else {
-                                            Aw11Dim.copy(alpha = 0.35f)
-                                        }
-                                    )
-                            )
-                        }
-                    }
-                }
-            }
+            )
 
             Spacer(Modifier.height(3.dp))
 
