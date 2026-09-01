@@ -54,6 +54,7 @@ import com.openlauncher.app.ui.map.navigation.RouteProgressTracker
 import com.openlauncher.app.util.LocationData
 import kotlinx.coroutines.delay
 import kotlin.math.exp
+import com.here.sdk.mapview.MapFeatures
 
 private const val TAG = "Aw11HereMap"
 
@@ -680,6 +681,13 @@ fun Aw11HereMap(
             if (mapError == null) {
                 Log.d(TAG, "HERE map scene loaded.")
 
+                mapView.mapScene.disableFeatures(
+                    listOf(
+                        MapFeatures.EXTRUDED_BUILDINGS,
+                        MapFeatures.SHADOWS,
+                        MapFeatures.AMBIENT_OCCLUSION
+                    )
+                )
                 val initialCoordinates =
                     if (location != null) {
                         GeoCoordinates(
