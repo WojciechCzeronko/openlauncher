@@ -45,7 +45,6 @@ internal fun Aw11HomeLayout(
     location: LocationData?,
     tripData: TripData,
     onResetTrip: () -> Unit,
-    bearing: Float,
     isMetric: Boolean,
     nowPlaying: NowPlayingState?,
     onPrev: () -> Unit,
@@ -106,7 +105,6 @@ internal fun Aw11HomeLayout(
     }
 
     val showTestValues = startupPhase != StartupPhase.LIVE
-    val isLive = startupPhase == StartupPhase.LIVE
     val speedDisplay =
         ((displayLocation?.speedMps ?: 0f) *
                 if (isMetric) 3.6f else 2.237f)
