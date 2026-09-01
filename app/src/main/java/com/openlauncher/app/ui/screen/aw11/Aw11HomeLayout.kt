@@ -50,6 +50,7 @@ internal fun Aw11HomeLayout(
     onPrev: () -> Unit,
     onPlayPause: () -> Unit,
     onNext: () -> Unit,
+    onOpenMedia: () -> Unit,
     onOpenApps: () -> Unit,
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier
@@ -181,9 +182,14 @@ internal fun Aw11HomeLayout(
         ) {
             Aw11ControlPanel(
                 hasGps = location != null,
+                mediaAvailable =
+                    nowPlaying?.controller?.packageName
+                        .isNullOrBlank()
+                        .not(),
                 onNav = {
                     searchOpenRequestId++
                 },
+                onMedia = onOpenMedia,
                 onApps = onOpenApps,
                 onSettings = onOpenSettings
             )

@@ -265,6 +265,16 @@ class MainActivity : ComponentActivity() {
                                             onPlayPause = vm::playPause,
                                             onNext = vm::skipNext,
                                             onPrev = vm::skipPrev,
+                                            onOpenMedia = {
+                                                val packageName =
+                                                    nowPlaying
+                                                        ?.controller
+                                                        ?.packageName
+
+                                                if (!packageName.isNullOrBlank()) {
+                                                    vm.launchApp(packageName)
+                                                }
+                                            },
                                             onOpenApps = {
                                                 vm.navigate(
                                                     NavDestination.APP_LIBRARY

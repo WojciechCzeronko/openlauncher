@@ -34,7 +34,9 @@ import java.util.Locale
 @Composable
 fun Aw11ControlPanel(
     hasGps: Boolean,
+    mediaAvailable: Boolean,
     onNav: () -> Unit,
+    onMedia: () -> Unit,
     onApps: () -> Unit,
     onSettings: () -> Unit,
     modifier: Modifier = Modifier
@@ -143,6 +145,16 @@ fun Aw11ControlPanel(
             )
 
             Aw11ControlButton(
+                label = "MEDIA",
+                enabled = mediaAvailable,
+                onClick = onMedia
+            )
+
+            Spacer(
+                Modifier.height(6.dp)
+            )
+
+            Aw11ControlButton(
                 label = "APPS",
                 onClick = onApps
             )
@@ -176,6 +188,7 @@ fun Aw11ControlPanel(
 @Composable
 private fun Aw11ControlButton(
     label: String,
+    enabled: Boolean = true,
     onClick: () -> Unit
 ) {
     Box(
@@ -186,10 +199,16 @@ private fun Aw11ControlButton(
                 width = 1.dp,
                 color =
                     Aw11Border.copy(
-                        alpha = 0.65f
+                        alpha =
+                            if (enabled) {
+                                0.65f
+                            } else {
+                                0.30f
+                            }
                     )
             )
             .clickable(
+                enabled = enabled,
                 onClick = onClick
             )
             .padding(
@@ -200,7 +219,12 @@ private fun Aw11ControlButton(
     ) {
         Text(
             text = "> $label",
-            color = Aw11Primary,
+            color =
+                if (enabled) {
+                    Aw11Primary
+                } else {
+                    Aw11Dim
+                },
             fontSize = 11.sp,
             letterSpacing = 0.5.sp
         )

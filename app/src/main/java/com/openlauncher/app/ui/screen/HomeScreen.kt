@@ -16,6 +16,7 @@ fun HomeScreen(
     location: LocationData?,
     tripData: TripData,
     onResetTrip: () -> Unit,
+    onOpenMedia: () -> Unit,
     onOpenApps: () -> Unit,
     onOpenSettings: () -> Unit,
     onPlayPause: () -> Unit,
@@ -35,6 +36,7 @@ fun HomeScreen(
         onPrev = onPrev,
         onPlayPause = onPlayPause,
         onNext = onNext,
+        onOpenMedia = onOpenMedia,
         onOpenApps = onOpenApps,
         onOpenSettings = onOpenSettings,
         modifier = modifier
