@@ -169,6 +169,12 @@ fun Aw11ControlPanel(
             Modifier.weight(1f)
         )
 
+        Aw11VolumeControl()
+
+        Spacer(
+            Modifier.height(8.dp)
+        )
+
         Text(
             text = "AW11",
             color =
