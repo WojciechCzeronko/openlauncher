@@ -651,80 +651,15 @@ internal fun Aw11HomeLayout(
             Spacer(Modifier.height(3.dp))
 
             // CAR DATA
-            Box(
+            Aw11TripPanel(
+                distance = displayedDistance,
+                driveTime = displayedDriveTime,
+                averageSpeed = displayedAvgSpeed,
+                maxSpeed = displayedMaxSpeed,
+                onResetTrip = onResetTrip,
                 modifier = Modifier
                     .weight(0.38f)
-                    .fillMaxWidth()
-                    .border(1.dp, Aw11Border.copy(alpha = 0.45f))
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(12.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "TRIP DATA",
-                            color = Aw11Primary,
-                            fontSize = 12.sp,
-                            letterSpacing = 0.5.sp
-                        )
-
-                        Spacer(Modifier.weight(1f))
-
-                        Text(
-                            text = "RESET",
-                            color = Aw11Secondary,
-                            fontSize = 9.sp,
-                            letterSpacing = 0.5.sp,
-                            modifier = Modifier
-                                .clickable { onResetTrip() }
-                                .padding(6.dp)
-                        )
-                    }
-
-                    Spacer(Modifier.height(8.dp))
-
-                    Row(
-                        modifier = Modifier.weight(1f),
-                        horizontalArrangement = Arrangement.spacedBy(3.dp)
-                    ) {
-                        Aw11DataCell(
-                            label = "DISTANCE",
-                            value = displayedDistance,
-                            modifier = Modifier.weight(1f)
-                        )
-
-                        Aw11DataCell(
-                            label = "DRIVE TIME",
-                            value = displayedDriveTime,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-
-                    Spacer(Modifier.height(3.dp))
-
-                    Row(
-                        modifier = Modifier.weight(1f),
-                        horizontalArrangement = Arrangement.spacedBy(3.dp)
-                    ) {
-                        Aw11DataCell(
-                            label = "AVG SPEED",
-                            value = displayedAvgSpeed,
-                            modifier = Modifier.weight(1f)
-                        )
-
-                        Aw11DataCell(
-                            label = "MAX SPEED",
-                            value = displayedMaxSpeed,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-            }
+            )
         }
     }
 }
@@ -801,38 +736,6 @@ private fun RetroEqualizer(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun Aw11DataCell(
-    label: String,
-    value: String,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier
-            .fillMaxHeight()
-            .border(1.dp, Aw11Border.copy(alpha = 0.45f))
-            .padding(6.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(
-            text = label,
-            color = Aw11Secondary,
-            fontSize = 8.sp,
-            letterSpacing = 0.25.sp
-        )
-
-        Spacer(Modifier.height(5.dp))
-
-        Text(
-            text = value,
-            color = Aw11Primary,
-            fontFamily = DSEG14Classic,
-            fontSize = 20.sp
-        )
     }
 }
 
