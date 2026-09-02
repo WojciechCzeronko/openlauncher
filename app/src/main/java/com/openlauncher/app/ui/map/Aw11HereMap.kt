@@ -290,6 +290,7 @@ fun Aw11HereMap(
         state.activeRoute = null
         state.routeProgress = null
         state.destination = null
+        state.destinationPositionHint = null
         state.destinationTitle = null
         state.isArrived = false
 
@@ -309,7 +310,8 @@ fun Aw11HereMap(
     }
 
     fun startGuidanceTo(
-        destination: GeoCoordinates,
+        destinationPosition: GeoCoordinates,
+        destinationAccessPoints: List<GeoCoordinates> = emptyList(),
         destinationTitle: String
     ) {
         searchPinRenderer.clear()
@@ -325,8 +327,24 @@ fun Aw11HereMap(
                 animationState.longitude
             )
 
+        val destination =
+            destinationAccessPoints
+                .minByOrNull { accessPoint ->
+                    start.distanceTo(accessPoint)
+                }
+                ?: destinationPosition
+
+        val destinationPositionHint =
+            if (destinationAccessPoints.isNotEmpty()) {
+                destinationPosition
+            } else {
+                null
+            }
         state.destination =
             destination
+
+        state.destinationPositionHint =
+            destinationPositionHint
 
         state.destinationTitle =
             destinationTitle
@@ -348,13 +366,21 @@ fun Aw11HereMap(
             TAG,
             "Calculating route to: " +
                     "$destinationTitle, " +
-                    "${destination.latitude}, " +
-                    "${destination.longitude}"
+                    "position=" +
+                    "${destinationPosition.latitude}," +
+                    "${destinationPosition.longitude}, " +
+                    "routingTarget=" +
+                    "${destination.latitude}," +
+                    "${destination.longitude}, " +
+                    "accessPoints=" +
+                    destinationAccessPoints.size
         )
 
         routingController.calculateRoute(
             start = start,
             destination = destination,
+            destinationPositionHint =
+                destinationPositionHint,
             startHeadingDegrees =
                 navigationLocation
                     ?.bearingDegrees,
@@ -382,7 +408,8 @@ fun Aw11HereMap(
 
                 routeRenderer.showRoute(
                     route = route,
-                    destination = destination
+                    destination =
+                        destinationPosition
                 )
 
                 Log.d(
@@ -676,7 +703,7 @@ fun Aw11HereMap(
             }
 
         mapView.mapScene.loadScene(
-            MapScheme.LITE_NIGHT
+            "aw11-night-mockup.zip"
         ) { mapError ->
             if (mapError == null) {
                 Log.d(TAG, "HERE map scene loaded.")
@@ -994,6 +1021,8 @@ fun Aw11HereMap(
                             routingController.calculateRoute(
                                 start = rawCoordinates,
                                 destination = destination,
+                                destinationPositionHint =
+                                    state.destinationPositionHint,
                                 startHeadingDegrees =
                                     currentLocation.bearingDegrees,
                                 onSuccess = { newRoute ->
@@ -1021,7 +1050,9 @@ fun Aw11HereMap(
 
                                     routeRenderer.showRoute(
                                         route = newRoute,
-                                        destination = destination
+                                        destination =
+                                            state.destinationPositionHint
+                                                ?: destination
                                     )
 
                                     lastRouteRefreshMs.longValue =
@@ -1435,6 +1466,8 @@ fun Aw11HereMap(
         routingController.calculateRoute(
             start = start,
             destination = destination,
+            destinationPositionHint =
+                state.destinationPositionHint,
             startHeadingDegrees =
                 currentLocation.bearingDegrees,
             onSuccess = { candidateRoute ->
@@ -1471,7 +1504,9 @@ fun Aw11HereMap(
                         )
                     routeRenderer.showRoute(
                         route = candidateRoute,
-                        destination = destination
+                        destination =
+                            state.destinationPositionHint
+                                ?: destination
                     )
 
                     Log.d(
@@ -1695,8 +1730,10 @@ fun Aw11HereMap(
                 },
                 onResultSelected = { result ->
                     startGuidanceTo(
-                        destination =
+                        destinationPosition =
                             result.coordinates,
+                        destinationAccessPoints =
+                            result.accessPoints,
                         destinationTitle =
                             result.title
                     )
@@ -1727,7 +1764,7 @@ fun Aw11HereMap(
                                 ?: "SELECTED LOCATION"
 
                         startGuidanceTo(
-                            destination =
+                            destinationPosition =
                                 location.coordinates,
                             destinationTitle =
                                 title
@@ -1860,8 +1897,7 @@ fun Aw11HereMap(
                             Alignment.TopStart
                         )
                         .padding(
-                            start = 10.dp,
-                            top = 10.dp
+                            start = 10.dp, top = 10.dp
                         )
                 )
             }

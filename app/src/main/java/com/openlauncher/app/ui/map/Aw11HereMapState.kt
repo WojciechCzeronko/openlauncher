@@ -29,7 +29,7 @@ class Aw11HereMapState {
     var routeProgress by mutableStateOf<RouteProgress?>(null)
     var isArrived by mutableStateOf(false)
     var destination by mutableStateOf<GeoCoordinates?>(null)
-
+    var destinationPositionHint by mutableStateOf<GeoCoordinates?>(null)
     var selectedLocation by
     mutableStateOf<HereSelectedLocation?>(
         null

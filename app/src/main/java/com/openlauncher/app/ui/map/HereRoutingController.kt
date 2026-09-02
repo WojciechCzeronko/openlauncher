@@ -3,6 +3,7 @@ package com.openlauncher.app.ui.map
 import com.here.sdk.core.GeoCoordinates
 import com.here.sdk.core.errors.InstantiationErrorException
 import com.here.sdk.routing.CalculateRouteCallback
+import com.here.sdk.routing.MatchSideOfStreet
 import com.here.sdk.routing.Route
 import com.here.sdk.routing.RoutingEngine
 import com.here.sdk.routing.RoutingError
@@ -24,6 +25,7 @@ class HereRoutingController {
     fun calculateRoute(
         start: GeoCoordinates,
         destination: GeoCoordinates,
+        destinationPositionHint: GeoCoordinates? = null,
         startHeadingDegrees: Float? = null,
         onSuccess: (Route) -> Unit,
         onError: (RoutingError) -> Unit
@@ -33,7 +35,16 @@ class HereRoutingController {
             startWaypoint.headingInDegrees =
                 heading.toDouble()
         }
-        val destinationWaypoint = Waypoint(destination)
+        val destinationWaypoint =
+            Waypoint(destination)
+
+        destinationPositionHint?.let { position ->
+            destinationWaypoint.sideOfStreetHint =
+                position
+
+            destinationWaypoint.matchSideOfStreet =
+                MatchSideOfStreet.ALWAYS
+        }
 
         val waypoints = listOf(
             startWaypoint,

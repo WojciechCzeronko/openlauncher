@@ -13,6 +13,7 @@ data class HereSearchResult(
     val title: String,
     val address: String,
     val coordinates: GeoCoordinates,
+    val accessPoints: List<GeoCoordinates>,
     val distanceMeters: Double
 )
 
@@ -70,6 +71,7 @@ class HereSearchController {
                                 title = place.title,
                                 address = place.address.addressText,
                                 coordinates = coordinates,
+                                accessPoints = place.accessPoints,
                                 distanceMeters = center.distanceTo(coordinates)
                             )
                         }
