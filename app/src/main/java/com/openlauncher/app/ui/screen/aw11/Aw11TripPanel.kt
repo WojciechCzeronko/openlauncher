@@ -16,9 +16,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.openlauncher.app.ui.theme.Aw11Border
+import com.openlauncher.app.ui.theme.Aw11CrtGlowSmall
 import com.openlauncher.app.ui.theme.Aw11Primary
 import com.openlauncher.app.ui.theme.Aw11Secondary
 import com.openlauncher.app.ui.theme.DSEG14Classic
@@ -166,7 +168,10 @@ private fun Aw11DataCell(
             text = value,
             color = Aw11Primary,
             fontFamily = DSEG14Classic,
-            fontSize = 20.sp
+            fontSize = 20.sp,
+            style = TextStyle(
+                shadow = Aw11CrtGlowSmall
+            )
         )
     }
 }

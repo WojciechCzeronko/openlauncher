@@ -8,6 +8,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.openlauncher.app.R
 import com.openlauncher.app.data.AppFont
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Shadow
 
 val JetBrainsMono = FontFamily(
     Font(R.font.jetbrains_mono_light,   FontWeight.Light),
@@ -42,6 +44,22 @@ fun AppFont.toFontFamily(): FontFamily = when (this) {
 
 val DSEGWeather = FontFamily(
     Font(R.font.dseg_weather, FontWeight.Normal),
+)
+
+val Aw11CrtGlow = Shadow(
+    color = Aw11Primary.copy(
+        alpha = 0.75f
+    ),
+    offset = Offset.Zero,
+    blurRadius = 16f
+)
+
+val Aw11CrtGlowSmall = Shadow(
+    color = Aw11Primary.copy(
+        alpha = 0.60f
+    ),
+    offset = Offset.Zero,
+    blurRadius = 9f
 )
 
 fun launcherTypography(bold: Boolean, scale: Float, fontFamily: FontFamily = FontFamily.Default): Typography {

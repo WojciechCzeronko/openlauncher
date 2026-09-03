@@ -22,6 +22,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import com.openlauncher.app.data.AppSettings
 import com.openlauncher.app.model.NowPlayingState
 import com.openlauncher.app.ui.components.Aw11ControlPanel
@@ -130,7 +131,7 @@ internal fun Aw11HomeLayout(
             ?: tripData.maxSpeedMps
     val distanceDisplay =
         if (isMetric) {
-            "%.1f KM".format(displayedTripDistanceMeters/ 1000.0)
+            "%.1f KM".format(displayedTripDistanceMeters / 1000.0)
         } else {
             "%.1f MI".format(displayedTripDistanceMeters / 1609.344)
         }
@@ -163,115 +164,125 @@ internal fun Aw11HomeLayout(
     val displayedMaxSpeed =
         if (showTestValues) "888" else "%03.0f".format(maxSpeed)
 
-    Row(
+    Box(
         modifier = modifier
             .fillMaxSize()
-            .padding(3.dp)
     ) {
-        // LEFT — NAV / MUSIC / CAR / APPS / SETTINGS
-        Box(
+        Row(
             modifier = Modifier
-                .weight(0.13f)
-                .fillMaxHeight()
-                .border(
-                    1.dp,
-                    Aw11Border.copy(
-                        alpha = 0.45f
+                .fillMaxSize()
+                .padding(3.dp)
+        ) {
+            // LEFT — NAV / MUSIC / CAR / APPS / SETTINGS
+            Box(
+                modifier = Modifier
+                    .weight(0.13f)
+                    .fillMaxHeight()
+                    .border(
+                        1.dp,
+                        Aw11Border.copy(
+                            alpha = 0.45f
+                        )
                     )
+            ) {
+                Aw11ControlPanel(
+                    hasGps = location != null,
+                    mediaAvailable =
+                        nowPlaying?.controller?.packageName
+                            .isNullOrBlank()
+                            .not(),
+                    onNav = {
+                        searchOpenRequestId++
+                    },
+                    onMedia = onOpenMedia,
+                    onApps = onOpenApps,
+                    onSettings = onOpenSettings
                 )
-        ) {
-            Aw11ControlPanel(
-                hasGps = location != null,
-                mediaAvailable =
-                    nowPlaying?.controller?.packageName
-                        .isNullOrBlank()
-                        .not(),
-                onNav = {
-                    searchOpenRequestId++
-                },
-                onMedia = onOpenMedia,
-                onApps = onOpenApps,
-                onSettings = onOpenSettings
-            )
+            }
+
+            Spacer(Modifier.width(3.dp))
+
+            // CENTER — NAVIGATION / MAP
+            Box(
+                modifier = Modifier
+                    .weight(0.55f)
+                    .fillMaxHeight()
+                    .border(1.dp, Aw11Border.copy(alpha = 0.45f))
+            ) {
+                Aw11HereMap(
+                    location = location,
+                    settings = settings,
+                    openSearchRequestId =
+                        searchOpenRequestId,
+                    onDemoDataChanged = { demoLocation,
+                                          demoTripData ->
+
+                        demoDisplayLocation =
+                            demoLocation
+
+                        demoDisplayTripData =
+                            demoTripData
+                    },
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(1.dp)
+                )
+            }
+
+            Spacer(Modifier.width(3.dp))
+
+            // RIGHT — SPEED / MUSIC / CAR DATA
+            Column(
+                modifier = Modifier
+                    .weight(0.32f)
+                    .fillMaxHeight()
+            ) {
+                // SPEED
+                Aw11SpeedPanel(
+                    speedDisplay = speedDisplay,
+                    speedProgress = speedProgress,
+                    isMetric = isMetric,
+                    showTestValues = showTestValues,
+                    selfTestProgress =
+                        selfTestProgress.value,
+                    modifier = Modifier
+                        .weight(0.26f)
+                )
+
+                Spacer(Modifier.height(3.dp))
+
+                // MUSIC
+                Aw11MediaPanel(
+                    nowPlaying = nowPlaying,
+                    showTestValues = showTestValues,
+                    selfTestProgress =
+                        selfTestProgress.value,
+                    onPrev = onPrev,
+                    onPlayPause = onPlayPause,
+                    onNext = onNext,
+                    modifier = Modifier
+                        .weight(0.36f)
+                )
+
+                Spacer(Modifier.height(3.dp))
+
+                // CAR DATA
+                Aw11TripPanel(
+                    distance = displayedDistance,
+                    driveTime = displayedDriveTime,
+                    averageSpeed = displayedAvgSpeed,
+                    maxSpeed = displayedMaxSpeed,
+                    onResetTrip = onResetTrip,
+                    modifier = Modifier
+                        .weight(0.38f)
+                )
+            }
         }
 
-        Spacer(Modifier.width(3.dp))
-
-        // CENTER — NAVIGATION / MAP
-        Box(
+        Aw11CrtOverlay(
             modifier = Modifier
-                .weight(0.55f)
-                .fillMaxHeight()
-                .border(1.dp, Aw11Border.copy(alpha = 0.45f))
-        ) {
-            Aw11HereMap(
-                location = location,
-                settings = settings,
-                openSearchRequestId =
-                    searchOpenRequestId,
-                onDemoDataChanged = {
-                        demoLocation,
-                        demoTripData ->
-
-                    demoDisplayLocation =
-                        demoLocation
-
-                    demoDisplayTripData =
-                        demoTripData
-                },
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(1.dp)
-            )
-        }
-
-        Spacer(Modifier.width(3.dp))
-
-        // RIGHT — SPEED / MUSIC / CAR DATA
-        Column(
-            modifier = Modifier
-                .weight(0.32f)
-                .fillMaxHeight()
-        ) {
-            // SPEED
-            Aw11SpeedPanel(
-                speedDisplay = speedDisplay,
-                speedProgress = speedProgress,
-                isMetric = isMetric,
-                showTestValues = showTestValues,
-                selfTestProgress =
-                    selfTestProgress.value,
-                modifier = Modifier
-                    .weight(0.26f)
-            )
-
-            Spacer(Modifier.height(3.dp))
-
-            // MUSIC
-            Aw11MediaPanel(
-                nowPlaying = nowPlaying,
-                showTestValues = showTestValues,
-                selfTestProgress =
-                    selfTestProgress.value,
-                onPrev = onPrev,
-                onPlayPause = onPlayPause,
-                onNext = onNext,
-                modifier = Modifier
-                    .weight(0.36f)
-            )
-
-            Spacer(Modifier.height(3.dp))
-
-            // CAR DATA
-            Aw11TripPanel(
-                distance = displayedDistance,
-                driveTime = displayedDriveTime,
-                averageSpeed = displayedAvgSpeed,
-                maxSpeed = displayedMaxSpeed,
-                onResetTrip = onResetTrip,
-                modifier = Modifier
-                    .weight(0.38f)
-            )
-        }
+                .matchParentSize()
+                .zIndex(100f)
+        )
     }
 }
