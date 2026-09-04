@@ -19,9 +19,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.openlauncher.app.ui.theme.Aw11Border
+import com.openlauncher.app.ui.theme.Aw11CrtGlow
 import com.openlauncher.app.ui.theme.Aw11Dim
 import com.openlauncher.app.ui.theme.Aw11Primary
 import com.openlauncher.app.ui.theme.Aw11Secondary
@@ -96,7 +98,10 @@ fun Aw11ControlPanel(
                 text = time,
                 color = Aw11Primary,
                 fontFamily = DSEG14Classic,
-                fontSize = 24.sp
+                fontSize = 24.sp,
+                style = TextStyle(
+                    shadow = Aw11CrtGlow
+                )
             )
         }
 

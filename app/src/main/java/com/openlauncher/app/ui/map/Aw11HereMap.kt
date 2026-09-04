@@ -703,7 +703,7 @@ fun Aw11HereMap(
             }
 
         mapView.mapScene.loadScene(
-            "aw11-night-mockup.zip"
+            "aw11-style-new.zip"
         ) { mapError ->
             if (mapError == null) {
                 Log.d(TAG, "HERE map scene loaded.")
