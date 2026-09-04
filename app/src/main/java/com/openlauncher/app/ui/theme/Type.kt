@@ -1,83 +1,177 @@
 package com.openlauncher.app.ui.theme
 
+import android.os.Build
 import androidx.compose.material3.Typography
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.openlauncher.app.R
 import com.openlauncher.app.data.AppFont
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Shadow
 
 val JetBrainsMono = FontFamily(
-    Font(R.font.jetbrains_mono_light,   FontWeight.Light),
+    Font(R.font.jetbrains_mono_light, FontWeight.Light),
     Font(R.font.jetbrains_mono_regular, FontWeight.Normal),
-    Font(R.font.jetbrains_mono_bold,    FontWeight.Medium),
-    Font(R.font.jetbrains_mono_bold,    FontWeight.SemiBold),
-    Font(R.font.jetbrains_mono_bold,    FontWeight.Bold),
+    Font(R.font.jetbrains_mono_bold, FontWeight.Medium),
+    Font(R.font.jetbrains_mono_bold, FontWeight.SemiBold),
+    Font(R.font.jetbrains_mono_bold, FontWeight.Bold),
 )
 
 val SourceCodePro = FontFamily(
     Font(R.font.source_code_pro_regular, FontWeight.Normal),
-    Font(R.font.source_code_pro_bold,    FontWeight.Medium),
-    Font(R.font.source_code_pro_bold,    FontWeight.SemiBold),
-    Font(R.font.source_code_pro_bold,    FontWeight.Bold),
+    Font(R.font.source_code_pro_bold, FontWeight.Medium),
+    Font(R.font.source_code_pro_bold, FontWeight.SemiBold),
+    Font(R.font.source_code_pro_bold, FontWeight.Bold),
 )
 
 val DSEG14Classic = FontFamily(
     Font(R.font.dseg14_classic_regular, FontWeight.Normal),
 )
 
+@OptIn(ExperimentalTextApi::class)
+val Handjet = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+    FontFamily(
+        Font(
+            resId = R.font.handjet,
+            weight = FontWeight.Normal,
+            variationSettings = FontVariation.Settings(
+                FontVariation.Setting(
+                    "wght",
+                    600f
+                ),
+                FontVariation.Setting(
+                    "ELSH",
+                    8f
+                ),
+                FontVariation.Setting(
+                    "ELGR",
+                    1f
+                )
+            )
+        )
+    )
+} else {
+    FontFamily(
+        Font(
+            R.font.handjet,
+            FontWeight.Normal
+        )
+    )
+}
+
 val IbmVga9x16 = FontFamily(
     Font(R.font.ibm_vga_9x16, FontWeight.Normal),
 )
 
 fun AppFont.toFontFamily(): FontFamily = when (this) {
-    AppFont.SYSTEM          -> FontFamily.Default
-    AppFont.JETBRAINS_MONO  -> JetBrainsMono
+    AppFont.SYSTEM -> FontFamily.Default
+    AppFont.JETBRAINS_MONO -> JetBrainsMono
     AppFont.SOURCE_CODE_PRO -> SourceCodePro
-    AppFont.DSEG14_CLASSIC  -> DSEG14Classic
-    AppFont.IBM_VGA_9X16    -> IbmVga9x16
+    AppFont.DSEG14_CLASSIC -> DSEG14Classic
+    AppFont.IBM_VGA_9X16 -> IbmVga9x16
 }
 
 val DSEGWeather = FontFamily(
     Font(R.font.dseg_weather, FontWeight.Normal),
 )
 
-val Aw11CrtGlow = Shadow(
+val Aw11DisplayGlow = Shadow(
     color = Aw11Primary.copy(
-        alpha = 0.75f
+        alpha = 0.55f
     ),
     offset = Offset.Zero,
-    blurRadius = 16f
+    blurRadius = 8f
 )
 
-val Aw11CrtGlowSmall = Shadow(
+val Aw11DisplayGlowSmall = Shadow(
     color = Aw11Primary.copy(
-        alpha = 0.60f
+        alpha = 0.45f
     ),
     offset = Offset.Zero,
-    blurRadius = 9f
+    blurRadius = 6f
 )
 
-fun launcherTypography(bold: Boolean, scale: Float, fontFamily: FontFamily = FontFamily.Default): Typography {
+fun launcherTypography(
+    bold: Boolean,
+    scale: Float,
+    fontFamily: FontFamily = FontFamily.Default
+): Typography {
     val weight = if (bold) FontWeight.Bold else FontWeight.Normal
     return Typography(
-        displayLarge   = TextStyle(fontFamily = fontFamily, fontWeight = FontWeight.Light,  fontSize = (57 * scale).sp),
-        displayMedium  = TextStyle(fontFamily = fontFamily, fontWeight = FontWeight.Light,  fontSize = (45 * scale).sp),
-        headlineLarge  = TextStyle(fontFamily = fontFamily, fontWeight = weight,            fontSize = (32 * scale).sp),
-        headlineMedium = TextStyle(fontFamily = fontFamily, fontWeight = weight,            fontSize = (28 * scale).sp),
-        headlineSmall  = TextStyle(fontFamily = fontFamily, fontWeight = weight,            fontSize = (24 * scale).sp),
-        titleLarge     = TextStyle(fontFamily = fontFamily, fontWeight = FontWeight.Medium, fontSize = (22 * scale).sp),
-        titleMedium    = TextStyle(fontFamily = fontFamily, fontWeight = FontWeight.Medium, fontSize = (16 * scale).sp),
-        titleSmall     = TextStyle(fontFamily = fontFamily, fontWeight = FontWeight.Medium, fontSize = (14 * scale).sp),
-        bodyLarge      = TextStyle(fontFamily = fontFamily, fontWeight = weight,            fontSize = (16 * scale).sp),
-        bodyMedium     = TextStyle(fontFamily = fontFamily, fontWeight = weight,            fontSize = (14 * scale).sp),
-        bodySmall      = TextStyle(fontFamily = fontFamily, fontWeight = weight,            fontSize = (12 * scale).sp),
-        labelLarge     = TextStyle(fontFamily = fontFamily, fontWeight = FontWeight.Medium, fontSize = (14 * scale).sp),
-        labelMedium    = TextStyle(fontFamily = fontFamily, fontWeight = FontWeight.Medium, fontSize = (12 * scale).sp),
-        labelSmall     = TextStyle(fontFamily = fontFamily, fontWeight = FontWeight.Medium, fontSize = (11 * scale).sp),
+        displayLarge = TextStyle(
+            fontFamily = fontFamily,
+            fontWeight = FontWeight.Light,
+            fontSize = (57 * scale).sp
+        ),
+        displayMedium = TextStyle(
+            fontFamily = fontFamily,
+            fontWeight = FontWeight.Light,
+            fontSize = (45 * scale).sp
+        ),
+        headlineLarge = TextStyle(
+            fontFamily = fontFamily,
+            fontWeight = weight,
+            fontSize = (32 * scale).sp
+        ),
+        headlineMedium = TextStyle(
+            fontFamily = fontFamily,
+            fontWeight = weight,
+            fontSize = (28 * scale).sp
+        ),
+        headlineSmall = TextStyle(
+            fontFamily = fontFamily,
+            fontWeight = weight,
+            fontSize = (24 * scale).sp
+        ),
+        titleLarge = TextStyle(
+            fontFamily = fontFamily,
+            fontWeight = FontWeight.Medium,
+            fontSize = (22 * scale).sp
+        ),
+        titleMedium = TextStyle(
+            fontFamily = fontFamily,
+            fontWeight = FontWeight.Medium,
+            fontSize = (16 * scale).sp
+        ),
+        titleSmall = TextStyle(
+            fontFamily = fontFamily,
+            fontWeight = FontWeight.Medium,
+            fontSize = (14 * scale).sp
+        ),
+        bodyLarge = TextStyle(
+            fontFamily = fontFamily,
+            fontWeight = weight,
+            fontSize = (16 * scale).sp
+        ),
+        bodyMedium = TextStyle(
+            fontFamily = fontFamily,
+            fontWeight = weight,
+            fontSize = (14 * scale).sp
+        ),
+        bodySmall = TextStyle(
+            fontFamily = fontFamily,
+            fontWeight = weight,
+            fontSize = (12 * scale).sp
+        ),
+        labelLarge = TextStyle(
+            fontFamily = fontFamily,
+            fontWeight = FontWeight.Medium,
+            fontSize = (14 * scale).sp
+        ),
+        labelMedium = TextStyle(
+            fontFamily = fontFamily,
+            fontWeight = FontWeight.Medium,
+            fontSize = (12 * scale).sp
+        ),
+        labelSmall = TextStyle(
+            fontFamily = fontFamily,
+            fontWeight = FontWeight.Medium,
+            fontSize = (11 * scale).sp
+        ),
     )
 }

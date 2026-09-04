@@ -246,7 +246,7 @@ internal fun Aw11HomeLayout(
                     selfTestProgress =
                         selfTestProgress.value,
                     modifier = Modifier
-                        .weight(0.26f)
+                        .weight(0.28f)
                 )
 
                 Spacer(Modifier.height(3.dp))
@@ -274,12 +274,12 @@ internal fun Aw11HomeLayout(
                     maxSpeed = displayedMaxSpeed,
                     onResetTrip = onResetTrip,
                     modifier = Modifier
-                        .weight(0.38f)
+                        .weight(0.36f)
                 )
             }
         }
 
-        Aw11CrtOverlay(
+        Aw11DisplayOverlay(
             modifier = Modifier
                 .matchParentSize()
                 .zIndex(100f)

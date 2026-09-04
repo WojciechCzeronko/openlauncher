@@ -1,30 +1,30 @@
 package com.openlauncher.app.ui.screen.aw11
 
-import androidx.compose.foundation.Canvas
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.runtime.getValue
+import androidx.compose.foundation.Canvas
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import com.openlauncher.app.ui.theme.Aw11Primary
 import kotlinx.coroutines.delay
 import kotlin.random.Random
 
 @Composable
-internal fun Aw11CrtOverlay(
+internal fun Aw11DisplayOverlay(
     modifier: Modifier = Modifier,
     scanlineAlpha: Float = 0.20f,
     vignetteAlpha: Float = 0.24f,
@@ -138,7 +138,7 @@ internal fun Aw11CrtOverlay(
             )
         )
 
-        // CRT horizontal noise / interference
+        // Display horizontal noise / interference
 
         drawRect(
             color = Aw11Primary.copy(

@@ -17,13 +17,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextGeometricTransform
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.openlauncher.app.ui.theme.Aw11Border
-import com.openlauncher.app.ui.theme.Aw11CrtGlowSmall
+import com.openlauncher.app.ui.theme.Aw11DisplayGlowSmall
 import com.openlauncher.app.ui.theme.Aw11Primary
 import com.openlauncher.app.ui.theme.Aw11Secondary
-import com.openlauncher.app.ui.theme.DSEG14Classic
+import com.openlauncher.app.ui.theme.Handjet
 
 @Composable
 internal fun Aw11TripPanel(
@@ -167,10 +168,13 @@ private fun Aw11DataCell(
         Text(
             text = value,
             color = Aw11Primary,
-            fontFamily = DSEG14Classic,
-            fontSize = 20.sp,
+            fontFamily = Handjet,
+            fontSize = 24.sp,
             style = TextStyle(
-                shadow = Aw11CrtGlowSmall
+                shadow = Aw11DisplayGlowSmall,
+                textGeometricTransform = TextGeometricTransform(
+                    scaleX = 1.12f
+                )
             )
         )
     }

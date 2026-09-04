@@ -20,14 +20,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextGeometricTransform
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.openlauncher.app.ui.theme.Aw11Border
-import com.openlauncher.app.ui.theme.Aw11CrtGlow
 import com.openlauncher.app.ui.theme.Aw11Dim
+import com.openlauncher.app.ui.theme.Aw11DisplayGlow
 import com.openlauncher.app.ui.theme.Aw11Primary
 import com.openlauncher.app.ui.theme.Aw11Secondary
-import com.openlauncher.app.ui.theme.DSEG14Classic
+import com.openlauncher.app.ui.theme.Handjet
 import kotlin.math.roundToInt
 
 @Composable
@@ -83,10 +84,13 @@ internal fun Aw11SpeedPanel(
                             )
                         },
                     color = Aw11Primary,
-                    fontFamily = DSEG14Classic,
-                    fontSize = 44.sp,
+                    fontFamily = Handjet,
+                    fontSize = 52.sp,
                     style = TextStyle(
-                        shadow = Aw11CrtGlow
+                        shadow = Aw11DisplayGlow,
+                        textGeometricTransform = TextGeometricTransform(
+                            scaleX = 1.15f
+                        )
                     )
                 )
 
@@ -116,7 +120,7 @@ internal fun Aw11SpeedPanel(
                                 Alignment.TopStart
                             )
                             .offset(
-                                y = (-2).dp
+                                y = (10).dp
                             )
                     )
 
@@ -137,7 +141,7 @@ internal fun Aw11SpeedPanel(
                                 Alignment.BottomStart
                             )
                             .offset(
-                                y = 2.dp
+                                y = (-10).dp
                             )
                     )
                 }
