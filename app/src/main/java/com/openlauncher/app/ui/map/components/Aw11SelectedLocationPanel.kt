@@ -18,6 +18,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -25,8 +27,6 @@ import com.openlauncher.app.ui.map.HereSelectedLocation
 import com.openlauncher.app.ui.theme.Aw11Background
 import com.openlauncher.app.ui.theme.Aw11Primary
 import com.openlauncher.app.ui.theme.Aw11Secondary
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.pointerInput
 
 @Composable
 fun Aw11SelectedLocationPanel(

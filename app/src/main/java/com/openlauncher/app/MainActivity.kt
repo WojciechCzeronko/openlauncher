@@ -8,20 +8,10 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -48,6 +38,7 @@ import com.openlauncher.app.ui.screen.AppLibraryScreen
 import com.openlauncher.app.ui.screen.HomeScreen
 import com.openlauncher.app.ui.screen.OnboardingScreen
 import com.openlauncher.app.ui.screen.SettingsScreen
+import com.openlauncher.app.ui.screen.aw11.Aw11Shell
 import com.openlauncher.app.ui.theme.Aw11Background
 import com.openlauncher.app.ui.theme.OpenLauncherTheme
 import com.openlauncher.app.viewmodel.LauncherViewModel
@@ -249,17 +240,10 @@ class MainActivity : ComponentActivity() {
                             }
 
                             val mainPane: @Composable (Modifier) -> Unit = { paneModifier ->
-                                // ── Main content pane ─────────────────────────────
-                                AnimatedContent(
-                                    targetState = nav,
-                                    transitionSpec = {
-                                        fadeIn() + slideInHorizontally { it / 10 } togetherWith
-                                                fadeOut() + slideOutHorizontally { -it / 10 }
-                                    },
-                                    modifier = paneModifier,
-                                    label = "pane_transition"
-                                ) { destination ->
-                                    when (destination) {
+                                Box(
+                                    modifier = paneModifier
+                                ) {
+                                    when (nav) {
                                         NavDestination.HOME -> HomeScreen(
                                             settings = settings,
                                             nowPlaying = nowPlaying,
@@ -296,29 +280,48 @@ class MainActivity : ComponentActivity() {
                                             isLoading = appsLoading,
                                             isPickerMode = pickerSlot != null,
                                             pickerSlot = pickerSlot,
-                                            isCarPlayPickerMode = appPickerTarget != null,
-                                            carPlayPickerLabel = when (appPickerTarget) {
-                                                com.openlauncher.app.viewmodel.LauncherViewModel.AppPickerTarget.ANDROID_AUTO -> "CHOOSE ANDROID AUTO APP"
-                                                com.openlauncher.app.viewmodel.LauncherViewModel.AppPickerTarget.PIP -> "CHOOSE PIP APP"
-                                                com.openlauncher.app.viewmodel.LauncherViewModel.AppPickerTarget.RADIO -> "CHOOSE RADIO APP"
-                                                else -> "CHOOSE CARPLAY APP"
-                                            },
+                                            isCarPlayPickerMode =
+                                                appPickerTarget != null,
+                                            carPlayPickerLabel =
+                                                when (appPickerTarget) {
+                                                    LauncherViewModel.AppPickerTarget.ANDROID_AUTO ->
+                                                        "CHOOSE ANDROID AUTO APP"
+
+                                                    LauncherViewModel.AppPickerTarget.PIP ->
+                                                        "CHOOSE PIP APP"
+
+                                                    LauncherViewModel.AppPickerTarget.RADIO ->
+                                                        "CHOOSE RADIO APP"
+
+                                                    else ->
+                                                        "CHOOSE CARPLAY APP"
+                                                },
                                             accent = accent,
-                                            onAppClick = { app -> vm.launchApp(app.packageName) },
+                                            onAppClick = { app ->
+                                                vm.launchApp(
+                                                    app.packageName
+                                                )
+                                            },
                                             onPickerSelect = { slot, app ->
                                                 vm.assignShortcut(
                                                     slot,
                                                     app
                                                 )
                                             },
-                                            onCarPlaySelect = { app -> vm.assignPickerApp(app) }
+                                            onCarPlaySelect = { app ->
+                                                vm.assignPickerApp(app)
+                                            }
                                         )
 
                                         NavDestination.SETTINGS -> SettingsScreen(
                                             settings = settings,
                                             accent = accent,
-                                            onUpdate = { block -> vm.updateSettings(block) },
-                                            onReset = { vm.resetSettings() }
+                                            onUpdate = { block ->
+                                                vm.updateSettings(block)
+                                            },
+                                            onReset = {
+                                                vm.resetSettings()
+                                            }
                                         )
                                     }
                                 }
@@ -330,59 +333,44 @@ class MainActivity : ComponentActivity() {
                                 mainPane(
                                     Modifier.fillMaxSize()
                                 )
-                            } else if (isBottomBar) {
-                                Column(
-                                    modifier =
-                                        Modifier.fillMaxSize()
-                                ) {
-                                    mainPane(
-                                        Modifier
-                                            .weight(1f)
-                                            .fillMaxWidth()
-                                    )
-
-                                    androidx.compose.material3.HorizontalDivider(
-                                        color = layoutDivColor
-                                    )
-
-                                    sidebarContent()
-                                }
                             } else {
-                                Row(
-                                    modifier =
-                                        Modifier.fillMaxSize()
-                                ) {
-                                    val vDivider:
-                                            @Composable () -> Unit = {
-                                        androidx.compose.material3.VerticalDivider(
-                                            modifier =
-                                                Modifier.fillMaxHeight(),
-                                            color =
-                                                layoutDivColor
+                                Aw11Shell(
+                                    hasGps = location != null,
+                                    mediaAvailable =
+                                        nowPlaying
+                                            ?.controller
+                                            ?.packageName
+                                            .isNullOrBlank()
+                                            .not(),
+                                    onNav = {
+                                        vm.navigate(
+                                            NavDestination.HOME
+                                        )
+                                    },
+                                    onMedia = {
+                                        val packageName =
+                                            nowPlaying
+                                                ?.controller
+                                                ?.packageName
+
+                                        if (!packageName.isNullOrBlank()) {
+                                            vm.launchApp(packageName)
+                                        }
+                                    },
+                                    onApps = {
+                                        vm.navigate(
+                                            NavDestination.APP_LIBRARY
+                                        )
+                                    },
+                                    onSettings = {
+                                        vm.navigate(
+                                            NavDestination.SETTINGS
                                         )
                                     }
-
-                                    if (
-                                        settings.sidebarPosition ==
-                                        SidebarPosition.LEFT
-                                    ) {
-                                        sidebarContent()
-                                        vDivider()
-                                    }
-
+                                ) {
                                     mainPane(
-                                        Modifier
-                                            .weight(1f)
-                                            .fillMaxHeight()
+                                        Modifier.fillMaxSize()
                                     )
-
-                                    if (
-                                        settings.sidebarPosition ==
-                                        SidebarPosition.RIGHT
-                                    ) {
-                                        vDivider()
-                                        sidebarContent()
-                                    }
                                 }
                             }
                         }

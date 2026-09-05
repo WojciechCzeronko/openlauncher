@@ -1,5 +1,8 @@
 package com.openlauncher.app.ui.map
 
+import android.graphics.RenderEffect
+import android.graphics.RuntimeShader
+import android.os.Build
 import android.os.SystemClock
 import android.util.Log
 import android.view.MotionEvent
@@ -28,10 +31,12 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.here.sdk.core.GeoCoordinates
 import com.here.sdk.gestures.TapListener
+import com.here.sdk.mapview.MapFeatures
 import com.here.sdk.mapview.MapImageFactory
 import com.here.sdk.mapview.MapMarker3D
-import com.here.sdk.mapview.MapScheme
+import com.here.sdk.mapview.MapRenderMode
 import com.here.sdk.mapview.MapView
+import com.here.sdk.mapview.MapViewOptions
 import com.here.sdk.mapview.RenderSize
 import com.openlauncher.app.R
 import com.openlauncher.app.data.AppSettings
@@ -54,13 +59,6 @@ import com.openlauncher.app.ui.map.navigation.RouteProgressTracker
 import com.openlauncher.app.util.LocationData
 import kotlinx.coroutines.delay
 import kotlin.math.exp
-import com.here.sdk.mapview.MapFeatures
-import com.here.sdk.mapview.MapRenderMode
-import com.here.sdk.mapview.MapViewOptions
-import com.openlauncher.app.ui.map.components.Aw11MapPixelMask
-import android.graphics.RenderEffect
-import android.graphics.RuntimeShader
-import android.os.Build
 
 private const val TAG = "Aw11HereMap"
 
