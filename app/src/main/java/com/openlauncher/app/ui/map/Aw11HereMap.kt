@@ -55,6 +55,12 @@ import com.openlauncher.app.util.LocationData
 import kotlinx.coroutines.delay
 import kotlin.math.exp
 import com.here.sdk.mapview.MapFeatures
+import com.here.sdk.mapview.MapRenderMode
+import com.here.sdk.mapview.MapViewOptions
+import com.openlauncher.app.ui.map.components.Aw11MapPixelMask
+import android.graphics.RenderEffect
+import android.graphics.RuntimeShader
+import android.os.Build
 
 private const val TAG = "Aw11HereMap"
 
@@ -90,6 +96,20 @@ private const val ARRIVAL_CONFIRMATION_COUNT = 3
 private const val ARRIVAL_AUTO_CLOSE_DELAY_MS = 20_000L
 
 private const val POI_PICK_AREA_DP = 40
+
+private const val MAP_PIXEL_SIZE_PX = 4f
+
+private const val MAP_PIXEL_SHADER = """
+    uniform shader content;
+    uniform float pixelSize;
+
+    half4 main(float2 coord) {
+        float2 pixelCoord =
+            (floor(coord / pixelSize) + 0.5) * pixelSize;
+
+        return content.eval(pixelCoord);
+    }
+"""
 
 
 private class MapAnimationState {
@@ -127,7 +147,36 @@ fun Aw11HereMap(
     val lifecycleOwner = LocalLifecycleOwner.current
     val state = rememberAw11HereMapState()
     val mapView = remember(context) {
-        MapView(context)
+        val options = MapViewOptions().apply {
+            renderMode = MapRenderMode.TEXTURE
+        }
+
+        MapView(
+            context,
+            options
+        ).apply {
+            if (
+                Build.VERSION.SDK_INT >=
+                Build.VERSION_CODES.TIRAMISU
+            ) {
+                val shader =
+                    RuntimeShader(
+                        MAP_PIXEL_SHADER
+                    )
+
+                shader.setFloatUniform(
+                    "pixelSize",
+                    MAP_PIXEL_SIZE_PX
+                )
+
+                setRenderEffect(
+                    RenderEffect.createRuntimeShaderEffect(
+                        shader,
+                        "content"
+                    )
+                )
+            }
+        }
     }
 
     val routeRenderer = remember(mapView) {
@@ -1620,7 +1669,10 @@ fun Aw11HereMap(
                     state.mapSize = size
                 }
         )
-
+//        Aw11MapPixelMask(
+//            modifier = Modifier
+//                .fillMaxSize()
+//        )
         if (
             state.activeRoute == null &&
             state.selectedLocation == null
