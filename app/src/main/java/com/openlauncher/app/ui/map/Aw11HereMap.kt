@@ -761,7 +761,8 @@ fun Aw11HereMap(
                     listOf(
                         MapFeatures.EXTRUDED_BUILDINGS,
                         MapFeatures.SHADOWS,
-                        MapFeatures.AMBIENT_OCCLUSION
+                        MapFeatures.AMBIENT_OCCLUSION,
+                        MapFeatures.TRAFFIC_LIGHTS
                     )
                 )
                 val initialCoordinates =
@@ -2084,7 +2085,7 @@ private fun calculateCameraDistanceMeters(
                 90.0,
                 110.0,
                 725.0,
-                825.0
+                950.0
             )
 
         speedKmh <= 130.0 ->
@@ -2092,12 +2093,12 @@ private fun calculateCameraDistanceMeters(
                 speedKmh,
                 110.0,
                 130.0,
-                825.0,
-                950.0
+                950.0,
+                1200.0
             )
 
         else ->
-            950.0
+            1350.0
     }
 }
 

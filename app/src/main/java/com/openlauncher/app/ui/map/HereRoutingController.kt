@@ -3,7 +3,6 @@ package com.openlauncher.app.ui.map
 import com.here.sdk.core.GeoCoordinates
 import com.here.sdk.core.errors.InstantiationErrorException
 import com.here.sdk.routing.CalculateRouteCallback
-import com.here.sdk.routing.MatchSideOfStreet
 import com.here.sdk.routing.Route
 import com.here.sdk.routing.RoutingEngine
 import com.here.sdk.routing.RoutingError
@@ -42,8 +41,6 @@ class HereRoutingController {
             destinationWaypoint.sideOfStreetHint =
                 position
 
-            destinationWaypoint.matchSideOfStreet =
-                MatchSideOfStreet.ALWAYS
         }
 
         val waypoints = listOf(
