@@ -95,6 +95,7 @@ private const val ARRIVAL_DESTINATION_RADIUS_METERS = 30.0
 private const val ARRIVAL_CONFIRMATION_COUNT = 3
 private const val ARRIVAL_AUTO_CLOSE_DELAY_MS = 20_000L
 
+private const val VISUAL_ROUTE_UPDATE_INTERVAL_MS = 100L
 private const val POI_PICK_AREA_DP = 40
 
 private const val MAP_PIXEL_SIZE_PX = 4f
@@ -121,6 +122,7 @@ private class MapAnimationState {
         DEFAULT_CAMERA_DISTANCE_METERS
     var bearing = 0f
     var lastLocationUpdateMs = 0L
+    var lastVisualRouteUpdateMs = 0L
     var isSnappedToRoute = false
     var lookAheadLatitude = DEFAULT_LATITUDE
     var lookAheadLongitude = DEFAULT_LONGITUDE
@@ -223,7 +225,9 @@ fun Aw11HereMap(
     val routeProgressTracker = remember {
         RouteProgressTracker()
     }
-
+    val visualRouteProgressTracker = remember {
+        RouteProgressTracker()
+    }
     val maneuverProgressTracker = remember {
         ManeuverProgressTracker()
     }
@@ -332,6 +336,9 @@ fun Aw11HereMap(
 
         routeRenderer.clearRoute()
         routeProgressTracker.clear()
+        visualRouteProgressTracker.clear()
+
+        animationState.lastVisualRouteUpdateMs = 0L
         maneuverProgressTracker.clear()
 
         maneuverGuidance.value = null
@@ -440,6 +447,11 @@ fun Aw11HereMap(
                 routeProgressTracker.setRoute(
                     route
                 )
+                visualRouteProgressTracker.setRoute(
+                    route
+                )
+
+                animationState.lastVisualRouteUpdateMs = 0L
 
                 maneuverProgressTracker.setRoute(
                     route
@@ -975,14 +987,6 @@ fun Aw11HereMap(
                             guidance.instruction
                 )
             }
-
-            routeRenderer.updateRouteProgress(
-                route = activeRoute,
-                matchedSegmentIndex =
-                    routeProgress.matchedSegmentIndex,
-                matchedCoordinates =
-                    routeProgress.matchedCoordinates
-            )
         }
         routeProgress?.let { progress ->
             Log.d(
@@ -1079,6 +1083,12 @@ fun Aw11HereMap(
                                     routeProgressTracker.setRoute(
                                         newRoute
                                     )
+                                    visualRouteProgressTracker.setRoute(
+                                        newRoute
+                                    )
+
+                                    animationState.lastVisualRouteUpdateMs = 0L
+
                                     maneuverProgressTracker.setRoute(
                                         newRoute
                                     )
@@ -1404,6 +1414,38 @@ fun Aw11HereMap(
             marker.bearing =
                 vehicleBearing.toDouble()
 
+            if (
+                shouldSnapToRoute &&
+                activeRoute != null
+            ) {
+                val frameNow =
+                    SystemClock.elapsedRealtime()
+
+                if (
+                    frameNow -
+                    animationState.lastVisualRouteUpdateMs >=
+                    VISUAL_ROUTE_UPDATE_INTERVAL_MS
+                ) {
+                    visualRouteProgressTracker
+                        .update(
+                            coordinates
+                        )
+                        ?.let { visualProgress ->
+
+                            routeRenderer.updateRouteProgress(
+                                route = activeRoute,
+                                matchedSegmentIndex =
+                                    visualProgress.matchedSegmentIndex,
+                                matchedCoordinates =
+                                    visualProgress.matchedCoordinates
+                            )
+                        }
+
+                    animationState.lastVisualRouteUpdateMs =
+                        frameNow
+                }
+            }
+
             val cameraCoordinates =
                 GeoCoordinates(
                     cameraLatitude,
@@ -1541,6 +1583,12 @@ fun Aw11HereMap(
                     routeProgressTracker.setRoute(
                         candidateRoute
                     )
+                    visualRouteProgressTracker.setRoute(
+                        candidateRoute
+                    )
+
+                    animationState.lastVisualRouteUpdateMs = 0L
+
                     maneuverProgressTracker.setRoute(
                         candidateRoute
                     )

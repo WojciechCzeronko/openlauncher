@@ -25,6 +25,8 @@ import com.openlauncher.app.ui.map.HereSelectedLocation
 import com.openlauncher.app.ui.theme.Aw11Background
 import com.openlauncher.app.ui.theme.Aw11Primary
 import com.openlauncher.app.ui.theme.Aw11Secondary
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 
 @Composable
 fun Aw11SelectedLocationPanel(
@@ -47,6 +49,20 @@ fun Aw11SelectedLocationPanel(
                     alpha = 0.85f
                 )
             )
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val event =
+                            awaitPointerEvent(
+                                PointerEventPass.Main
+                            )
+
+                        event.changes.forEach { change ->
+                            change.consume()
+                        }
+                    }
+                }
+            }
             .padding(10.dp)
     ) {
         Row(
