@@ -9,6 +9,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -34,6 +35,12 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.openlauncher.app.data.AppSettings
+import com.openlauncher.app.ui.theme.Aw11Background
+import com.openlauncher.app.ui.theme.Aw11Background
+import com.openlauncher.app.ui.theme.Aw11Border
+import com.openlauncher.app.ui.theme.Aw11Primary
+import com.openlauncher.app.ui.theme.Aw11Secondary
+import com.openlauncher.app.ui.theme.JetBrainsMono
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
@@ -93,21 +100,8 @@ fun OnboardingScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFF070707))
+            .background(Aw11Background)
     ) {
-        // Aesthetic glowing background orb
-        Box(
-            modifier = Modifier
-                .size(400.dp)
-                .align(Alignment.BottomEnd)
-                .offset(x = 100.dp, y = 100.dp)
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(accent.copy(alpha = 0.15f), Color.Transparent),
-                        radius = 600f
-                    )
-                )
-        )
 
         Row(
             modifier = Modifier.fillMaxSize()
@@ -115,33 +109,36 @@ fun OnboardingScreen(
             // ── Left branding pane ──────────────────────────────────────────
             Column(
                 modifier = Modifier
-                    .weight(0.4f)
+                    .weight(0.36f)
                     .fillMaxHeight()
-                    .background(Color(0xFF0F0F0F))
-                    .padding(32.dp),
+                    .background(
+                        Aw11Secondary.copy(alpha = 0.05f)
+                    )
+                    .padding(24.dp),
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(
                         imageVector = Icons.Default.DirectionsCar,
                         contentDescription = null,
-                        tint = accent,
+                        tint = Aw11Secondary,
                         modifier = Modifier.size(44.dp)
                     )
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        text = "OPEN LAUNCHER",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                        letterSpacing = 2.sp,
-                        fontSize = 15.sp
+                        text = "RETROLAUNCHER",
+                        color = Aw11Primary,
+                        fontFamily = JetBrainsMono,
+                        fontSize = 15.sp,
+                        letterSpacing = 2.sp
                     )
+
                     Text(
-                        text = "Designed for the dashboard",
-                        color = Color(0xFF666666),
-                        fontSize = 11.sp,
-                        letterSpacing = 0.5.sp
+                        text = "AUTOMOTIVE DISPLAY SYSTEM",
+                        color = Aw11Secondary,
+                        fontFamily = JetBrainsMono,
+                        fontSize = 9.sp,
+                        letterSpacing = 1.sp
                     )
                 }
 
@@ -166,15 +163,20 @@ fun OnboardingScreen(
                 modifier = Modifier
                     .width(1.dp)
                     .fillMaxHeight()
-                    .background(Color(0xFF1E1E1E))
+                    .background(
+                        Aw11Border.copy(alpha = 0.65f)
+                    )
             )
 
             // ── Right content wizard ────────────────────────────────────────
             Column(
                 modifier = Modifier
-                    .weight(0.6f)
                     .fillMaxHeight()
-                    .padding(48.dp),
+                    .weight(0.64f)
+                    .padding(
+                        horizontal = 36.dp,
+                        vertical = 28.dp
+                    ),
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
                 // Active Step Content
@@ -295,39 +297,61 @@ fun OnboardingScreen(
 }
 
 @Composable
-private fun StepItem(stepIndex: Int, title: String, currentStep: Int) {
+private fun StepItem(
+    stepIndex: Int,
+    title: String,
+    currentStep: Int
+) {
     val active = stepIndex == currentStep
     val completed = stepIndex < currentStep
-    val tint = when {
-        active -> MaterialTheme.colorScheme.primary
-        completed -> Color(0xFF44AA44)
-        else -> Color(0xFF333333)
-    }
+
+    val markerColor =
+        when {
+            active -> Aw11Primary
+            completed -> Aw11Secondary
+            else -> Aw11Border
+        }
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Box(
             modifier = Modifier
-                .size(16.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(tint.copy(alpha = 0.15f)),
+                .size(18.dp)
+                .border(
+                    width = 1.dp,
+                    color = markerColor
+                ),
             contentAlignment = Alignment.Center
         ) {
-            Box(
-                modifier = Modifier
-                    .size(6.dp)
-                    .clip(RoundedCornerShape(3.dp))
-                    .background(tint)
-            )
+            if (active) {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .background(Aw11Primary)
+                )
+            } else if (completed) {
+                Text(
+                    text = ">",
+                    color = Aw11Secondary,
+                    fontFamily = JetBrainsMono,
+                    fontSize = 9.sp
+                )
+            }
         }
+
         Text(
-            text = title,
-            fontSize = 11.sp,
-            color = if (active) Color.White else Color(0xFF666666),
-            fontWeight = if (active) FontWeight.Bold else FontWeight.Normal,
-            letterSpacing = 0.5.sp
+            text = title.uppercase(),
+            color =
+                if (active) {
+                    Aw11Primary
+                } else {
+                    Aw11Secondary
+                },
+            fontFamily = JetBrainsMono,
+            fontSize = 10.sp,
+            letterSpacing = 0.8.sp
         )
     }
 }
@@ -336,7 +360,7 @@ private fun StepItem(stepIndex: Int, title: String, currentStep: Int) {
 private fun IntroStep(accent: Color) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text(
-            text = "WELCOME TO OPEN LAUNCHER",
+            text = "WELCOME TO RETROLAUNCHER",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
             color = accent,
@@ -344,7 +368,7 @@ private fun IntroStep(accent: Color) {
             fontSize = 20.sp
         )
         Text(
-            text = "A clean, modern landscape dashboard designed to be the ultimate companion for your car's screen.",
+            text = "A retro-inspired automotive launcher built around navigation, vehicle data and media control.",
             color = Color(0xFFAAAAAA),
             fontSize = 13.sp,
             lineHeight = 20.sp
@@ -353,9 +377,23 @@ private fun IntroStep(accent: Color) {
         Spacer(Modifier.height(8.dp))
 
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            BulletItem(Icons.Default.CloudOff, "100% Offline-Based", "No reliance on a mobile signal or network connection to function. Speedometer, compass telemetry, and altimeter operate entirely offline.")
-            BulletItem(Icons.Default.Palette, "Highly Customizable Dashboard", "Tailor color accents, background gradients, typography fonts, system units, and drag-and-drop to rearrange your tiles.")
-            BulletItem(Icons.Default.VolumeUp, "Soundboard & Media Shortcuts", "Trigger custom soundboard sound effects, manage CarPlay & Android Auto shortcuts, and control active media players.")
+            BulletItem(
+                Icons.Default.Navigation,
+                "Integrated Navigation",
+                "Built-in map, destination search, route guidance and automatic rerouting."
+            )
+
+            BulletItem(
+                Icons.Default.DirectionsCar,
+                "Vehicle Dashboard",
+                "Real-time speed, compass heading and trip information designed for an in-car display."
+            )
+
+            BulletItem(
+                Icons.Default.MusicNote,
+                "Media Control",
+                "View the active media source and control playback directly from the dashboard."
+            )
         }
     }
 }
@@ -364,7 +402,7 @@ private fun IntroStep(accent: Color) {
 private fun LocationStep(accent: Color, isGranted: Boolean, onGrant: () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text(
-            text = "TELEMETRY & WEATHER",
+            text = "LOCATION & NAVIGATION",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
             color = accent,
@@ -372,7 +410,7 @@ private fun LocationStep(accent: Color, isGranted: Boolean, onGrant: () -> Unit)
             fontSize = 20.sp
         )
         Text(
-            text = "To compute your real-time speed, compass bearing, altitude telemetry, and update local weather conditions, Open Launcher requires high-precision GPS services.",
+            text = "RetroLauncher uses location access for navigation, vehicle speed, trip tracking and compass-related features.",
             color = Color(0xFFAAAAAA),
             fontSize = 13.sp,
             lineHeight = 20.sp
@@ -441,7 +479,7 @@ private fun MediaStep(accent: Color, isGranted: Boolean, onGrant: () -> Unit) {
             fontSize = 20.sp
         )
         Text(
-            text = "To capture live album art, track info, progress bars, and provide playback control from your dashboard cards, Open Launcher listens to active media notifications.",
+            text = "To access active media sessions, display track information and provide playback controls, RetroLauncher requires notification access.",
             color = Color(0xFFAAAAAA),
             fontSize = 13.sp,
             lineHeight = 20.sp

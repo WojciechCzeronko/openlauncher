@@ -30,21 +30,17 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
-import androidx.compose.material.icons.filled.Brightness4
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.LayersClear
-import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.LocationOff
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Navigation
-import androidx.compose.material.icons.filled.NightlightRound
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.NotificationsOff
-import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.Straighten
 import androidx.compose.material.icons.filled.SystemUpdate
@@ -64,7 +60,6 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -78,7 +73,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.openlauncher.app.data.AppSettings
-import com.openlauncher.app.data.DayNightMode
 import com.openlauncher.app.data.UnitSystem
 import com.openlauncher.app.ui.components.ConfirmDialog
 import com.openlauncher.app.ui.theme.Aw11Border
@@ -86,8 +80,6 @@ import com.openlauncher.app.ui.theme.Aw11Primary
 import com.openlauncher.app.ui.theme.Aw11Secondary
 import com.openlauncher.app.ui.theme.JetBrainsMono
 import com.openlauncher.app.ui.theme.LocalDayMode
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 
@@ -190,8 +182,8 @@ fun SettingsScreen(
 
                     SettingsButton(
                         label = "Set as Default Launcher",
-                        sublabel = if (isDefaultLauncher) "Active — Open Launcher is the home app"
-                        else "Required so the head unit boots into Open Launcher",
+                        sublabel = if (isDefaultLauncher) "Active — RetroLauncher is the home app"
+                        else "Required so the head unit boots into RetroLauncher",
                         icon = Icons.Default.Home,
                         accent = if (isDefaultLauncher) accent else Color(0xFF993333),
                         onClick = {
@@ -458,69 +450,11 @@ fun SettingsScreen(
 
                 }
             }
-            // ── Appearance ───────────────────────────────────────────────────────
-            item(key = "display") {
-                SettingsSection("Display") {
-                    // Display Mode
-                    SettingsRow(
-                        label = "Display Mode",
-                        sublabel = when (settings.dayNightMode) {
-                            DayNightMode.DARK -> "Always dark"
-                            DayNightMode.LIGHT -> "Always light"
-                            DayNightMode.AUTO -> "Sunrise / sunset"
-                            DayNightMode.SYSTEM -> "Follows system theme"
-                        },
-                        icon = when (settings.dayNightMode) {
-                            DayNightMode.DARK -> Icons.Default.NightlightRound
-                            DayNightMode.LIGHT -> Icons.Default.LightMode
-                            DayNightMode.AUTO -> Icons.Default.Brightness4
-                            DayNightMode.SYSTEM -> Icons.Default.PhoneAndroid
-                        }
-                    ) {
-                        Row(
-                            horizontalArrangement =
-                                Arrangement.spacedBy(6.dp)
-                        ) {
-                            DayNightMode.entries.forEach { mode ->
-
-                                Aw11OptionButton(
-                                    text =
-                                        when (mode) {
-                                            DayNightMode.DARK ->
-                                                "Dark"
-
-                                            DayNightMode.LIGHT ->
-                                                "Light"
-
-                                            DayNightMode.AUTO ->
-                                                "Sunset"
-
-                                            DayNightMode.SYSTEM ->
-                                                "System"
-                                        },
-                                    selected =
-                                        settings.dayNightMode == mode,
-                                    onClick = {
-                                        onUpdate {
-                                            copy(
-                                                dayNightMode = mode
-                                            )
-                                        }
-                                    }
-                                )
-                            }
-                        }
-                    }
-                }
-            }
 
             // ── Advanced ───────────────────────────────────────────────────────
 
             item(key = "advanced") {
                 var calibrationStatus by remember { mutableStateOf<String?>(null) }
-                val coroutineScope = rememberCoroutineScope()
-                var isCalibratingCompass by remember { mutableStateOf(false) }
-                var compassCountdown by remember { mutableIntStateOf(0) }
 
                 SettingsSection("Advanced") {
                     SettingsRow(
@@ -723,38 +657,6 @@ fun SettingsScreen(
                                 "Cold start forced — go outdoors for a fresh satellite lock (2–3 min)"
                             } else {
                                 "Not supported by this device's GPS driver — no data was cleared"
-                            }
-                        }
-                    )
-
-                    SettingsDivider()
-
-                    // 2. Drive-in-circles magnetometer sweep. Android's sensor stack
-                    // self-calibrates the magnetometer continuously — the circles feed it
-                    // diverse readings. The timer guides the sweep; it does not (and
-                    // cannot) apply offsets itself, so the message must not claim it did.
-                    SettingsButton(
-                        label = "Magnetometer Sweep (Parking Lot)",
-                        sublabel = if (isCalibratingCompass) {
-                            "Sweep active: Drive slowly in two 360° circles... (${compassCountdown}s remaining)"
-                        } else {
-                            "Guided sweep — Android self-calibrates the compass while you circle"
-                        },
-                        icon = Icons.Default.Navigation,
-                        accent = if (isCalibratingCompass) Color.Green else accent,
-                        onClick = {
-                            if (!isCalibratingCompass) {
-                                isCalibratingCompass = true
-                                compassCountdown = 30
-                                coroutineScope.launch {
-                                    while (compassCountdown > 0) {
-                                        delay(1000)
-                                        compassCountdown--
-                                    }
-                                    isCalibratingCompass = false
-                                    calibrationStatus =
-                                        "Sweep complete — check the compass widget; if heading is still off, use the manual offset below"
-                                }
                             }
                         }
                     )

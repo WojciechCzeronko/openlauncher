@@ -9,7 +9,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -20,6 +19,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.core.content.ContextCompat
@@ -32,7 +32,6 @@ import com.here.sdk.core.engine.AuthenticationMode
 import com.here.sdk.core.engine.SDKNativeEngine
 import com.here.sdk.core.engine.SDKOptions
 import com.here.sdk.core.errors.InstantiationErrorException
-import com.openlauncher.app.data.DayNightMode
 import com.openlauncher.app.data.GradientDirection
 import com.openlauncher.app.model.NavDestination
 import com.openlauncher.app.ui.screen.AppLibraryScreen
@@ -114,10 +113,7 @@ class MainActivity : ComponentActivity() {
             val nowPlaying by vm.nowPlaying.collectAsStateWithLifecycle()
             val location by vm.location.collectAsStateWithLifecycle()
             val tripData by vm.tripData.collectAsStateWithLifecycle()
-            val isDayModeVM by vm.isDayMode.collectAsStateWithLifecycle()
-            val systemIsDark = isSystemInDarkTheme()
-            val isDayMode =
-                if (settings.dayNightMode == DayNightMode.SYSTEM) !systemIsDark else isDayModeVM
+            val isDayMode = false
             val pickerSlot by vm.shortcutPickerSlot.collectAsStateWithLifecycle()
             val appPickerTarget by vm.appPickerTarget.collectAsStateWithLifecycle()
 
@@ -205,67 +201,99 @@ class MainActivity : ComponentActivity() {
                                 Box(
                                     modifier = paneModifier
                                 ) {
+                                    // HOME stays alive at all times.
+                                    // This preserves the HERE MapView and the active guidance session.
+                                    HomeScreen(
+                                        settings = settings,
+                                        nowPlaying = nowPlaying,
+                                        location = location,
+                                        tripData = tripData,
+                                        onResetTrip = vm::resetTrip,
+                                        onPlayPause = vm::playPause,
+                                        onNext = vm::skipNext,
+                                        onPrev = vm::skipPrev,
+                                        openSearchRequestId = searchOpenRequestId,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+
+                                    // Prevent touches from reaching the HERE MapView
+                                    // while another internal screen is displayed.
+                                    if (nav != NavDestination.HOME) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .pointerInput(Unit) {
+                                                    awaitPointerEventScope {
+                                                        while (true) {
+                                                            val event =
+                                                                awaitPointerEvent()
+
+                                                            event.changes.forEach {
+                                                                it.consume()
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                        )
+                                    }
+
                                     when (nav) {
-                                        NavDestination.HOME -> HomeScreen(
-                                            settings = settings,
-                                            nowPlaying = nowPlaying,
-                                            location = location,
-                                            tripData = tripData,
-                                            onResetTrip = vm::resetTrip,
-                                            onPlayPause = vm::playPause,
-                                            onNext = vm::skipNext,
-                                            onPrev = vm::skipPrev,
-                                            openSearchRequestId = searchOpenRequestId
-                                        )
+                                        NavDestination.HOME -> Unit
 
-                                        NavDestination.APP_LIBRARY -> AppLibraryScreen(
-                                            apps = apps,
-                                            isLoading = appsLoading,
-                                            isPickerMode = pickerSlot != null,
-                                            pickerSlot = pickerSlot,
-                                            isCarPlayPickerMode =
-                                                appPickerTarget != null,
-                                            carPlayPickerLabel =
-                                                when (appPickerTarget) {
-                                                    LauncherViewModel.AppPickerTarget.ANDROID_AUTO ->
-                                                        "CHOOSE ANDROID AUTO APP"
+                                        NavDestination.APP_LIBRARY -> {
+                                            AppLibraryScreen(
+                                                apps = apps,
+                                                isLoading = appsLoading,
+                                                isPickerMode = pickerSlot != null,
+                                                pickerSlot = pickerSlot,
+                                                isCarPlayPickerMode =
+                                                    appPickerTarget != null,
+                                                carPlayPickerLabel =
+                                                    when (appPickerTarget) {
+                                                        LauncherViewModel.AppPickerTarget.ANDROID_AUTO ->
+                                                            "CHOOSE ANDROID AUTO APP"
 
-                                                    LauncherViewModel.AppPickerTarget.PIP ->
-                                                        "CHOOSE PIP APP"
+                                                        LauncherViewModel.AppPickerTarget.PIP ->
+                                                            "CHOOSE PIP APP"
 
-                                                    LauncherViewModel.AppPickerTarget.RADIO ->
-                                                        "CHOOSE RADIO APP"
+                                                        LauncherViewModel.AppPickerTarget.RADIO ->
+                                                            "CHOOSE RADIO APP"
 
-                                                    else ->
-                                                        "CHOOSE CARPLAY APP"
+                                                        else ->
+                                                            "CHOOSE CARPLAY APP"
+                                                    },
+                                                accent = accent,
+                                                onAppClick = { app ->
+                                                    vm.launchApp(
+                                                        app.packageName
+                                                    )
                                                 },
-                                            accent = accent,
-                                            onAppClick = { app ->
-                                                vm.launchApp(
-                                                    app.packageName
-                                                )
-                                            },
-                                            onPickerSelect = { slot, app ->
-                                                vm.assignShortcut(
-                                                    slot,
-                                                    app
-                                                )
-                                            },
-                                            onCarPlaySelect = { app ->
-                                                vm.assignPickerApp(app)
-                                            }
-                                        )
+                                                onPickerSelect = { slot, app ->
+                                                    vm.assignShortcut(
+                                                        slot,
+                                                        app
+                                                    )
+                                                },
+                                                onCarPlaySelect = { app ->
+                                                    vm.assignPickerApp(app)
+                                                },
+                                                modifier = Modifier.fillMaxSize()
+                                            )
+                                        }
 
-                                        NavDestination.SETTINGS -> SettingsScreen(
-                                            settings = settings,
-                                            accent = accent,
-                                            onUpdate = { block ->
-                                                vm.updateSettings(block)
-                                            },
-                                            onReset = {
-                                                vm.resetSettings()
-                                            }
-                                        )
+                                        NavDestination.SETTINGS -> {
+                                            SettingsScreen(
+                                                settings = settings,
+                                                accent = accent,
+                                                onUpdate = { block ->
+                                                    vm.updateSettings(block)
+                                                },
+                                                onReset = {
+                                                    vm.resetSettings()
+                                                },
+                                                modifier = Modifier.fillMaxSize()
+                                            )
+                                        }
                                     }
                                 }
                             }
