@@ -27,11 +27,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Brightness4
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.Home
@@ -46,23 +45,16 @@ import androidx.compose.material.icons.filled.NightlightRound
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.NotificationsOff
 import androidx.compose.material.icons.filled.PhoneAndroid
-import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.Straighten
 import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Update
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -80,6 +72,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
@@ -332,38 +325,48 @@ fun SettingsScreen(
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            OutlinedTextField(
+                            Aw11TextField(
                                 value = nameInput,
-                                onValueChange = { nameInput = it },
-                                placeholder = {
-                                    Text(
-                                        "MY CAR",
-                                        color = if (isDayMode) Color(0xFF999999) else Color(
-                                            0xFF444444
-                                        ),
-                                        fontSize = 12.sp
-                                    )
+                                onValueChange = {
+                                    nameInput = it
                                 },
-                                singleLine = true,
-                                textStyle = LocalTextStyle.current.copy(
-                                    fontSize = 12.sp,
-                                    color = if (isDayMode) Color(0xFF111111) else Color.White
-                                ),
-                                colors = outlinedFieldColors(accent),
+                                placeholder = "MY CAR",
                                 modifier = Modifier.width(140.dp)
                             )
+
                             if (nameInput != settings.vehicleName) {
-                                IconButton(
-                                    onClick = { onUpdate { copy(vehicleName = nameInput) } },
-                                    modifier = Modifier.size(32.dp)
+                                Box(
+                                    modifier = Modifier
+                                        .height(34.dp)
+                                        .border(
+                                            width = 1.dp,
+                                            color = Aw11Primary
+                                        )
+                                        .background(
+                                            Aw11Primary.copy(
+                                                alpha = 0.16f
+                                            )
+                                        )
+                                        .clickable {
+                                            onUpdate {
+                                                copy(
+                                                    vehicleName = nameInput
+                                                )
+                                            }
+                                        }
+                                        .padding(
+                                            horizontal = 10.dp
+                                        ),
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    Icon(
-                                        Icons.Default.Check,
-                                        "Save",
-                                        tint = accent,
-                                        modifier = Modifier.size(16.dp)
+                                    Text(
+                                        text = "OK",
+                                        color = Aw11Primary,
+                                        fontFamily = JetBrainsMono,
+                                        fontSize = 9.sp,
+                                        letterSpacing = 0.8.sp
                                     )
                                 }
                             }
@@ -414,6 +417,41 @@ fun SettingsScreen(
                             }
                         }
                     }
+
+                    SettingsDivider()
+
+                    Column(
+                        modifier = Modifier
+                            .padding(bottom = 8.dp)
+                    ) {
+                        SettingsRow(
+                            label = "Compass Heading Offset",
+                            sublabel =
+                                "Manual Alignment: ${
+                                    if (settings.compassOffset >= 0) "+" else ""
+                                }${settings.compassOffset.toInt()}°",
+                            icon = Icons.Default.Explore
+                        ) {}
+
+                        Aw11Slider(
+                            value = settings.compassOffset,
+                            onValueChange = {
+                                onUpdate {
+                                    copy(
+                                        compassOffset = it
+                                    )
+                                }
+                            },
+                            valueRange = -180f..180f,
+                            steps = 71,
+                            visualTickCount = 13,
+                            highlightCenter = true,
+                            centeredFill = true,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp)
+                        )
+                    }
                 }
             }
             // Navigation settings
@@ -441,6 +479,74 @@ fun SettingsScreen(
                         )
                     }
 
+
+                }
+            }
+            // ── Appearance ───────────────────────────────────────────────────────
+            item(key = "display") {
+                SettingsSection("Display") {
+                    // Display Mode
+                    SettingsRow(
+                        label = "Display Mode",
+                        sublabel = when (settings.dayNightMode) {
+                            DayNightMode.DARK -> "Always dark"
+                            DayNightMode.LIGHT -> "Always light"
+                            DayNightMode.AUTO -> "Sunrise / sunset"
+                            DayNightMode.SYSTEM -> "Follows system theme"
+                        },
+                        icon = when (settings.dayNightMode) {
+                            DayNightMode.DARK -> Icons.Default.NightlightRound
+                            DayNightMode.LIGHT -> Icons.Default.LightMode
+                            DayNightMode.AUTO -> Icons.Default.Brightness4
+                            DayNightMode.SYSTEM -> Icons.Default.PhoneAndroid
+                        }
+                    ) {
+                        Row(
+                            horizontalArrangement =
+                                Arrangement.spacedBy(6.dp)
+                        ) {
+                            DayNightMode.entries.forEach { mode ->
+
+                                Aw11OptionButton(
+                                    text =
+                                        when (mode) {
+                                            DayNightMode.DARK ->
+                                                "Dark"
+
+                                            DayNightMode.LIGHT ->
+                                                "Light"
+
+                                            DayNightMode.AUTO ->
+                                                "Sunset"
+
+                                            DayNightMode.SYSTEM ->
+                                                "System"
+                                        },
+                                    selected =
+                                        settings.dayNightMode == mode,
+                                    onClick = {
+                                        onUpdate {
+                                            copy(
+                                                dayNightMode = mode
+                                            )
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ── Advanced ───────────────────────────────────────────────────────
+
+            item(key = "advanced") {
+                var calibrationStatus by remember { mutableStateOf<String?>(null) }
+                val coroutineScope = rememberCoroutineScope()
+                var isCalibratingCompass by remember { mutableStateOf(false) }
+                var compassCountdown by remember { mutableIntStateOf(0) }
+
+                SettingsSection("Advanced") {
                     SettingsDivider()
 
                     SettingsRow(
@@ -575,74 +681,16 @@ fun SettingsScreen(
                                 }
                         }
                     }
-                }
-            }
-            // ── Appearance ───────────────────────────────────────────────────────
-            item(key = "appearance") {
-                SettingsSection("Appearance") {
-                    // Display Mode
-                    SettingsRow(
-                        label = "Display Mode",
-                        sublabel = when (settings.dayNightMode) {
-                            DayNightMode.DARK -> "Always dark"
-                            DayNightMode.LIGHT -> "Always light"
-                            DayNightMode.AUTO -> "Sunrise / sunset"
-                            DayNightMode.SYSTEM -> "Follows system theme"
-                        },
-                        icon = when (settings.dayNightMode) {
-                            DayNightMode.DARK -> Icons.Default.NightlightRound
-                            DayNightMode.LIGHT -> Icons.Default.LightMode
-                            DayNightMode.AUTO -> Icons.Default.Brightness4
-                            DayNightMode.SYSTEM -> Icons.Default.PhoneAndroid
-                        }
-                    ) {
-                        Row(
-                            horizontalArrangement =
-                                Arrangement.spacedBy(6.dp)
-                        ) {
-                            DayNightMode.entries.forEach { mode ->
-
-                                Aw11OptionButton(
-                                    text =
-                                        when (mode) {
-                                            DayNightMode.DARK ->
-                                                "Dark"
-
-                                            DayNightMode.LIGHT ->
-                                                "Light"
-
-                                            DayNightMode.AUTO ->
-                                                "Sunset"
-
-                                            DayNightMode.SYSTEM ->
-                                                "System"
-                                        },
-                                    selected =
-                                        settings.dayNightMode == mode,
-                                    onClick = {
-                                        onUpdate {
-                                            copy(
-                                                dayNightMode = mode
-                                            )
-                                        }
-                                    }
-                                )
-                            }
-                        }
-                    }
-
                     SettingsDivider()
-                }
-            }
-            // ── Typography ───────────────────────────────────────────────────────
-            item(key = "typography") {
-                SettingsSection("Typography") {
+
                     Column {
                         SettingsRow(
                             label = "Text Scale",
-                            sublabel = "${"%.0f".format(settings.textScale * 100)}%",
+                            sublabel =
+                                "${"%.0f".format(settings.textScale * 100)}%",
                             icon = Icons.Default.TextFields
                         ) {}
+
                         Aw11Slider(
                             value = settings.textScale,
                             onValueChange = {
@@ -661,15 +709,7 @@ fun SettingsScreen(
                                 )
                         )
                     }
-                }
-            }
-            // ── GPS & Calibration ───────────────────────────────────────────────
-            item(key = "gps_calibration") {
-                SettingsSection("GPS & Calibration") {
-                    var calibrationStatus by remember { mutableStateOf<String?>(null) }
-                    val coroutineScope = rememberCoroutineScope()
-                    var isCalibratingCompass by remember { mutableStateOf(false) }
-                    var compassCountdown by remember { mutableIntStateOf(0) }
+                    SettingsDivider()
 
                     // 1. Reset A-GPS Button
                     SettingsButton(
@@ -744,27 +784,6 @@ fun SettingsScreen(
                             }
                         }
                     )
-
-                    SettingsDivider()
-
-                    // 4. Manual Compass Heading Offset Slider
-                    Column(modifier = Modifier.padding(bottom = 8.dp)) {
-                        SettingsRow(
-                            label = "Compass Heading Offset",
-                            sublabel = "Manual Alignment: ${if (settings.compassOffset >= 0) "+" else ""}${settings.compassOffset.toInt()}°  — aligns compass with vehicle front",
-                            icon = Icons.Default.Explore
-                        ) {}
-                        Slider(
-                            value = settings.compassOffset,
-                            onValueChange = { onUpdate { copy(compassOffset = it) } },
-                            valueRange = -180f..180f,
-                            steps = 71, // 5 degree steps: 360 / 5 - 1 = 71 steps
-                            colors = sliderColors(accent),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp)
-                        )
-                    }
                 }
             }
             // ── Updates ──────────────────────────────────────────────────────────
@@ -789,28 +808,12 @@ fun SettingsScreen(
             item(key = "maintenance") {
                 SettingsSection("Maintenance") {
                     Spacer(Modifier.height(8.dp))
-                    Button(
-                        onClick = { showResetDialog = true },
-                        shape = RoundedCornerShape(4.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1A0000)),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(44.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.RestartAlt,
-                            null,
-                            tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            "Reset to Defaults",
-                            color = MaterialTheme.colorScheme.error,
-                            fontSize = 13.sp,
-                            letterSpacing = 1.sp
-                        )
-                    }
+                    Aw11DangerButton(
+                        text = "Reset to Defaults",
+                        onClick = {
+                            showResetDialog = true
+                        }
+                    )
                     Spacer(Modifier.height(8.dp))
                 }
 
@@ -850,7 +853,7 @@ fun SettingsScreen(
         }
     } // end Box
 
-    // ── Dialogs ──────────────────────────────────────────────────────────────
+// ── Dialogs ──────────────────────────────────────────────────────────────
     if (showResetDialog) {
         ConfirmDialog(
             title = "Reset Settings",
@@ -1089,21 +1092,6 @@ private fun ColumnScope.SettingsDivider() {
     )
 }
 
-@Composable
-private fun outlinedFieldColors(accent: Color): androidx.compose.material3.TextFieldColors {
-    val isDayMode = LocalDayMode.current
-    val textColor = if (isDayMode) Color(0xFF111111) else Color.White
-    val borderU = if (isDayMode) Color(0xFFCCCCCC) else Color(0xFF2A2A2A)
-    return OutlinedTextFieldDefaults.colors(
-        focusedBorderColor = accent,
-        unfocusedBorderColor = borderU,
-        focusedTextColor = textColor,
-        unfocusedTextColor = textColor,
-        cursorColor = accent,
-        focusedLabelColor = accent,
-        unfocusedLabelColor = if (isDayMode) Color(0xFF888888) else Color(0xFF666666)
-    )
-}
 
 @Composable
 private fun sliderColors(accent: Color): androidx.compose.material3.SliderColors {
@@ -1279,7 +1267,10 @@ private fun Aw11Slider(
     onValueChange: (Float) -> Unit,
     valueRange: ClosedFloatingPointRange<Float>,
     steps: Int,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    visualTickCount: Int? = null,
+    highlightCenter: Boolean = false,
+    centeredFill: Boolean = false
 ) {
     var widthPx by remember {
         mutableFloatStateOf(1f)
@@ -1386,37 +1377,79 @@ private fun Aw11Slider(
         )
 
         // active track
+        val valueX =
+            size.width * fraction
+
+        val fillStartX =
+            if (centeredFill) {
+                minOf(
+                    size.width / 2f,
+                    valueX
+                )
+            } else {
+                0f
+            }
+
+        val fillEndX =
+            if (centeredFill) {
+                maxOf(
+                    size.width / 2f,
+                    valueX
+                )
+            } else {
+                valueX
+            }
+
         drawRect(
-            color =
-                Aw11Primary.copy(
-                    alpha = 0.75f
-                ),
+            color = Aw11Primary.copy(
+                alpha = 0.75f
+            ),
             topLeft = Offset(
-                0f,
-                centerY -
-                        trackHeight / 2f
+                fillStartX,
+                centerY - trackHeight / 2f
             ),
             size = Size(
-                activeWidth,
+                fillEndX - fillStartX,
                 trackHeight
             )
         )
 
         // discrete tick marks
         if (steps > 0) {
-            val intervals =
-                steps + 1
+            val tickCount =
+                visualTickCount ?: (steps + 2)
 
-            for (i in 0..intervals) {
+            val intervals =
+                tickCount - 1
+
+            for (i in 0 until tickCount) {
                 val x =
                     size.width *
                             i / intervals
 
+                val isCenter =
+                    highlightCenter &&
+                            i == intervals / 2
+
+                val tickHeight =
+                    if (isCenter) {
+                        14.dp.toPx()
+                    } else {
+                        8.dp.toPx()
+                    }
+
+                val tickWidth =
+                    if (isCenter) {
+                        3.dp.toPx()
+                    } else {
+                        2.dp.toPx()
+                    }
+
                 drawRect(
                     color =
-                        if (
-                            x <= activeWidth
-                        ) {
+                        if (isCenter) {
+                            Aw11Primary
+                        } else if (x <= activeWidth) {
                             Aw11Primary
                         } else {
                             Aw11Secondary.copy(
@@ -1424,13 +1457,12 @@ private fun Aw11Slider(
                             )
                         },
                     topLeft = Offset(
-                        x - 1.dp.toPx(),
-                        centerY -
-                                4.dp.toPx()
+                        x - tickWidth / 2f,
+                        centerY - tickHeight / 2f
                     ),
                     size = Size(
-                        2.dp.toPx(),
-                        8.dp.toPx()
+                        tickWidth,
+                        tickHeight
                     )
                 )
             }
@@ -1456,6 +1488,90 @@ private fun Aw11Slider(
                 4.dp.toPx(),
                 30.dp.toPx()
             )
+        )
+    }
+}
+
+@Composable
+private fun Aw11TextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    modifier: Modifier = Modifier
+) {
+    BasicTextField(
+        value = value,
+        onValueChange = onValueChange,
+        singleLine = true,
+        cursorBrush = SolidColor(Aw11Primary),
+        textStyle = LocalTextStyle.current.copy(
+            color = Aw11Primary,
+            fontFamily = JetBrainsMono,
+            fontSize = 10.sp,
+            letterSpacing = 0.8.sp
+        ),
+        modifier = modifier
+            .height(34.dp)
+            .border(
+                width = 1.dp,
+                color = Aw11Border.copy(
+                    alpha = 0.65f
+                )
+            )
+            .padding(
+                horizontal = 10.dp
+            ),
+        decorationBox = { innerTextField ->
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                if (value.isEmpty()) {
+                    Text(
+                        text = placeholder,
+                        color = Aw11Secondary.copy(
+                            alpha = 0.55f
+                        ),
+                        fontFamily = JetBrainsMono,
+                        fontSize = 9.sp,
+                        letterSpacing = 0.8.sp
+                    )
+                }
+
+                innerTextField()
+            }
+        }
+    )
+}
+
+@Composable
+private fun Aw11DangerButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(42.dp)
+            .border(
+                width = 1.dp,
+                color = Color(0xFF993333)
+            )
+            .background(
+                Color(0xFF993333).copy(
+                    alpha = 0.08f
+                )
+            )
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text.uppercase(),
+            color = Color(0xFFCC6666),
+            fontFamily = JetBrainsMono,
+            fontSize = 10.sp,
+            letterSpacing = 1.2.sp
         )
     }
 }
