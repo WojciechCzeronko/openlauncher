@@ -16,12 +16,10 @@ fun HomeScreen(
     location: LocationData?,
     tripData: TripData,
     onResetTrip: () -> Unit,
-    onOpenMedia: () -> Unit,
-    onOpenApps: () -> Unit,
-    onOpenSettings: () -> Unit,
     onPlayPause: () -> Unit,
     onNext: () -> Unit,
     onPrev: () -> Unit,
+    openSearchRequestId: Int,
     modifier: Modifier = Modifier
 ) {
     Aw11HomeLayout(
@@ -36,9 +34,7 @@ fun HomeScreen(
         onPrev = onPrev,
         onPlayPause = onPlayPause,
         onNext = onNext,
-        onOpenMedia = onOpenMedia,
-        onOpenApps = onOpenApps,
-        onOpenSettings = onOpenSettings,
+        openSearchRequestId = openSearchRequestId,
         modifier = modifier
     )
 }

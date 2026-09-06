@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import com.openlauncher.app.ui.components.Aw11ControlPanel
 import com.openlauncher.app.ui.theme.Aw11Border
 
@@ -26,41 +27,52 @@ internal fun Aw11Shell(
     modifier: Modifier = Modifier,
     content: @Composable BoxScope.() -> Unit
 ) {
-    Row(
+    Box(
         modifier = modifier
             .fillMaxSize()
-            .padding(3.dp)
     ) {
-        Box(
+        Row(
             modifier = Modifier
-                .weight(0.13f)
-                .fillMaxHeight()
-                .border(
-                    1.dp,
-                    Aw11Border.copy(
-                        alpha = 0.45f
-                    )
-                )
+                .fillMaxSize()
+                .padding(3.dp)
         ) {
-            Aw11ControlPanel(
-                hasGps = hasGps,
-                mediaAvailable = mediaAvailable,
-                onNav = onNav,
-                onMedia = onMedia,
-                onApps = onApps,
-                onSettings = onSettings
+            Box(
+                modifier = Modifier
+                    .weight(0.13f)
+                    .fillMaxHeight()
+                    .border(
+                        1.dp,
+                        Aw11Border.copy(
+                            alpha = 0.45f
+                        )
+                    )
+            ) {
+                Aw11ControlPanel(
+                    hasGps = hasGps,
+                    mediaAvailable = mediaAvailable,
+                    onNav = onNav,
+                    onMedia = onMedia,
+                    onApps = onApps,
+                    onSettings = onSettings
+                )
+            }
+
+            Spacer(
+                Modifier.width(3.dp)
+            )
+
+            Box(
+                modifier = Modifier
+                    .weight(0.87f)
+                    .fillMaxHeight(),
+                content = content
             )
         }
 
-        Spacer(
-            Modifier.width(3.dp)
-        )
-
-        Box(
+        Aw11DisplayOverlay(
             modifier = Modifier
-                .weight(0.87f)
-                .fillMaxHeight(),
-            content = content
+                .matchParentSize()
+                .zIndex(100f)
         )
     }
 }

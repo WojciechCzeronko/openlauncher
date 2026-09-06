@@ -15,6 +15,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
@@ -31,9 +34,7 @@ import com.here.sdk.core.engine.SDKOptions
 import com.here.sdk.core.errors.InstantiationErrorException
 import com.openlauncher.app.data.DayNightMode
 import com.openlauncher.app.data.GradientDirection
-import com.openlauncher.app.data.SidebarPosition
 import com.openlauncher.app.model.NavDestination
-import com.openlauncher.app.ui.components.Sidebar
 import com.openlauncher.app.ui.screen.AppLibraryScreen
 import com.openlauncher.app.ui.screen.HomeScreen
 import com.openlauncher.app.ui.screen.OnboardingScreen
@@ -105,6 +106,9 @@ class MainActivity : ComponentActivity() {
             val settingsLoaded by vm.settingsLoaded.collectAsStateWithLifecycle()
             val settings by vm.settings.collectAsStateWithLifecycle()
             val nav by vm.nav.collectAsStateWithLifecycle()
+            var searchOpenRequestId by remember {
+                mutableIntStateOf(0)
+            }
             val apps by vm.apps.collectAsStateWithLifecycle()
             val appsLoading by vm.appsLoading.collectAsStateWithLifecycle()
             val nowPlaying by vm.nowPlaying.collectAsStateWithLifecycle()
@@ -149,7 +153,7 @@ class MainActivity : ComponentActivity() {
             val baseDensity = LocalDensity.current
             CompositionLocalProvider(
                 LocalDensity provides Density(
-                    density = baseDensity.density * settings.uiScale,
+                    density = baseDensity.density,
                     fontScale = baseDensity.fontScale
                 )
             ) {
@@ -197,48 +201,6 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
 
-                            val isBottomBar = settings.sidebarPosition == SidebarPosition.BOTTOM
-                            val layoutDivColor =
-                                if (isDayMode) Color(0xFFCCCCCC) else Color(0xFF1A1A1A)
-
-                            val sidebarContent: @Composable () -> Unit = {
-                                val sidebarDensity = Density(
-                                    density = baseDensity.density * (1.0f + (settings.uiScale - 1.0f) * 0.35f),
-                                    fontScale = baseDensity.fontScale
-                                )
-                                CompositionLocalProvider(LocalDensity provides sidebarDensity) {
-                                    Sidebar(
-                                        currentDest = nav,
-                                        settings = settings,
-                                        isHorizontal = isBottomBar,
-                                        installedIconFor = { pkg ->
-                                            apps.find { it.packageName == pkg }?.icon
-                                        },
-                                        onNavigate = { dest ->
-                                            vm.cancelShortcutPicker()
-                                            vm.cancelCarPlayPicker()
-                                            vm.exitRearrangeMode()
-                                            vm.navigate(dest)
-                                        },
-                                        onShortcutClick = { slot ->
-                                            val shortcut = settings.shortcuts[slot]
-                                            if (shortcut.packageName.isNotEmpty()) {
-                                                vm.launchApp(shortcut.packageName)
-                                            }
-                                        },
-                                        onShortcutLongPress = { slot -> vm.startShortcutPicker(slot) },
-                                        onShortcutRemove = { slot -> vm.removeShortcut(slot) },
-                                        onShortcutSetIcon = { slot, icon ->
-                                            vm.setShortcutIcon(
-                                                slot,
-                                                icon
-                                            )
-                                        },
-                                        onReorder = { from, to -> vm.reorderShortcut(from, to) }
-                                    )
-                                }
-                            }
-
                             val mainPane: @Composable (Modifier) -> Unit = { paneModifier ->
                                 Box(
                                     modifier = paneModifier
@@ -253,26 +215,7 @@ class MainActivity : ComponentActivity() {
                                             onPlayPause = vm::playPause,
                                             onNext = vm::skipNext,
                                             onPrev = vm::skipPrev,
-                                            onOpenMedia = {
-                                                val packageName =
-                                                    nowPlaying
-                                                        ?.controller
-                                                        ?.packageName
-
-                                                if (!packageName.isNullOrBlank()) {
-                                                    vm.launchApp(packageName)
-                                                }
-                                            },
-                                            onOpenApps = {
-                                                vm.navigate(
-                                                    NavDestination.APP_LIBRARY
-                                                )
-                                            },
-                                            onOpenSettings = {
-                                                vm.navigate(
-                                                    NavDestination.SETTINGS
-                                                )
-                                            }
+                                            openSearchRequestId = searchOpenRequestId
                                         )
 
                                         NavDestination.APP_LIBRARY -> AppLibraryScreen(
@@ -327,51 +270,55 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
 
-                            if (
-                                nav == NavDestination.HOME
+                            Aw11Shell(
+                                hasGps = location != null,
+                                mediaAvailable =
+                                    nowPlaying
+                                        ?.controller
+                                        ?.packageName
+                                        .isNullOrBlank()
+                                        .not(),
+                                onNav = {
+                                    if (
+                                        nav == NavDestination.HOME
+                                    ) {
+                                        searchOpenRequestId++
+                                    } else {
+                                        searchOpenRequestId = 0
+
+                                        vm.navigate(
+                                            NavDestination.HOME
+                                        )
+                                    }
+                                },
+                                onMedia = {
+                                    val packageName =
+                                        nowPlaying
+                                            ?.controller
+                                            ?.packageName
+
+                                    if (!packageName.isNullOrBlank()) {
+                                        vm.launchApp(packageName)
+                                    }
+                                },
+                                onApps = {
+                                    searchOpenRequestId = 0
+
+                                    vm.navigate(
+                                        NavDestination.APP_LIBRARY
+                                    )
+                                },
+                                onSettings = {
+                                    searchOpenRequestId = 0
+
+                                    vm.navigate(
+                                        NavDestination.SETTINGS
+                                    )
+                                }
                             ) {
                                 mainPane(
                                     Modifier.fillMaxSize()
                                 )
-                            } else {
-                                Aw11Shell(
-                                    hasGps = location != null,
-                                    mediaAvailable =
-                                        nowPlaying
-                                            ?.controller
-                                            ?.packageName
-                                            .isNullOrBlank()
-                                            .not(),
-                                    onNav = {
-                                        vm.navigate(
-                                            NavDestination.HOME
-                                        )
-                                    },
-                                    onMedia = {
-                                        val packageName =
-                                            nowPlaying
-                                                ?.controller
-                                                ?.packageName
-
-                                        if (!packageName.isNullOrBlank()) {
-                                            vm.launchApp(packageName)
-                                        }
-                                    },
-                                    onApps = {
-                                        vm.navigate(
-                                            NavDestination.APP_LIBRARY
-                                        )
-                                    },
-                                    onSettings = {
-                                        vm.navigate(
-                                            NavDestination.SETTINGS
-                                        )
-                                    }
-                                ) {
-                                    mainPane(
-                                        Modifier.fillMaxSize()
-                                    )
-                                }
                             }
                         }
                     }
