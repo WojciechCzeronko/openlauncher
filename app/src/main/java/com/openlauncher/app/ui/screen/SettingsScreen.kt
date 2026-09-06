@@ -55,7 +55,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -73,17 +72,14 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.openlauncher.app.data.AppFont
 import com.openlauncher.app.data.AppSettings
 import com.openlauncher.app.data.DayNightMode
 import com.openlauncher.app.data.UnitSystem
-import com.openlauncher.app.ui.components.ColorPickerDialog
 import com.openlauncher.app.ui.components.ConfirmDialog
 import com.openlauncher.app.ui.theme.Aw11Border
 import com.openlauncher.app.ui.theme.Aw11Primary
@@ -107,26 +103,6 @@ fun SettingsScreen(
 ) {
     val context = LocalContext.current
     var showResetDialog by remember { mutableStateOf(false) }
-    var showAccentPicker by remember { mutableStateOf(false) }
-    var showBgPicker by remember { mutableStateOf(false) }
-    var showGradientEndPicker by remember { mutableStateOf(false) }
-    var showFontColorPicker by remember { mutableStateOf(false) }
-
-    // OpenDocument (not GetContent): only SAF document URIs carry a persistable
-    // grant, so this is what actually keeps the wallpaper readable after reboot
-    val wallpaperPicker = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocument()
-    ) { uri: Uri? ->
-        uri?.let {
-            runCatching {
-                context.contentResolver.takePersistableUriPermission(
-                    it, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
-                )
-            }
-            onUpdate { copy(wallpaperUri = it.toString()) }
-        }
-    }
-
     val isDayMode = LocalDayMode.current
     val screenBg = MaterialTheme.colorScheme.background
 
@@ -547,8 +523,6 @@ fun SettingsScreen(
                 var compassCountdown by remember { mutableIntStateOf(0) }
 
                 SettingsSection("Advanced") {
-                    SettingsDivider()
-
                     SettingsRow(
                         label = "Traffic Refresh",
                         sublabel = "${settings.routeRefreshIntervalSeconds / 60} min",
@@ -797,7 +771,9 @@ fun SettingsScreen(
                         onClick = {
                             val intent = Intent(
                                 Intent.ACTION_VIEW,
-                                Uri.parse("https://github.com/dw2lam/openlauncher/releases")
+                                Uri.parse(
+                                    "https://github.com/WojciechCzeronko/retrolauncher/releases"
+                                )
                             )
                             context.startActivity(intent)
                         }
@@ -861,56 +837,6 @@ fun SettingsScreen(
             confirmLabel = "Reset",
             onConfirm = { onReset(); showResetDialog = false },
             onDismiss = { showResetDialog = false }
-        )
-    }
-
-    if (showAccentPicker) {
-        ColorPickerDialog(
-            title = "Accent Color",
-            initialColor = Color(settings.accentColor),
-            onColorSelected = { c -> onUpdate { copy(accentColor = c.toArgb()) } },
-            onDismiss = { showAccentPicker = false }
-        )
-    }
-
-    if (showBgPicker) {
-        ColorPickerDialog(
-            title = "Background Color",
-            initialColor = Color(settings.backgroundColor),
-            onColorSelected = { c ->
-                onUpdate {
-                    copy(
-                        backgroundColor = c.toArgb(),
-                        useCustomBackgroundColor = true
-                    )
-                }
-            },
-            onDismiss = { showBgPicker = false }
-        )
-    }
-
-    if (showGradientEndPicker) {
-        ColorPickerDialog(
-            title = "Gradient End Color",
-            initialColor = Color(settings.gradientEndColor),
-            onColorSelected = { c ->
-                onUpdate {
-                    copy(
-                        gradientEndColor = c.toArgb(),
-                        useCustomBackgroundColor = true
-                    )
-                }
-            },
-            onDismiss = { showGradientEndPicker = false }
-        )
-    }
-
-    if (showFontColorPicker) {
-        ColorPickerDialog(
-            title = "Font Color",
-            initialColor = Color(settings.fontColor),
-            onColorSelected = { c -> onUpdate { copy(fontColor = c.toArgb()) } },
-            onDismiss = { showFontColorPicker = false }
         )
     }
 }
@@ -1090,26 +1016,6 @@ private fun ColumnScope.SettingsDivider() {
             alpha = 0.35f
         )
     )
-}
-
-
-@Composable
-private fun sliderColors(accent: Color): androidx.compose.material3.SliderColors {
-    val isDayMode = LocalDayMode.current
-    return SliderDefaults.colors(
-        thumbColor = accent,
-        activeTrackColor = accent,
-        inactiveTrackColor = if (isDayMode) Color(0xFFCCCCCC) else Color(0xFF2A2A2A)
-    )
-}
-
-
-private fun fontDisplayName(font: AppFont): String = when (font) {
-    AppFont.SYSTEM -> "System"
-    AppFont.JETBRAINS_MONO -> "JetBrains Mono"
-    AppFont.SOURCE_CODE_PRO -> "Source Code Pro"
-    AppFont.DSEG14_CLASSIC -> "DSEG14 Classic"
-    AppFont.IBM_VGA_9X16 -> "IBM VGA 9x16"
 }
 
 @Composable
