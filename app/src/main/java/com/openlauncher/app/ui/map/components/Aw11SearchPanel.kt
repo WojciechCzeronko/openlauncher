@@ -38,6 +38,24 @@ import java.util.Locale
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.ui.graphics.SolidColor
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Bundle
+import android.speech.RecognitionListener
+import android.speech.RecognizerIntent
+import android.speech.SpeechRecognizer
+
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 
 @Composable
 fun Aw11SearchPanel(
@@ -49,7 +67,7 @@ fun Aw11SearchPanel(
     showOpenButton: Boolean = true,
     onOpen: () -> Unit,
     onQueryChange: (String) -> Unit,
-    onSearch: () -> Unit,
+    onSearch: (String) -> Unit,
     onClear: () -> Unit,
     onClose: () -> Unit,
     onResultSelected: (HereSearchResult) -> Unit,
@@ -57,6 +75,200 @@ fun Aw11SearchPanel(
 ) {
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
+
+    val context = LocalContext.current
+
+    var isListening by remember {
+        mutableStateOf(false)
+    }
+
+    var speechError by remember {
+        mutableStateOf<String?>(null)
+    }
+
+    val currentOnQueryChange by rememberUpdatedState(
+        onQueryChange
+    )
+
+    val currentOnSearch by rememberUpdatedState(
+        onSearch
+    )
+
+    val speechRecognizer = remember(context) {
+        if (SpeechRecognizer.isRecognitionAvailable(context)) {
+            SpeechRecognizer.createSpeechRecognizer(context)
+        } else {
+            null
+        }
+    }
+
+    val recognitionIntent = remember {
+        Intent(
+            RecognizerIntent.ACTION_RECOGNIZE_SPEECH
+        ).apply {
+            putExtra(
+                RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+            )
+
+            putExtra(
+                RecognizerIntent.EXTRA_LANGUAGE,
+                Locale.getDefault()
+            )
+
+            putExtra(
+                RecognizerIntent.EXTRA_MAX_RESULTS,
+                1
+            )
+        }
+    }
+
+    DisposableEffect(speechRecognizer) {
+        if (speechRecognizer == null) {
+            onDispose { }
+        } else {
+            speechRecognizer.setRecognitionListener(
+                object : RecognitionListener {
+
+                    override fun onReadyForSpeech(
+                        params: Bundle?
+                    ) {
+                        isListening = true
+                    }
+
+                    override fun onBeginningOfSpeech() = Unit
+
+                    override fun onRmsChanged(
+                        rmsdB: Float
+                    ) = Unit
+
+                    override fun onBufferReceived(
+                        buffer: ByteArray?
+                    ) = Unit
+
+                    override fun onEndOfSpeech() = Unit
+
+                    override fun onError(
+                        error: Int
+                    ) {
+                        isListening = false
+
+                        speechError =
+                            when (error) {
+                                SpeechRecognizer.ERROR_NO_MATCH ->
+                                    "NO MATCH"
+
+                                SpeechRecognizer.ERROR_SPEECH_TIMEOUT ->
+                                    "NO SPEECH DETECTED"
+
+                                SpeechRecognizer.ERROR_RECOGNIZER_BUSY ->
+                                    "RECOGNIZER BUSY"
+
+                                else ->
+                                    "ERROR $error"
+                            }
+                    }
+
+                    override fun onResults(
+                        results: Bundle?
+                    ) {
+                        isListening = false
+
+                        val spokenText =
+                            results
+                                ?.getStringArrayList(
+                                    SpeechRecognizer.RESULTS_RECOGNITION
+                                )
+                                ?.firstOrNull()
+                                ?.trim()
+
+                        if (!spokenText.isNullOrBlank()) {
+                            speechError = null
+
+                            currentOnQueryChange(
+                                spokenText
+                            )
+
+                            // Search immediately after dictation.
+                            currentOnSearch(
+                                spokenText
+                            )
+                        } else {
+                            speechError =
+                                "NO MATCH"
+                        }
+                    }
+
+                    override fun onPartialResults(
+                        partialResults: Bundle?
+                    ) = Unit
+
+                    override fun onEvent(
+                        eventType: Int,
+                        params: Bundle?
+                    ) = Unit
+                }
+            )
+
+            onDispose {
+                speechRecognizer.cancel()
+                speechRecognizer.destroy()
+            }
+        }
+    }
+
+    fun startVoiceRecognition() {
+        if (speechRecognizer == null) {
+            speechError =
+                "VOICE INPUT UNAVAILABLE"
+
+            return
+        }
+
+        speechError = null
+
+        runCatching {
+            speechRecognizer.startListening(
+                recognitionIntent
+            )
+        }.onFailure {
+            isListening = false
+            speechError =
+                "VOICE INPUT FAILED"
+        }
+    }
+
+    val microphonePermissionLauncher =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { granted ->
+
+            if (granted) {
+                startVoiceRecognition()
+            } else {
+                speechError =
+                    "MICROPHONE PERMISSION DENIED"
+            }
+        }
+
+    fun triggerVoiceInput() {
+        focusManager.clearFocus()
+        keyboardController?.hide()
+
+        val granted =
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.RECORD_AUDIO
+            ) == PackageManager.PERMISSION_GRANTED
+
+        if (granted) {
+            startVoiceRecognition()
+        } else {
+            microphonePermissionLauncher.launch(
+                Manifest.permission.RECORD_AUDIO
+            )
+        }
+    }
 
     fun triggerSearch() {
         if (
@@ -69,7 +281,7 @@ fun Aw11SearchPanel(
         focusManager.clearFocus()
         keyboardController?.hide()
 
-        onSearch()
+        onSearch(query)
     }
     if (!isOpen) {
         if (!showOpenButton) {
@@ -167,7 +379,12 @@ fun Aw11SearchPanel(
                         ) {
                             if (query.isEmpty()) {
                                 Text(
-                                    text = "DESTINATION...",
+                                    text =
+                                        if (isListening) {
+                                            "LISTENING..."
+                                        } else {
+                                            "DESTINATION..."
+                                        },
                                     color = Aw11Secondary,
                                     fontSize = 10.sp
                                 )
@@ -210,44 +427,67 @@ fun Aw11SearchPanel(
                         )
                     )
                     .clickable {
-                        triggerSearch()
+                        if (query.isBlank()) {
+                            if (isListening) {
+                                speechRecognizer?.cancel()
+                                isListening = false
+                            } else {
+                                triggerVoiceInput()
+                            }
+                        } else {
+                            triggerSearch()
+                        }
                     },
                 contentAlignment =
                     Alignment.Center
             ) {
-                Canvas(
-                    modifier = Modifier
-                        .size(20.dp)
-                ) {
-                    val strokeWidth =
-                        2.dp.toPx()
-
-                    drawCircle(
+                if (query.isBlank()) {
+                    Text(
+                        text =
+                            if (isListening) {
+                                "REC"
+                            } else {
+                                "MIC"
+                            },
                         color = Aw11Primary,
-                        radius =
-                            size.minDimension * 0.28f,
-                        center = Offset(
-                            x = size.width * 0.42f,
-                            y = size.height * 0.42f
-                        ),
-                        style = Stroke(
-                            width = strokeWidth
+                        fontSize = 9.sp,
+                        letterSpacing = 0.5.sp
+                    )
+                } else {
+                    Canvas(
+                        modifier = Modifier
+                            .size(20.dp)
+                    ) {
+                        val strokeWidth =
+                            2.dp.toPx()
+
+                        drawCircle(
+                            color = Aw11Primary,
+                            radius =
+                                size.minDimension * 0.28f,
+                            center = Offset(
+                                x = size.width * 0.42f,
+                                y = size.height * 0.42f
+                            ),
+                            style = Stroke(
+                                width = strokeWidth
+                            )
                         )
-                    )
 
-                    drawLine(
-                        color = Aw11Primary,
-                        start = Offset(
-                            x = size.width * 0.62f,
-                            y = size.height * 0.62f
-                        ),
-                        end = Offset(
-                            x = size.width * 0.84f,
-                            y = size.height * 0.84f
-                        ),
-                        strokeWidth = strokeWidth,
-                        cap = StrokeCap.Square
-                    )
+                        drawLine(
+                            color = Aw11Primary,
+                            start = Offset(
+                                x = size.width * 0.62f,
+                                y = size.height * 0.62f
+                            ),
+                            end = Offset(
+                                x = size.width * 0.84f,
+                                y = size.height * 0.84f
+                            ),
+                            strokeWidth = strokeWidth,
+                            cap = StrokeCap.Square
+                        )
+                    }
                 }
             }
 

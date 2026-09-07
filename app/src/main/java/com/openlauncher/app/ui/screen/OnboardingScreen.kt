@@ -1,41 +1,68 @@
 package com.openlauncher.app.ui.screen
 
 import android.Manifest
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.*
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Navigation
+import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import com.openlauncher.app.data.AppSettings
-import com.openlauncher.app.ui.theme.Aw11Background
 import com.openlauncher.app.ui.theme.Aw11Background
 import com.openlauncher.app.ui.theme.Aw11Border
 import com.openlauncher.app.ui.theme.Aw11Primary
@@ -152,7 +179,7 @@ fun OnboardingScreen(
 
                 Text(
                     text = "v0.0.5",
-                    color = Color(0xFF333333),
+                    color = Aw11Secondary.copy(alpha = 0.35f),
                     fontSize = 9.sp,
                     letterSpacing = 1.sp
                 )
@@ -218,78 +245,62 @@ fun OnboardingScreen(
 
                 Spacer(Modifier.height(24.dp))
 
-                // UNIFIED WIZARD FOOTER
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Back button (left aligned)
                     if (currentStep > 0) {
-                        TextButton(
-                            onClick = { currentStep-- },
-                            shape = RoundedCornerShape(4.dp),
-                            modifier = Modifier.height(44.dp)
-                        ) {
-                            Icon(Icons.Default.ArrowBack, null, tint = Color(0xFF888888), modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text("BACK", color = Color(0xFF888888), fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-                        }
+                        Aw11OnboardingButton(
+                            text = "Back",
+                            icon = Icons.Default.ArrowBack,
+                            primary = false,
+                            onClick = {
+                                currentStep--
+                            }
+                        )
                     } else {
                         Spacer(Modifier.width(1.dp))
                     }
 
-                    // Next / Finish button (right aligned)
-                    val isPrimary = when (currentStep) {
-                        0 -> true
-                        1 -> locationGranted
-                        2 -> mediaGranted
-                        3 -> true
-                        else -> true
-                    }
-
-                    val nextButtonLabel = when (currentStep) {
-                        0 -> "GET STARTED"
-                        1 -> if (locationGranted) "CONTINUE" else "SKIP FOR NOW"
-                        2 -> if (mediaGranted) "CONTINUE" else "SKIP FOR NOW"
-                        3 -> "FINISH SETUP"
-                        else -> "CONTINUE"
-                    }
-
-                    val nextButtonIcon = if (currentStep == 3) Icons.Default.Check else Icons.Default.ArrowForward
-
-                    if (isPrimary) {
-                        Button(
-                            onClick = {
-                                if (currentStep < 3) {
-                                    currentStep++
+                    val nextButtonLabel =
+                        when (currentStep) {
+                            0 -> "Get Started"
+                            1 ->
+                                if (locationGranted) {
+                                    "Continue"
                                 } else {
-                                    onComplete()
+                                    "Skip For Now"
                                 }
-                            },
-                            shape = RoundedCornerShape(4.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = accent),
-                            modifier = Modifier.height(44.dp)
-                        ) {
-                            Text(nextButtonLabel, color = Color.Black, fontWeight = FontWeight.Bold, letterSpacing = 1.sp, fontSize = 12.sp)
-                            Spacer(Modifier.width(8.dp))
-                            Icon(nextButtonIcon, null, tint = Color.Black, modifier = Modifier.size(16.dp))
+
+                            2 ->
+                                if (mediaGranted) {
+                                    "Continue"
+                                } else {
+                                    "Skip For Now"
+                                }
+
+                            3 -> "Finish Setup"
+                            else -> "Continue"
                         }
-                    } else {
-                        OutlinedButton(
-                            onClick = {
+
+                    Aw11OnboardingButton(
+                        text = nextButtonLabel,
+                        icon =
+                            if (currentStep == 3) {
+                                Icons.Default.Check
+                            } else {
+                                Icons.Default.ArrowForward
+                            },
+                        primary = true,
+                        onClick = {
+                            if (currentStep < 3) {
                                 currentStep++
-                            },
-                            shape = RoundedCornerShape(4.dp),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, accent.copy(alpha = 0.5f)),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
-                            modifier = Modifier.height(44.dp)
-                        ) {
-                            Text(nextButtonLabel, color = Color.White, fontWeight = FontWeight.Bold, letterSpacing = 1.sp, fontSize = 12.sp)
-                            Spacer(Modifier.width(8.dp))
-                            Icon(nextButtonIcon, null, tint = Color.White, modifier = Modifier.size(16.dp))
+                            } else {
+                                onComplete()
+                            }
                         }
-                    }
+                    )
                 }
             }
         }
@@ -358,41 +369,47 @@ private fun StepItem(
 
 @Composable
 private fun IntroStep(accent: Color) {
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
         Text(
             text = "WELCOME TO RETROLAUNCHER",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            color = accent,
+            color = Aw11Primary,
+            fontFamily = JetBrainsMono,
             letterSpacing = 2.sp,
-            fontSize = 20.sp
+            fontSize = 18.sp
         )
+
         Text(
-            text = "A retro-inspired automotive launcher built around navigation, vehicle data and media control.",
-            color = Color(0xFFAAAAAA),
-            fontSize = 13.sp,
-            lineHeight = 20.sp
+            text =
+                "A retro-inspired automotive launcher built around navigation, vehicle data and media control.",
+            color = Aw11Secondary,
+            fontFamily = JetBrainsMono,
+            fontSize = 10.sp,
+            lineHeight = 16.sp
         )
 
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(6.dp))
 
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
             BulletItem(
                 Icons.Default.Navigation,
                 "Integrated Navigation",
-                "Built-in map, destination search, route guidance and automatic rerouting."
+                "Built-in destination search, route guidance and automatic rerouting."
             )
 
             BulletItem(
                 Icons.Default.DirectionsCar,
                 "Vehicle Dashboard",
-                "Real-time speed, compass heading and trip information designed for an in-car display."
+                "Real-time speed, compass heading and trip information."
             )
 
             BulletItem(
                 Icons.Default.MusicNote,
                 "Media Control",
-                "View the active media source and control playback directly from the dashboard."
+                "Track information and playback controls directly from the dashboard."
             )
         }
     }
@@ -403,52 +420,36 @@ private fun LocationStep(accent: Color, isGranted: Boolean, onGrant: () -> Unit)
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text(
             text = "LOCATION & NAVIGATION",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            color = accent,
+            color = Aw11Primary,
+            fontFamily = JetBrainsMono,
             letterSpacing = 2.sp,
-            fontSize = 20.sp
+            fontSize = 18.sp
         )
+
         Text(
-            text = "RetroLauncher uses location access for navigation, vehicle speed, trip tracking and compass-related features.",
-            color = Color(0xFFAAAAAA),
-            fontSize = 13.sp,
-            lineHeight = 20.sp
+            text =
+                "RetroLauncher uses location access for navigation, vehicle speed, trip tracking and compass-related features.",
+            color = Aw11Secondary,
+            fontFamily = JetBrainsMono,
+            fontSize = 10.sp,
+            lineHeight = 16.sp
         )
 
         Spacer(Modifier.height(16.dp))
+        Aw11PermissionStatus(
+            granted = isGranted,
+            grantedText = "GPS AND LOCATION SERVICES AVAILABLE",
+            missingText = "LOCATION ACCESS IS REQUIRED"
+        )
 
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(4.dp))
-                .background(if (isGranted) Color(0xFF0F1E10) else Color(0xFF1E1010))
-                .padding(16.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Icon(
-                    imageVector = if (isGranted) Icons.Default.CheckCircle else Icons.Default.Cancel,
-                    contentDescription = null,
-                    tint = if (isGranted) Color(0xFF44AA44) else Color(0xFFDD5555),
-                    modifier = Modifier.size(24.dp)
-                )
-                Column {
-                    Text(
-                        text = if (isGranted) "Permission Granted" else "Permission Required",
-                        color = Color.White,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = if (isGranted) "GPS telemetry is active and ready." else "Telemetry is currently disabled.",
-                        color = Color(0xFF888888),
-                        fontSize = 11.sp
-                    )
-                }
-            }
+        if (!isGranted) {
+            Spacer(Modifier.height(8.dp))
+
+            Aw11OnboardingButton(
+                text = "Grant Location Access",
+                icon = Icons.Default.LocationOn,
+                onClick = onGrant
+            )
         }
 
         if (!isGranted) {
@@ -472,52 +473,37 @@ private fun MediaStep(accent: Color, isGranted: Boolean, onGrant: () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text(
             text = "MEDIA INTEGRATION",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            color = accent,
+            color = Aw11Primary,
+            fontFamily = JetBrainsMono,
             letterSpacing = 2.sp,
-            fontSize = 20.sp
+            fontSize = 18.sp
         )
+
         Text(
-            text = "To access active media sessions, display track information and provide playback controls, RetroLauncher requires notification access.",
-            color = Color(0xFFAAAAAA),
-            fontSize = 13.sp,
-            lineHeight = 20.sp
+            text =
+                "Notification access allows RetroLauncher to display active media and provide playback controls.",
+            color = Aw11Secondary,
+            fontFamily = JetBrainsMono,
+            fontSize = 10.sp,
+            lineHeight = 16.sp
         )
 
         Spacer(Modifier.height(16.dp))
 
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(4.dp))
-                .background(if (isGranted) Color(0xFF0F1E10) else Color(0xFF1E1010))
-                .padding(16.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Icon(
-                    imageVector = if (isGranted) Icons.Default.CheckCircle else Icons.Default.Cancel,
-                    contentDescription = null,
-                    tint = if (isGranted) Color(0xFF44AA44) else Color(0xFFDD5555),
-                    modifier = Modifier.size(24.dp)
-                )
-                Column {
-                    Text(
-                        text = if (isGranted) "Notification Access Granted" else "Notification Access Required",
-                        color = Color.White,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = if (isGranted) "Music player widget is connected." else "Now Playing dashboard will remain inactive.",
-                        color = Color(0xFF888888),
-                        fontSize = 11.sp
-                    )
-                }
-            }
+        Aw11PermissionStatus(
+            granted = isGranted,
+            grantedText = "MEDIA SESSION ACCESS AVAILABLE",
+            missingText = "NOTIFICATION ACCESS IS REQUIRED"
+        )
+
+        if (!isGranted) {
+            Spacer(Modifier.height(8.dp))
+
+            Aw11OnboardingButton(
+                text = "Enable Media Listener",
+                icon = Icons.Default.VolumeUp,
+                onClick = onGrant
+            )
         }
 
         if (!isGranted) {
@@ -537,48 +523,239 @@ private fun MediaStep(accent: Color, isGranted: Boolean, onGrant: () -> Unit) {
 }
 
 @Composable
-private fun FinalStep(accent: Color, onSetDefault: () -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+private fun FinalStep(
+    accent: Color,
+    onSetDefault: () -> Unit
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
         Text(
-            text = "READY FOR THE ROAD!",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            color = accent,
+            text = "SYSTEM READY",
+            color = Aw11Primary,
+            fontFamily = JetBrainsMono,
             letterSpacing = 2.sp,
-            fontSize = 20.sp
+            fontSize = 18.sp
         )
+
         Text(
-            text = "You are all set up and ready to go. You can set Open Launcher as your default home app so it launches automatically whenever you start your vehicle.",
-            color = Color(0xFFAAAAAA),
-            fontSize = 13.sp,
-            lineHeight = 20.sp
+            text =
+                "RetroLauncher is configured and ready for use. Set it as the default home application to launch directly into the dashboard.",
+            color = Aw11Secondary,
+            fontFamily = JetBrainsMono,
+            fontSize = 10.sp,
+            lineHeight = 16.sp
         )
 
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(8.dp))
 
-        Button(
-            onClick = onSetDefault,
-            shape = RoundedCornerShape(4.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E1E1E)),
-            modifier = Modifier.height(44.dp)
-        ) {
-            Icon(Icons.Default.Home, null, tint = Color.White, modifier = Modifier.size(16.dp))
-            Spacer(Modifier.width(8.dp))
-            Text("SET AS DEFAULT", color = Color.White, fontWeight = FontWeight.Bold, letterSpacing = 1.sp, fontSize = 12.sp)
-        }
+        Aw11OnboardingButton(
+            text = "Set As Default Launcher",
+            icon = Icons.Default.Home,
+            onClick = onSetDefault
+        )
     }
 }
 
 @Composable
-private fun BulletItem(icon: ImageVector, title: String, desc: String) {
+private fun Aw11OnboardingButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
+    primary: Boolean = true
+) {
+    Row(
+        modifier = modifier
+            .height(40.dp)
+            .border(
+                width = 1.dp,
+                color =
+                    if (primary) {
+                        Aw11Primary
+                    } else {
+                        Aw11Border.copy(alpha = 0.75f)
+                    }
+            )
+            .background(
+                if (primary) {
+                    Aw11Primary.copy(alpha = 0.14f)
+                } else {
+                    Color.Transparent
+                }
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center
+    ) {
+        if (icon != null) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint =
+                    if (primary) {
+                        Aw11Primary
+                    } else {
+                        Aw11Secondary
+                    },
+                modifier = Modifier.size(15.dp)
+            )
+
+            Spacer(Modifier.width(8.dp))
+        }
+
+        Text(
+            text = text.uppercase(),
+            color =
+                if (primary) {
+                    Aw11Primary
+                } else {
+                    Aw11Secondary
+                },
+            fontFamily = JetBrainsMono,
+            fontSize = 10.sp,
+            letterSpacing = 1.sp
+        )
+    }
+}
+
+@Composable
+private fun Aw11PermissionStatus(
+    granted: Boolean,
+    grantedText: String,
+    missingText: String
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(
+                width = 1.dp,
+                color =
+                    if (granted) {
+                        Aw11Primary.copy(alpha = 0.8f)
+                    } else {
+                        Aw11Border.copy(alpha = 0.75f)
+                    }
+            )
+            .background(
+                Aw11Secondary.copy(alpha = 0.04f)
+            )
+            .padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(24.dp)
+                .border(
+                    1.dp,
+                    if (granted) {
+                        Aw11Primary
+                    } else {
+                        Aw11Secondary
+                    }
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text =
+                    if (granted) {
+                        "OK"
+                    } else {
+                        "--"
+                    },
+                color =
+                    if (granted) {
+                        Aw11Primary
+                    } else {
+                        Aw11Secondary
+                    },
+                fontFamily = JetBrainsMono,
+                fontSize = 8.sp
+            )
+        }
+
+        Column {
+            Text(
+                text =
+                    if (granted) {
+                        "SYSTEM READY"
+                    } else {
+                        "ACTION REQUIRED"
+                    },
+                color =
+                    if (granted) {
+                        Aw11Primary
+                    } else {
+                        Aw11Secondary
+                    },
+                fontFamily = JetBrainsMono,
+                fontSize = 10.sp,
+                letterSpacing = 1.sp
+            )
+
+            Spacer(Modifier.height(3.dp))
+
+            Text(
+                text =
+                    if (granted) {
+                        grantedText
+                    } else {
+                        missingText
+                    },
+                color = Aw11Secondary,
+                fontFamily = JetBrainsMono,
+                fontSize = 9.sp
+            )
+        }
+    }
+}
+@Composable
+private fun BulletItem(
+    icon: ImageVector,
+    title: String,
+    desc: String
+) {
     Row(
         verticalAlignment = Alignment.Top,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Icon(icon, null, tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f), modifier = Modifier.size(18.dp).padding(top = 2.dp))
+        Box(
+            modifier = Modifier
+                .size(28.dp)
+                .border(
+                    1.dp,
+                    Aw11Border.copy(alpha = 0.75f)
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = Aw11Secondary,
+                modifier = Modifier.size(15.dp)
+            )
+        }
+
         Column {
-            Text(title, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp)
-            Text(desc, color = Color(0xFF888888), fontSize = 11.sp, lineHeight = 16.sp)
+            Text(
+                text = title.uppercase(),
+                color = Aw11Primary,
+                fontFamily = JetBrainsMono,
+                fontSize = 10.sp,
+                letterSpacing = 0.8.sp
+            )
+
+            Spacer(Modifier.height(2.dp))
+
+            Text(
+                text = desc,
+                color = Aw11Secondary,
+                fontFamily = JetBrainsMono,
+                fontSize = 9.sp,
+                lineHeight = 14.sp
+            )
         }
     }
 }

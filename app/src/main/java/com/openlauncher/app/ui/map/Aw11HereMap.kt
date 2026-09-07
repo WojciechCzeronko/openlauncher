@@ -1737,7 +1737,9 @@ fun Aw11HereMap(
                 onQueryChange = { query ->
                     state.searchQuery = query
                 },
-                onSearch = {
+                onSearch = { queryText ->
+
+                    state.searchQuery = queryText
                     searchPinRenderer.clear()
                     state.startSearch()
 
@@ -1747,7 +1749,7 @@ fun Aw11HereMap(
                     )
 
                     searchController.search(
-                        queryText = state.searchQuery,
+                        queryText = queryText,
                         center = center,
                         onSuccess = { results ->
                             val visibleResults =
