@@ -212,6 +212,16 @@ fun Aw11HereMap(
         Animatable(1f)
     }
 
+    val isMapResumed = remember {
+        mutableStateOf(
+            lifecycleOwner.lifecycle.currentState
+                .isAtLeast(Lifecycle.State.RESUMED)
+        )
+    }
+
+    val snapMarkerOnResume = remember {
+        mutableStateOf(false)
+    }
     val routingController = remember {
         HereRoutingController()
     }
@@ -838,10 +848,16 @@ fun Aw11HereMap(
             LifecycleEventObserver { _, event ->
                 when (event) {
                     Lifecycle.Event.ON_RESUME -> {
+                        if (!isMapResumed.value) {
+                            snapMarkerOnResume.value = true
+                        }
+
+                        isMapResumed.value = true
                         mapView.onResume()
                     }
 
                     Lifecycle.Event.ON_PAUSE -> {
+                        isMapResumed.value = false
                         mapView.onPause()
                     }
 
@@ -894,7 +910,8 @@ fun Aw11HereMap(
         state.destination,
         settings.autoReroute,
         settings.offRouteThresholdMeters,
-        settings.rerouteDelaySeconds
+        settings.rerouteDelaySeconds,
+        isMapResumed.value
     ) {
         val currentLocation =
             navigationLocation ?: return@LaunchedEffect
@@ -902,6 +919,9 @@ fun Aw11HereMap(
         val marker =
             carMarker.value ?: return@LaunchedEffect
 
+        if (!isMapResumed.value) {
+            return@LaunchedEffect
+        }
         val rawCoordinates = GeoCoordinates(
             currentLocation.latitude,
             currentLocation.longitude
@@ -1344,6 +1364,78 @@ fun Aw11HereMap(
 
         val startCameraDistanceMeters =
             animationState.cameraDistanceMeters
+
+        if (snapMarkerOnResume.value) {
+            snapMarkerOnResume.value = false
+
+            animationProgress.snapTo(1f)
+
+            marker.coordinates =
+                displayCoordinates
+
+            marker.bearing =
+                targetVehicleBearing.toDouble()
+
+            if (
+                shouldSnapToRoute &&
+                activeRoute != null
+            ) {
+                visualRouteProgressTracker
+                    .update(displayCoordinates)
+                    ?.let { visualProgress ->
+                        routeRenderer.updateRouteProgress(
+                            route = activeRoute,
+                            matchedSegmentIndex =
+                                visualProgress.matchedSegmentIndex,
+                            matchedCoordinates =
+                                visualProgress.matchedCoordinates
+                        )
+                    }
+
+                animationState.lastVisualRouteUpdateMs =
+                    now
+            }
+
+            if (
+                state.isFollowing &&
+                !state.isRecentering
+            ) {
+                cameraController.follow(
+                    coordinates =
+                        cameraTargetCoordinates,
+                    bearingDegrees =
+                        targetCameraBearing,
+                    zoomDistanceMeters =
+                        requestedCameraDistanceMeters
+                )
+            }
+
+            animationState.latitude =
+                displayCoordinates.latitude
+
+            animationState.longitude =
+                displayCoordinates.longitude
+
+            animationState.cameraLatitude =
+                cameraTargetCoordinates.latitude
+
+            animationState.cameraLongitude =
+                cameraTargetCoordinates.longitude
+
+            animationState.bearing =
+                targetVehicleBearing
+
+            animationState.cameraBearing =
+                targetCameraBearing
+
+            animationState.cameraDistanceMeters =
+                requestedCameraDistanceMeters
+
+            animationState.lastLocationUpdateMs =
+                now
+
+            return@LaunchedEffect
+        }
 
         animationProgress.snapTo(0f)
 
