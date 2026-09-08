@@ -28,7 +28,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
@@ -39,8 +38,6 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.VolumeUp
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -57,12 +54,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import com.openlauncher.app.BuildConfig
 import com.openlauncher.app.ui.theme.Aw11Background
 import com.openlauncher.app.ui.theme.Aw11Border
 import com.openlauncher.app.ui.theme.Aw11Primary
@@ -178,7 +175,7 @@ fun OnboardingScreen(
                 }
 
                 Text(
-                    text = "v0.0.5",
+                    text = "v${BuildConfig.VERSION_NAME}",
                     color = Aw11Secondary.copy(alpha = 0.35f),
                     fontSize = 9.sp,
                     letterSpacing = 1.sp
@@ -215,7 +212,7 @@ fun OnboardingScreen(
                         targetState = currentStep,
                         transitionSpec = {
                             fadeIn() + slideInHorizontally { it / 5 } togetherWith
-                            fadeOut() + slideOutHorizontally { -it / 5 }
+                                    fadeOut() + slideOutHorizontally { -it / 5 }
                         },
                         label = "step_transition"
                     ) { step ->
@@ -229,11 +226,13 @@ fun OnboardingScreen(
                                     )
                                 )
                             })
+
                             2 -> MediaStep(accent, mediaGranted, onGrant = {
                                 runCatching {
                                     context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
                                 }
                             })
+
                             3 -> FinalStep(accent, onSetDefault = {
                                 runCatching {
                                     context.startActivity(Intent(Settings.ACTION_HOME_SETTINGS))
@@ -451,20 +450,6 @@ private fun LocationStep(accent: Color, isGranted: Boolean, onGrant: () -> Unit)
                 onClick = onGrant
             )
         }
-
-        if (!isGranted) {
-            Spacer(Modifier.height(16.dp))
-            Button(
-                onClick = onGrant,
-                shape = RoundedCornerShape(4.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = accent),
-                modifier = Modifier.height(44.dp)
-            ) {
-                Icon(Icons.Default.LocationOn, null, tint = Color.Black, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(8.dp))
-                Text("GRANT ACCESS", color = Color.Black, fontWeight = FontWeight.Bold, letterSpacing = 1.sp, fontSize = 12.sp)
-            }
-        }
     }
 }
 
@@ -504,20 +489,6 @@ private fun MediaStep(accent: Color, isGranted: Boolean, onGrant: () -> Unit) {
                 icon = Icons.Default.VolumeUp,
                 onClick = onGrant
             )
-        }
-
-        if (!isGranted) {
-            Spacer(Modifier.height(16.dp))
-            Button(
-                onClick = onGrant,
-                shape = RoundedCornerShape(4.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = accent),
-                modifier = Modifier.height(44.dp)
-            ) {
-                Icon(Icons.Default.VolumeUp, null, tint = Color.Black, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(8.dp))
-                Text("ENABLE MEDIA LISTENER", color = Color.Black, fontWeight = FontWeight.Bold, letterSpacing = 1.sp, fontSize = 12.sp)
-            }
         }
     }
 }
@@ -711,6 +682,7 @@ private fun Aw11PermissionStatus(
         }
     }
 }
+
 @Composable
 private fun BulletItem(
     icon: ImageVector,
