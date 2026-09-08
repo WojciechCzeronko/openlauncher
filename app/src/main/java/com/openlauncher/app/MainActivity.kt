@@ -1,8 +1,11 @@
 package com.openlauncher.app
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -34,6 +37,8 @@ import com.here.sdk.core.engine.SDKOptions
 import com.here.sdk.core.errors.InstantiationErrorException
 import com.openlauncher.app.data.GradientDirection
 import com.openlauncher.app.model.NavDestination
+import com.openlauncher.app.service.MediaReturnOverlayService
+import com.openlauncher.app.service.NavigationForegroundService
 import com.openlauncher.app.ui.screen.AppLibraryScreen
 import com.openlauncher.app.ui.screen.HomeScreen
 import com.openlauncher.app.ui.screen.OnboardingScreen
@@ -46,7 +51,20 @@ import com.openlauncher.app.viewmodel.LauncherViewModel
 class MainActivity : ComponentActivity() {
 
     private val vm: LauncherViewModel by viewModels()
+    private var pendingMediaPackage: String? = null
+    private var keepLocationInBackground = false
 
+    private val overlayPermissionLauncher =
+        registerForActivityResult(
+            ActivityResultContracts.StartActivityForResult()
+        ) {
+            val mediaPackage = pendingMediaPackage
+            pendingMediaPackage = null
+
+            if (!mediaPackage.isNullOrBlank()) {
+                launchMediaWithReturnOverlay(mediaPackage)
+            }
+        }
     private val locationPermissions = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { granted ->
@@ -326,7 +344,9 @@ class MainActivity : ComponentActivity() {
                                             ?.packageName
 
                                     if (!packageName.isNullOrBlank()) {
-                                        vm.launchApp(packageName)
+                                        openMediaWithReturnOverlay(
+                                            packageName
+                                        )
                                     }
                                 },
                                 onApps = {
@@ -357,13 +377,33 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+
+        keepLocationInBackground = false
+
+        stopService(
+            Intent(
+                this,
+                MediaReturnOverlayService::class.java
+            )
+        )
+
+        stopService(
+            Intent(
+                this,
+                NavigationForegroundService::class.java
+            )
+        )
+
         vm.refreshConnectivity()
         vm.refreshMedia()
     }
 
     override fun onStop() {
         super.onStop()
-        vm.stopLocationUpdates()
+
+        if (!keepLocationInBackground) {
+            vm.stopLocationUpdates()
+        }
     }
 
     override fun onStart() {
@@ -400,5 +440,61 @@ class MainActivity : ComponentActivity() {
                 "HERE SDK initialization failed: ${e.error.name}"
             )
         }
+    }
+
+    private fun openMediaWithReturnOverlay(
+        mediaPackage: String
+    ) {
+        if (Settings.canDrawOverlays(this)) {
+            launchMediaWithReturnOverlay(mediaPackage)
+            return
+        }
+
+        pendingMediaPackage = mediaPackage
+
+        val permissionIntent =
+            Intent(
+                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                Uri.parse(
+                    "package:${this.packageName}"
+                )
+            )
+
+        runCatching {
+            overlayPermissionLauncher.launch(
+                permissionIntent
+            )
+        }.onFailure {
+            overlayPermissionLauncher.launch(
+                Intent(
+                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION
+                )
+            )
+        }
+    }
+
+    private fun launchMediaWithReturnOverlay(
+        mediaPackage: String
+    ) {
+        keepLocationInBackground = true
+
+        ContextCompat.startForegroundService(
+            this,
+            Intent(
+                this,
+                NavigationForegroundService::class.java
+            )
+        )
+
+        if (Settings.canDrawOverlays(this)) {
+            startService(
+                Intent(
+                    this,
+                    MediaReturnOverlayService::class.java
+                )
+            )
+        }
+
+        vm.launchApp(mediaPackage)
     }
 }

@@ -83,6 +83,13 @@ HERE_ACCESS_KEY_SECRET
 
 ./gradlew assembleDebug
 
+## APK availability
+
+A prebuilt APK is not included in this release.
+
+RetroLauncher currently requires HERE SDK credentials for navigation.
+To avoid distributing shared API credentials, users should build the application from source using their own HERE credentials.
+
 ## Current limitations / roadmap
 
 - AW11 styling for App Library

@@ -120,6 +120,13 @@ Route progress and navigation behavior have also been verified during real drivi
 
 These areas are planned for future releases.
 
+## APK availability
+
+A prebuilt APK is not included in this release.
+
+RetroLauncher currently requires HERE SDK credentials for navigation.
+To avoid distributing shared API credentials, users should build the application from source using their own HERE credentials.
+
 ## Planned Next Steps
 
 - AW11 redesign of the App Library

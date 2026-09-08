@@ -40,6 +40,12 @@
         android:name="android.permission.QUERY_ALL_PACKAGES"
         tools:ignore="QueryAllPackagesPermission" />
 
+    <!-- Floating return-to-navigation control -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <!-- Keep navigation/location active while an external app is open -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+
     <!-- Required on API 30+ so PackageManager returns ALL launcher apps -->
     <queries>
         <intent>
@@ -88,6 +94,13 @@
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
         </service>
+        <service
+            android:name=".service.MediaReturnOverlayService"
+            android:exported="false" />
+        <service
+            android:name=".service.NavigationForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="location" />
 
     </application>
 
