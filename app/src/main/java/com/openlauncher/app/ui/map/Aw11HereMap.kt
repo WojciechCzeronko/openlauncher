@@ -96,7 +96,9 @@ private const val ARRIVAL_AUTO_CLOSE_DELAY_MS = 20_000L
 private const val VISUAL_ROUTE_UPDATE_INTERVAL_MS = 100L
 private const val POI_PICK_AREA_DP = 40
 
-private const val MAP_PIXEL_SIZE_PX = 4f
+private const val MAP_PIXEL_BASE_SIZE_PX = 4f
+private const val MAP_PIXEL_REFERENCE_WIDTH_PX = 3200f
+private const val MAP_PIXEL_MIN_SIZE_PX = 2f
 
 private const val MAP_PIXEL_SHADER = """
     uniform shader content;
@@ -164,9 +166,25 @@ fun Aw11HereMap(
                         MAP_PIXEL_SHADER
                     )
 
+                val displayWidthPx =
+                    context.resources.displayMetrics
+                        .widthPixels
+                        .toFloat()
+
+                val mapPixelSizePx =
+                    (
+                            MAP_PIXEL_BASE_SIZE_PX *
+                                    displayWidthPx /
+                                    MAP_PIXEL_REFERENCE_WIDTH_PX
+                            )
+                        .coerceIn(
+                            MAP_PIXEL_MIN_SIZE_PX,
+                            MAP_PIXEL_BASE_SIZE_PX
+                        )
+
                 shader.setFloatUniform(
                     "pixelSize",
-                    MAP_PIXEL_SIZE_PX
+                    mapPixelSizePx
                 )
 
                 setRenderEffect(

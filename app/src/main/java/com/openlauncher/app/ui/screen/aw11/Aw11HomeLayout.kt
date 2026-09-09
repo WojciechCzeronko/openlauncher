@@ -20,6 +20,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.unit.dp
 import com.openlauncher.app.data.AppSettings
 import com.openlauncher.app.model.NowPlayingState
@@ -165,6 +166,7 @@ internal fun Aw11HomeLayout(
             modifier = Modifier
                 .weight(0.55f)
                 .fillMaxHeight()
+                .clipToBounds()
                 .border(
                     1.dp,
                     Aw11Border.copy(

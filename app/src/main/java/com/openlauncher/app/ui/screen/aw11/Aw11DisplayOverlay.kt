@@ -30,7 +30,7 @@ internal fun Aw11DisplayOverlay(
     vignetteAlpha: Float = 0.24f,
     flickerAlpha: Float = 0.06f,
     noiseAlpha: Float = 0.05f,
-    pixelMaskAlpha: Float = 0.085f
+    pixelMaskAlpha: Float = 0.11f
 ) {
     val infiniteTransition =
         rememberInfiniteTransition()
