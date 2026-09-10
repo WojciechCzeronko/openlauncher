@@ -41,7 +41,7 @@ import com.here.sdk.mapview.RenderSize
 import com.openlauncher.app.R
 import com.openlauncher.app.data.AppSettings
 import com.openlauncher.app.ui.map.components.Aw11DemoControls
-import com.openlauncher.app.ui.map.components.Aw11ManeuverInfo
+import com.openlauncher.app.ui.map.components.Aw11GuidanceHeader
 import com.openlauncher.app.ui.map.components.Aw11RecenterButton
 import com.openlauncher.app.ui.map.components.Aw11RouteInfo
 import com.openlauncher.app.ui.map.components.Aw11SearchPanel
@@ -79,7 +79,6 @@ private const val LOOK_AHEAD_MIN_SPEED_MPS = 1.0f
 private const val DEFAULT_CAMERA_DISTANCE_METERS = 500.0
 private const val ZOOM_RESPONSE_FACTOR = 0.25
 private const val DEMO_UPDATE_INTERVAL_MS = 250L
-private const val GUIDANCE_RESERVED_LEFT_DP = 216
 private const val SEARCH_RESULTS_RESERVED_LEFT_DP = 260
 private const val SEARCH_RESULTS_PADDING_DP = 12
 private const val LOOK_AHEAD_SMOOTHING_TIME_MS = 300.0
@@ -1746,17 +1745,7 @@ fun Aw11HereMap(
         )
     }
 
-    val guidanceReservedLeftPx =
-        if (state.activeRoute != null) {
-            with(density) {
-                GUIDANCE_RESERVED_LEFT_DP
-                    .dp
-                    .toPx()
-                    .toDouble()
-            }
-        } else {
-            0.0
-        }
+    val guidanceReservedLeftPx = 0.0
     // Set principal point
     LaunchedEffect(
         state.mapSize.width,
@@ -2091,51 +2080,76 @@ fun Aw11HereMap(
                 },
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(10.dp)
+                    .padding(
+                        top = 124.dp,
+                        end = 10.dp
+                    )
             )
         }
 
-        maneuverGuidance.value
+
+        //Eta widget
+        // Combined ETA + turn-by-turn guidance header
+        state.activeRoute
             ?.takeIf {
                 !state.isSearchOpen &&
                         !state.isArrived
             }
-            ?.let { guidance ->
-                Aw11ManeuverInfo(
-                    guidance = guidance,
+            ?.let { route ->
+
+                val progress =
+                    state.routeProgress
+
+                Aw11GuidanceHeader(
+                    remainingDistanceMeters =
+                        progress
+                            ?.remainingDistanceMeters
+                            ?: route.lengthInMeters,
+                    remainingDurationSeconds =
+                        progress
+                            ?.remainingDurationSeconds
+                            ?: route.duration.seconds,
+                    guidance =
+                        maneuverGuidance.value,
+                    onEndGuidance =
+                        endGuidance,
                     modifier = Modifier
                         .align(
-                            Alignment.TopStart
+                            Alignment.TopCenter
                         )
                         .padding(
-                            start = 10.dp, top = 10.dp
+                            horizontal = 10.dp,
+                            vertical = 10.dp
                         )
                 )
             }
 
-        //Eta widget
-        state.activeRoute?.let { route ->
-            val progress =
-                state.routeProgress
+        if (state.isArrived) {
+            state.activeRoute?.let { route ->
 
-            Aw11RouteInfo(
-                destinationTitle =
-                    state.destinationTitle,
-                distanceMeters =
-                    progress?.remainingDistanceMeters
-                        ?: route.lengthInMeters,
-                durationSeconds =
-                    progress?.remainingDurationSeconds
-                        ?: route.duration.seconds,
-                isArrived =
-                    state.isArrived,
-                onEndGuidance = endGuidance,
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(
-                        start = 10.dp, bottom = 10.dp
-                    )
-            )
+                val progress =
+                    state.routeProgress
+
+                Aw11RouteInfo(
+                    destinationTitle =
+                        state.destinationTitle,
+                    distanceMeters =
+                        progress
+                            ?.remainingDistanceMeters
+                            ?: route.lengthInMeters,
+                    durationSeconds =
+                        progress
+                            ?.remainingDurationSeconds
+                            ?: route.duration.seconds,
+                    isArrived = true,
+                    onEndGuidance =
+                        endGuidance,
+                    modifier = Modifier
+                        .align(
+                            Alignment.Center
+                        )
+                )
+            }
         }
 
         Aw11RecenterButton(

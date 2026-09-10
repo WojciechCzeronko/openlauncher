@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
@@ -21,7 +22,6 @@ import androidx.compose.ui.unit.sp
 import com.openlauncher.app.ui.theme.Aw11Background
 import com.openlauncher.app.ui.theme.Aw11Primary
 import com.openlauncher.app.ui.theme.Aw11Secondary
-import com.openlauncher.app.ui.theme.Aw11Warning
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
@@ -106,23 +106,36 @@ fun Aw11RouteInfo(
 
             Box(
                 modifier = Modifier
+                    .height(44.dp)
                     .border(
                         width = 1.dp,
-                        color = Aw11Warning
+                        color = Aw11Primary
                     )
                     .clickable(
                         onClick = onEndGuidance
                     )
                     .padding(
-                        horizontal = 10.dp,
-                        vertical = 4.dp
-                    )
+                        horizontal = 10.dp
+                    ),
+                contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = "END",
-                    color = Aw11Warning,
-                    fontSize = 12.sp
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(7.dp)
+                ) {
+                    Text(
+                        text = "✖",
+                        color = Aw11Primary,
+                        fontSize = 16.sp
+                    )
+
+                    Text(
+                        text = "CLOSE",
+                        color = Aw11Primary,
+                        fontSize = 11.sp,
+                        letterSpacing = 0.8.sp
+                    )
+                }
             }
         }
 

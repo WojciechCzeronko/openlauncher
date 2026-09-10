@@ -24,8 +24,8 @@ import androidx.compose.ui.text.style.TextGeometricTransform
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.openlauncher.app.ui.theme.Aw11Border
-import com.openlauncher.app.ui.theme.Aw11DisplayGlow
 import com.openlauncher.app.ui.theme.Aw11Dim
+import com.openlauncher.app.ui.theme.Aw11DisplayGlow
 import com.openlauncher.app.ui.theme.Aw11Primary
 import com.openlauncher.app.ui.theme.Aw11Secondary
 import com.openlauncher.app.ui.theme.Handjet
@@ -157,10 +157,6 @@ fun Aw11ControlPanel(
                 label = "MEDIA",
                 enabled = mediaAvailable,
                 onClick = onMedia
-            )
-
-            Spacer(
-                Modifier.height(6.dp)
             )
 
             Aw11ControlButton(
