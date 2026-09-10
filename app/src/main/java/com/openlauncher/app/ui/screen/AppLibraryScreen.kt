@@ -29,10 +29,13 @@ import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
 import com.openlauncher.app.model.AppInfo
 import com.openlauncher.app.ui.theme.LocalDayMode
+import com.openlauncher.app.ui.theme.Aw11Background
+import com.openlauncher.app.ui.theme.Aw11Border
+import com.openlauncher.app.ui.theme.Aw11Dim
+import com.openlauncher.app.ui.theme.Aw11Primary
+import com.openlauncher.app.ui.theme.Aw11Secondary
 
 private enum class AppFilter { USER, SYSTEM, ALL }
-
-private val TILE_RADIUS = RoundedCornerShape(4.dp)
 
 @Composable
 fun AppLibraryScreen(
@@ -48,14 +51,13 @@ fun AppLibraryScreen(
     onCarPlaySelect: (AppInfo) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val isDayMode     = LocalDayMode.current
-    val screenBg      = MaterialTheme.colorScheme.background
-    val headerColor   = MaterialTheme.colorScheme.onBackground
-    val placeholderC  = if (isDayMode) Color(0xFF999999) else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
-    val dividerColor  = if (isDayMode) Color(0xFFCCCCCC) else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f)
-    val emptyColor    = if (isDayMode) Color(0xFF888888) else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-    val fieldTextC    = MaterialTheme.colorScheme.onBackground
-    val fieldBorderU  = if (isDayMode) Color(0xFFCCCCCC) else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f)
+    val screenBg = Aw11Background
+    val headerColor = Aw11Primary
+    val placeholderC = Aw11Dim
+    val dividerColor = Aw11Border.copy(alpha = 0.45f)
+    val emptyColor = Aw11Secondary
+    val fieldTextC = Aw11Primary
+    val fieldBorderU = Aw11Border.copy(alpha = 0.65f)
 
     val anyPickerMode = isPickerMode || isCarPlayPickerMode
     var query     by remember { mutableStateOf("") }
@@ -74,83 +76,183 @@ fun AppLibraryScreen(
     }
 
     Column(modifier = modifier.fillMaxSize().background(screenBg)) {
-        // ── Header ─────────────────────────────────────────────────────────────
-        Row(
+        // ── AW11 header ─────────────────────────────────────────────
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(
+                    horizontal = 14.dp,
+                    vertical = 10.dp
+                )
         ) {
-            Text(
-                text          = when {
-                    isCarPlayPickerMode -> carPlayPickerLabel
-                    anyPickerMode       -> "CHOOSE APP"
-                    else                -> "APPS"
-                },
-                style         = MaterialTheme.typography.titleLarge,
-                color         = if (anyPickerMode) accent else headerColor,
-                letterSpacing = 3.sp,
-                fontSize      = 14.sp
-            )
-            if (!anyPickerMode) {
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = when {
+                        isCarPlayPickerMode -> carPlayPickerLabel
+                        anyPickerMode -> "CHOOSE APP"
+                        else -> "APP LIBRARY"
+                    },
+                    color = headerColor,
+                    fontSize = 14.sp,
+                    letterSpacing = 2.sp
+                )
+
+                Spacer(Modifier.weight(1f))
+
+                Text(
+                    text = "${filtered.size.toString().padStart(2, '0')} ENTRIES",
+                    color = Aw11Secondary,
+                    fontSize = 8.sp,
+                    letterSpacing = 1.sp
+                )
+            }
+
+            Spacer(Modifier.height(10.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement =
+                    Arrangement.spacedBy(6.dp)
+            ) {
+
+                if (!anyPickerMode) {
                     AppFilter.entries.forEach { filter ->
-                        FilterChip(
-                            selected = appFilter == filter,
-                            onClick  = { appFilter = filter },
-                            label    = {
-                                Text(
-                                    when (filter) {
-                                        AppFilter.USER   -> "Installed"
-                                        AppFilter.SYSTEM -> "System"
-                                        AppFilter.ALL    -> "All"
-                                    },
-                                    fontSize = 9.sp,
-                                    letterSpacing = 0.5.sp
+
+                        val selected =
+                            appFilter == filter
+
+                        Box(
+                            modifier = Modifier
+                                .height(34.dp)
+                                .border(
+                                    width = 1.dp,
+                                    color =
+                                        if (selected) {
+                                            Aw11Primary
+                                        } else {
+                                            fieldBorderU
+                                        }
                                 )
-                            },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = accent,
-                                selectedLabelColor     = Color.Black,
-                                labelColor             = placeholderC
+                                .clickable {
+                                    appFilter = filter
+                                }
+                                .padding(
+                                    horizontal = 14.dp
+                                ),
+                            contentAlignment =
+                                Alignment.Center
+                        ) {
+                            Text(
+                                text = when (filter) {
+                                    AppFilter.USER -> "USER"
+                                    AppFilter.SYSTEM -> "SYSTEM"
+                                    AppFilter.ALL -> "ALL"
+                                },
+                                color =
+                                    if (selected) {
+                                        Aw11Primary
+                                    } else {
+                                        Aw11Secondary
+                                    },
+                                fontSize = 9.sp,
+                                letterSpacing = 1.sp
                             )
+                        }
+                    }
+                }
+
+                Spacer(Modifier.weight(1f))
+
+                var searchFocused by remember {
+                    mutableStateOf(false)
+                }
+
+                Box(
+                    modifier = Modifier
+                        .width(230.dp)
+                        .height(34.dp)
+                        .border(
+                            width = 1.dp,
+                            color =
+                                if (searchFocused) {
+                                    Aw11Primary
+                                } else {
+                                    fieldBorderU
+                                }
+                        )
+                        .padding(
+                            horizontal = 10.dp
+                        ),
+                    contentAlignment =
+                        Alignment.CenterStart
+                ) {
+                    Row(
+                        verticalAlignment =
+                            Alignment.CenterVertically,
+                        horizontalArrangement =
+                            Arrangement.spacedBy(7.dp)
+                    ) {
+                        Icon(
+                            imageVector =
+                                Icons.Default.Search,
+                            contentDescription = null,
+                            tint =
+                                if (searchFocused) {
+                                    Aw11Primary
+                                } else {
+                                    Aw11Secondary
+                                },
+                            modifier =
+                                Modifier.size(14.dp)
+                        )
+
+                        BasicTextField(
+                            value = query,
+                            onValueChange = {
+                                query = it
+                            },
+                            singleLine = true,
+                            textStyle = TextStyle(
+                                color = fieldTextC,
+                                fontSize = 11.sp,
+                                letterSpacing = 0.5.sp
+                            ),
+                            cursorBrush =
+                                SolidColor(Aw11Primary),
+                            modifier = Modifier
+                                .weight(1f)
+                                .onFocusChanged {
+                                    searchFocused =
+                                        it.isFocused
+                                },
+                            decorationBox = { inner ->
+                                Box {
+                                    if (query.isEmpty()) {
+                                        Text(
+                                            text = "SEARCH...",
+                                            color = placeholderC,
+                                            fontSize = 10.sp,
+                                            letterSpacing = 1.sp
+                                        )
+                                    }
+
+                                    inner()
+                                }
+                            }
                         )
                     }
                 }
             }
-            Spacer(Modifier.weight(1f))
-            var searchFocused by remember { mutableStateOf(false) }
-            Box(
-                contentAlignment = Alignment.CenterStart,
-                modifier = Modifier
-                    .width(200.dp)
-                    .height(36.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .border(1.dp, if (searchFocused) accent else fieldBorderU, RoundedCornerShape(4.dp))
-                    .padding(horizontal = 10.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Icon(Icons.Default.Search, null, tint = placeholderC, modifier = Modifier.size(14.dp))
-                    BasicTextField(
-                        value         = query,
-                        onValueChange = { query = it },
-                        singleLine    = true,
-                        textStyle     = TextStyle(color = fieldTextC, fontSize = 13.sp),
-                        cursorBrush   = SolidColor(accent),
-                        modifier      = Modifier
-                            .weight(1f)
-                            .onFocusChanged { searchFocused = it.isFocused },
-                        decorationBox = { inner ->
-                            Box {
-                                if (query.isEmpty()) Text("Search…", color = placeholderC, fontSize = 13.sp)
-                                inner()
-                            }
-                        }
-                    )
-                }
-            }
         }
+
+        HorizontalDivider(
+            color = dividerColor
+        )
 
         HorizontalDivider(color = dividerColor)
 
@@ -170,11 +272,11 @@ fun AppLibraryScreen(
 
         // ── App grid ────────────────────────────────────────────────────────────
         LazyVerticalGrid(
-            columns               = GridCells.Fixed(6),
-            contentPadding        = PaddingValues(6.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalArrangement   = Arrangement.spacedBy(4.dp),
-            modifier              = Modifier.fillMaxSize()
+            columns = GridCells.Fixed(5),
+            contentPadding = PaddingValues(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.fillMaxSize()
         ) {
             items(filtered, key = { it.packageName }) { app ->
                 AppTile(
@@ -199,44 +301,74 @@ private fun AppTile(
     accent: Color,
     onClick: () -> Unit
 ) {
-    val isDayMode  = LocalDayMode.current
-    val tileBg     = if (isDayMode) Color(0xFFFFFFFF) else Color(0xFF0B0B0B)
-    val tileBorder = if (isDayMode) Color(0xFFCCCCCC) else Color(0xFF1A1A1A)
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
         modifier = Modifier
-            .aspectRatio(1f)
-            .clip(TILE_RADIUS)
-            .background(tileBg)
-            .border(1.dp, tileBorder, TILE_RADIUS)
+            .aspectRatio(1.35f)
+            .background(Aw11Background)
+            .border(
+                width = 1.dp,
+                color = Aw11Border.copy(alpha = 0.55f)
+            )
             .clickable(onClick = onClick)
-            .padding(7.dp)
+            .padding(
+                horizontal = 8.dp,
+                vertical = 7.dp
+            )
     ) {
         val bmp = remember(app.packageName) {
-            try { app.icon.toBitmap(80, 80) } catch (_: Exception) { null }
-        }
-        if (bmp != null) {
-            androidx.compose.foundation.Image(
-                painter            = BitmapPainter(bmp.asImageBitmap()),
-                contentDescription = app.appName,
-                modifier           = Modifier.size(40.dp)
-            )
-        } else {
-            Box(Modifier.size(40.dp), contentAlignment = Alignment.Center) {
-                Text(app.appName.take(1).uppercase(), color = accent, fontSize = 18.sp)
+            try {
+                app.icon.toBitmap(80, 80)
+            } catch (_: Exception) {
+                null
             }
         }
-        Spacer(Modifier.height(4.dp))
+
+        if (bmp != null) {
+            androidx.compose.foundation.Image(
+                painter =
+                    BitmapPainter(
+                        bmp.asImageBitmap()
+                    ),
+                contentDescription =
+                    app.appName,
+                modifier =
+                    Modifier.size(44.dp)
+            )
+        } else {
+            Box(
+                modifier =
+                    Modifier.size(44.dp),
+                contentAlignment =
+                    Alignment.Center
+            ) {
+                Text(
+                    text =
+                        app.appName
+                            .take(1)
+                            .uppercase(),
+                    color = accent,
+                    fontSize = 18.sp
+                )
+            }
+        }
+
+        Spacer(
+            Modifier.height(6.dp)
+        )
+
         Text(
-            text          = app.appName.uppercase(),
-            style         = MaterialTheme.typography.labelSmall,
-            color         = if (isDayMode) Color(0xFF666666) else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-            maxLines      = 1,
-            overflow      = TextOverflow.Ellipsis,
-            textAlign     = TextAlign.Center,
-            letterSpacing = 1.sp,
-            fontSize      = 8.sp
+            text =
+                app.appName.uppercase(),
+            color = Aw11Primary,
+            maxLines = 1,
+            overflow =
+                TextOverflow.Ellipsis,
+            textAlign =
+                TextAlign.Center,
+            letterSpacing = 0.8.sp,
+            fontSize = 10.sp
         )
     }
 }
