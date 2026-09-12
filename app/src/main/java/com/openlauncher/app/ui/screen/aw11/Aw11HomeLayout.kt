@@ -49,6 +49,7 @@ internal fun Aw11HomeLayout(
     onPrev: () -> Unit,
     onPlayPause: () -> Unit,
     onNext: () -> Unit,
+    onOpenMedia: () -> Unit,
     openSearchRequestId: Int,
     modifier: Modifier = Modifier
 ) {
@@ -223,6 +224,7 @@ internal fun Aw11HomeLayout(
                 onPrev = onPrev,
                 onPlayPause = onPlayPause,
                 onNext = onNext,
+                onOpenMedia = onOpenMedia,
                 modifier = Modifier.weight(0.36f)
             )
 

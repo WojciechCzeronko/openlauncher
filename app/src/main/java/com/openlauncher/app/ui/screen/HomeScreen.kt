@@ -19,6 +19,7 @@ fun HomeScreen(
     onPlayPause: () -> Unit,
     onNext: () -> Unit,
     onPrev: () -> Unit,
+    onOpenMedia: () -> Unit,
     openSearchRequestId: Int,
     modifier: Modifier = Modifier
 ) {
@@ -34,6 +35,7 @@ fun HomeScreen(
         onPrev = onPrev,
         onPlayPause = onPlayPause,
         onNext = onNext,
+        onOpenMedia = onOpenMedia,
         openSearchRequestId = openSearchRequestId,
         modifier = modifier
     )

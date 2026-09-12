@@ -230,6 +230,18 @@ class MainActivity : ComponentActivity() {
                                         onPlayPause = vm::playPause,
                                         onNext = vm::skipNext,
                                         onPrev = vm::skipPrev,
+                                        onOpenMedia = {
+                                            val packageName =
+                                                nowPlaying
+                                                    ?.controller
+                                                    ?.packageName
+
+                                            if (!packageName.isNullOrBlank()) {
+                                                openMediaWithReturnOverlay(
+                                                    packageName
+                                                )
+                                            }
+                                        },
                                         openSearchRequestId = searchOpenRequestId,
                                         modifier = Modifier.fillMaxSize()
                                     )
@@ -491,7 +503,12 @@ class MainActivity : ComponentActivity() {
                 Intent(
                     this,
                     MediaReturnOverlayService::class.java
-                )
+                ).apply {
+                    putExtra(
+                        MediaReturnOverlayService.EXTRA_MEDIA_PACKAGE,
+                        mediaPackage
+                    )
+                }
             )
         }
 

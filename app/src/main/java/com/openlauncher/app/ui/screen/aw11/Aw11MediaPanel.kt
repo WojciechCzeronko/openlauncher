@@ -62,6 +62,7 @@ internal fun Aw11MediaPanel(
     onPrev: () -> Unit,
     onPlayPause: () -> Unit,
     onNext: () -> Unit,
+    onOpenMedia: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val mediaServiceConnected by
@@ -294,6 +295,9 @@ internal fun Aw11MediaPanel(
                                             width = 1.dp,
                                             color = Aw11Border.copy(alpha = 0.45f)
                                         )
+                                        .clickable {
+                                            onOpenMedia()
+                                        }
                                 )
                             }
                         }
